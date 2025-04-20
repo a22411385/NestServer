@@ -1,31 +1,10 @@
 import { 職業種類 } from "src/struct";
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, Index } from "typeorm";
-@Entity()
-export class AccountORM {
-
-    @PrimaryGeneratedColumn()
-    id: number;
-
-    @Column()
-    @Index({ unique: true })
-    account: string = "";
-
-    @Column()
-    openId: string = "";
-
-    @Column()
-    password: string = "";
-
-    @CreateDateColumn()
-    createTime?: Date;
-    @UpdateDateColumn()
-    updateTime?: Date;
-}
 
 export class CharacterORM {
 
     @PrimaryGeneratedColumn()
-    id?: number;
+    id: number;
 
     @Column()
     @Index('user')

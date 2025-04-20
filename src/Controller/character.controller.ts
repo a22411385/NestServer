@@ -1,5 +1,5 @@
 import { Controller, Post, Body, Req } from '@nestjs/common';
-import { AccountORM, CharacterORM } from 'src/System/ORM';
+import { CharacterORM } from 'src/System/Characte.entity';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNotEmpty } from 'class-validator';
@@ -16,7 +16,7 @@ class CreateDto {
 @Controller()
 export class CharacterController {
 
-    @InjectRepository(AccountORM)
+    @InjectRepository(CharacterORM)
     private characterRepo: Repository<CharacterORM>
 
     @Post('/char/create')
@@ -26,7 +26,7 @@ export class CharacterController {
         console.log(payload);
         let res = { errorCode: ErrorCode.SUCCESS } as HttpRespone;
         const characters = await this.characterRepo.find({ where: { userId: payload.userId } });
-        if (characters.length >= 8) {
+        if (characters.length >= MAX_CHAR_NUM) {
             res.errorCode = ErrorCode.OUT_OF_RANGE;
             return res;
         }

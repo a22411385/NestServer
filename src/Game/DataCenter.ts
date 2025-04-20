@@ -1,4 +1,5 @@
-import { AccountORM, CharacterORM } from "src/System/ORM"
+import { AccountORM } from "src/System/Account.entity";
+import { CharacterORM } from "src/System/Characte.entity"
 
 export class UserData {
     account: AccountORM;

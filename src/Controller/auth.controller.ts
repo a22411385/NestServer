@@ -1,14 +1,15 @@
 import { Controller, Post, Body, } from '@nestjs/common';
-import { AccountORM, CharacterORM } from 'src/System/ORM';
+
 import { Repository } from 'typeorm';
-import { InjectRepository } from '@nestjs/typeorm';
 import { JwtService } from '@nestjs/jwt';
 import md5 from 'md5';
 import { IsNotEmpty } from 'class-validator';
-import { userService } from 'src/Module/User';
 import { HttpRespone, JWTPayload } from 'src/struct';
 import { ErrorCode } from 'src/errorCode';
 import { DataCenter, UserData } from 'src/Game/DataCenter';
+import { AccountORM } from 'src/System/Account.entity';
+import { CharacterORM } from 'src/System/Characte.entity';
+import { InjectRepository } from '@nestjs/typeorm';
 
 class LoginDto {
     @IsNotEmpty()
@@ -23,9 +24,9 @@ export class AuthController {
     constructor(private jwtService: JwtService) {
 
     }
-
+    @InjectRepository(AccountORM)
     private usersRepo: Repository<AccountORM>
-
+    @InjectRepository(CharacterORM)
     private charRepo: Repository<CharacterORM>
 
     @Post('login')
