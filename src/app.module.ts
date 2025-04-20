@@ -1,8 +1,7 @@
 import { Module } from '@nestjs/common';
-import { AppController } from './app.controller';
+import { AppController } from './Controller/app.controller';
 import { AppService } from './app.service';
-import { AuthController } from './Module/auth.controller';
-import { AuthService } from './Module/auth.service';
+import { AuthController } from './Controller/auth.controller';
 import { PassportModule } from '@nestjs/passport';
 import { JwtModule } from '@nestjs/jwt';
 
@@ -22,6 +21,6 @@ import { AccountORM } from './System/ORM';
     }),
     TypeOrmModule.forFeature([AccountORM])],
   controllers: [AppController, AuthController],
-  providers: [AppService, AuthService],
+  providers: [AppService],
 })
 export class AppModule { }
