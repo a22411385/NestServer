@@ -9,6 +9,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { AuthGuard } from './Module/AuthGuard';
 import { CharacterController } from './Controller/character.controller';
 import { AccountORM } from './System/Account.entity';
+import { CharacterORM } from './System/Characte.entity';
 
 
 @Module({
@@ -20,10 +21,10 @@ import { AccountORM } from './System/Account.entity';
     username: 'root',
     password: 'root',
     database: 'game',
-    entities: [__dirname + '/../**/*.entity.js'],
+    entities: [AccountORM, CharacterORM],
     synchronize: true, // 開發環境可以設 true，自動建立表格
-  })],
-  // TypeOrmModule.forFeature([AccountORM, CharacterORM])],
+  }),
+  TypeOrmModule.forFeature([AccountORM, CharacterORM])],
   controllers: [AppController, AuthController, CharacterController],
   providers: [
 

@@ -32,7 +32,7 @@ export class CharacterController {
         }
 
         const p = await this.characterRepo.findOne({ where: { name: params.name } });
-        if (!p) {
+        if (p) {
             res.errorCode = ErrorCode.名稱已被使用
             return res;
         }
@@ -41,7 +41,8 @@ export class CharacterController {
         character.lv = 1;
         character.type = 職業種類.初心者;
         character.name = params.name;
-        this.characterRepo.save(character);
+        character.userId = payload.userId;
+        await this.characterRepo.save(character);
         return res;
 
     }
