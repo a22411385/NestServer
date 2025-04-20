@@ -4,3 +4,14 @@ export interface HttpRespone {
     errorMsg: string | string[]
 
 }
+export interface JWTPayload {
+
+    userId: number;
+    openId: string;
+
+}
+
+export enum 職業種類 {
+
+    初心者 = 0,
+}

@@ -1,15 +1,14 @@
-import { Controller, Post, Body, UseGuards } from '@nestjs/common';
-import { AccountORM } from 'src/System/ORM';
+import { Controller, Post, Body, } from '@nestjs/common';
+import { AccountORM, CharacterORM } from 'src/System/ORM';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { JwtService } from '@nestjs/jwt';
 import md5 from 'md5';
 import { IsNotEmpty } from 'class-validator';
 import { userService } from 'src/Module/User';
-import { HttpRespone } from 'src/struct';
+import { HttpRespone, JWTPayload } from 'src/struct';
 import { ErrorCode } from 'src/errorCode';
-import { AuthGuard } from 'src/Module/AuthGuard';
-import { IsPublic } from 'src/main';
+import { DataCenter, UserData } from 'src/Game/DataCenter';
 
 class LoginDto {
     @IsNotEmpty()
@@ -19,15 +18,15 @@ class LoginDto {
     password: string;
 }
 @Controller()
-@UseGuards(AuthGuard)
 export class AuthController {
 
     constructor(private jwtService: JwtService) {
 
     }
 
-    @InjectRepository(AccountORM)
     private usersRepo: Repository<AccountORM>
+
+    private charRepo: Repository<CharacterORM>
 
     @Post('login')
     async login(@Body() params: LoginDto): Promise<HttpRespone> {
@@ -41,7 +40,20 @@ export class AuthController {
             return res;
         }
 
-        const payload = { username: user.account, sub: user.account };
+        //如果有資料要先儲存
+        if (DataCenter.Users[user.id] != undefined) {
+            let uu = DataCenter.Users[user.id];
+            await this.usersRepo.save(uu.account);
+            await this.charRepo.save(uu.characters);
+        }
+        let u = new UserData();
+        u.account = user;
+        let c = await this.charRepo.find({ where: { userId: user.id } });
+        u.characters = c;
+
+        DataCenter.Users[user.id] = new UserData();
+
+        const payload = { userId: user.id, openId: user.openId } as JWTPayload;
         res.content =
         {
             access_token: this.jwtService.sign(payload, {
@@ -56,13 +68,35 @@ export class AuthController {
     @Post('register')
     async register(@Body() body: { account: string, password: string }) {
 
-        // const user = await this.
+        let res = { errorCode: ErrorCode.SUCCESS } as HttpRespone;
+        const user = await this.usersRepo.findOne({ where: { account: body.account } });
 
+        if (user) {
+            res.errorCode = ErrorCode.ACCOUNT_ALREADY_EXIST;
+            return res;
+        }
+
+        let newUser = new AccountORM();
+        newUser.account = body.account;
+        newUser.password = md5(body.password);
+        newUser.openId = md5(body.account);
+
+        let u = await this.usersRepo.save(newUser);
+
+        const payload = { openId: u.openId, userId: u.id } as JWTPayload;
+        res.content =
+        {
+            access_token: this.jwtService.sign(payload, {
+                secret: process.env.JWT_KEY,
+                expiresIn: '24h'
+            }),
+        };
+        return res;
     }
 
     @Post('/game/test')
     async Test() {
 
-
+        return { errorCode: ErrorCode.SUCCESS } as HttpRespone;
     }
 }

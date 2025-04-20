@@ -4,28 +4,22 @@ import {
     ExecutionContext,
     Injectable,
 } from '@nestjs/common';
-import { Reflector } from '@nestjs/core';
+
 import { JwtService } from '@nestjs/jwt';
 import { Request } from 'express';
 import { ErrorCode } from 'src/errorCode';
-import { IS_PUBLIC_KEY } from 'src/main';
-import { HttpRespone } from 'src/struct';
+import { HttpRespone, JWTPayload } from 'src/struct';
 
 
 @Injectable()
 export class AuthGuard implements CanActivate {
-    constructor(private jwtService: JwtService, private reflector: Reflector) { }
+    constructor(private jwtService: JwtService) { }
 
     async canActivate(context: ExecutionContext): Promise<boolean> {
 
-
-
-
-
         const request = context.switchToHttp().getRequest();
-
-        const path = request.path;
-        if (path.startsWith('/login')) {
+        const path = request.path as string;
+        if (path == '/login' || path == '/register' || path.startsWith('public/')) {
             return true;
         }
         const token = this.extractTokenFromHeader(request);
@@ -41,7 +35,7 @@ export class AuthGuard implements CanActivate {
                 {
                     secret: process.env.JWT_KEY
                 }
-            );
+            ) as JWTPayload;
             // 💡 We're assigning the payload to the request object here
             // so that we can access it in our route handlers
             request['user'] = payload;
