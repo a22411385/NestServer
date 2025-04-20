@@ -1,4 +1,4 @@
-import { Controller, Post, Body, UnauthorizedException, Param, UsePipes, ValidationPipe, Req } from '@nestjs/common';
+import { Controller, Post, Body, UseGuards } from '@nestjs/common';
 import { AccountORM } from 'src/System/ORM';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -6,6 +6,10 @@ import { JwtService } from '@nestjs/jwt';
 import md5 from 'md5';
 import { IsNotEmpty } from 'class-validator';
 import { userService } from 'src/Module/User';
+import { HttpRespone } from 'src/struct';
+import { ErrorCode } from 'src/errorCode';
+import { AuthGuard } from 'src/Module/AuthGuard';
+import { IsPublic } from 'src/main';
 
 class LoginDto {
     @IsNotEmpty()
@@ -15,9 +19,10 @@ class LoginDto {
     password: string;
 }
 @Controller()
+@UseGuards(AuthGuard)
 export class AuthController {
 
-    constructor(private jwtService: JwtService, private userService: userService) {
+    constructor(private jwtService: JwtService) {
 
     }
 
@@ -25,23 +30,26 @@ export class AuthController {
     private usersRepo: Repository<AccountORM>
 
     @Post('login')
-    async login(@Req() params: LoginDto) {
+    async login(@Body() params: LoginDto): Promise<HttpRespone> {
 
+        console.log(params.account, params.password);
+        let res = { errorCode: ErrorCode.SUCCESS } as HttpRespone;
         const user = await this.usersRepo.findOne({ where: { account: params.account } });
-        if (!user) throw new UnauthorizedException();
-        console.log(user);
-        if (user && user.password !== md5(params.password)) {
 
-            throw new UnauthorizedException();
+        if (!user || user.password !== md5(params.password)) {
+            res.errorCode = ErrorCode.ACCOUNT_OR_PASSWORD_ERROR;
+            return res;
         }
 
         const payload = { username: user.account, sub: user.account };
-        return {
+        res.content =
+        {
             access_token: this.jwtService.sign(payload, {
                 secret: process.env.JWT_KEY,
                 expiresIn: '24h'
             }),
         };
+        return res;
 
     }
 
@@ -49,6 +57,12 @@ export class AuthController {
     async register(@Body() body: { account: string, password: string }) {
 
         // const user = await this.
+
+    }
+
+    @Post('/game/test')
+    async Test() {
+
 
     }
 }

@@ -1,12 +1,34 @@
-import { NestFactory } from '@nestjs/core';
+import { NestFactory, Reflector } from '@nestjs/core';
 import { AppModule } from './app.module';
 import dotenv from 'dotenv';
-import { ValidationPipe } from '@nestjs/common';
+import { BadRequestException, ValidationError, ValidationPipe } from '@nestjs/common';
+import { ErrorCode } from './errorCode';
+import { HttpRespone } from './struct';
+import { SetMetadata } from '@nestjs/common';
+
+export const IS_PUBLIC_KEY = 'isPublic';
+export const IsPublic = () => SetMetadata(IS_PUBLIC_KEY, true);
+
 dotenv.config();
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
   app.useGlobalPipes(new ValidationPipe({
     transform: true,
+    whitelist: true,
+    forbidNonWhitelisted: true,
+    exceptionFactory: (validationErrors: ValidationError[] = []) => {
+      let arr: string[] = [];
+      for (var i in validationErrors) {
+        const constraints = validationErrors[i].constraints as { [s: string]: string };
+        arr.push(validationErrors[i].property + ":" + Object.values(constraints).join(', '));
+      }
+      return new BadRequestException({
+        errorCode: ErrorCode.ACCOUNT_OR_PASSWORD_ERROR,
+        errorMsg: arr,
+        content: null
+      } as HttpRespone);
+    },
   }));
   await app.listen(process.env.PORT ?? 3000);
 }

@@ -1,0 +1,7 @@
+export enum ErrorCode {
+    SUCCESS = 1,
+    ACCOUNT_OR_PASSWORD_ERROR = 101,
+
+    VERIFICATION_EXPIRED = 405,
+
+}
