@@ -5,5 +5,5 @@ export enum ErrorCode {
     OUT_OF_RANGE = 103,
     名稱已被使用 = 104,
     VERIFICATION_EXPIRED = 405,
-
+    尚未選擇角色 = 406
 }

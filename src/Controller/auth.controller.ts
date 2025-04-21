@@ -45,12 +45,14 @@ export class AuthController {
         if (DataCenter.Users[user.id] != undefined) {
             let uu = DataCenter.Users[user.id];
             await this.usersRepo.save(uu.account);
-            await this.charRepo.save(uu.characters);
+            if (uu.character)
+                await this.charRepo.save(uu.character);
         }
+
         let u = new UserData();
         u.account = user;
-        let c = await this.charRepo.find({ where: { userId: user.id } });
-        u.characters = c;
+        u.character = null;
+        // u.characters = c;
 
         DataCenter.Users[user.id] = new UserData();
 

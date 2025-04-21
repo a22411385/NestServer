@@ -10,6 +10,7 @@ import { AuthGuard } from './Module/AuthGuard';
 import { CharacterController } from './Controller/character.controller';
 import { AccountORM } from './System/Account.entity';
 import { CharacterORM } from './System/Characte.entity';
+import { GameController } from './Controller/game.controller';
 
 
 @Module({
@@ -25,7 +26,7 @@ import { CharacterORM } from './System/Characte.entity';
     synchronize: true, // 開發環境可以設 true，自動建立表格
   }),
   TypeOrmModule.forFeature([AccountORM, CharacterORM])],
-  controllers: [AppController, AuthController, CharacterController],
+  controllers: [AppController, AuthController, CharacterController, GameController],
   providers: [
 
     {

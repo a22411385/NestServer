@@ -4,8 +4,9 @@ import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNotEmpty } from 'class-validator';
 
-import { HttpRespone, JWTPayload, 職業種類 } from 'src/struct';
+import { HttpRespone, JWTPayload } from 'src/struct';
 import { ErrorCode } from 'src/errorCode';
+import { 職業種類 } from 'src/Game/Enum';
 
 const MAX_CHAR_NUM = 8;
 

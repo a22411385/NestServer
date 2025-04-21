@@ -1,0 +1,43 @@
+import { Controller, Post, Body, Req } from '@nestjs/common';
+import { CharacterORM } from 'src/System/Characte.entity';
+import { Repository } from 'typeorm';
+import { InjectRepository } from '@nestjs/typeorm';
+import { IsNotEmpty } from 'class-validator';
+
+import { HttpRespone, JWTPayload } from 'src/struct';
+import { ErrorCode } from 'src/errorCode';
+import { BattleRoom } from 'src/Game/Battle';
+import { DataCenter } from 'src/Game/DataCenter';
+
+const MAX_CHAR_NUM = 8;
+
+class BattleParam {
+    @IsNotEmpty()
+    battleArea: string;
+}
+@Controller()
+export class GameController {
+
+    //開啟一場單人戰鬥
+    @Post('/game/startBattle')
+    async startBattle(@Req() req: any, @Body() params: BattleParam): Promise<HttpRespone> {
+
+        let payload = req.user as JWTPayload;
+        console.log(payload);
+        let res = { errorCode: ErrorCode.SUCCESS } as HttpRespone;
+
+        let user = await DataCenter.GetUser(payload.userId);
+        console.log(user);
+        if (user.character == null) {
+            res.errorCode = ErrorCode.尚未選擇角色;
+            return res;
+        }
+
+        let room = new BattleRoom("none", [user]);
+
+        return res;
+
+    }
+
+
+}

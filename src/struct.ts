@@ -11,7 +11,3 @@ export interface JWTPayload {
 
 }
 
-export enum 職業種類 {
-
-    初心者 = 0,
-}
