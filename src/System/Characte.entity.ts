@@ -1,5 +1,5 @@
 
-import { 職業種類 } from "src/Game/Enum";
+import { 職業種類 } from "src/Shared/Enum";
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, Index } from "typeorm";
 @Entity()
 export class CharacterORM {

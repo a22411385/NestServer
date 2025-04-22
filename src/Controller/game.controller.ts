@@ -5,8 +5,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { IsNotEmpty } from 'class-validator';
 
 import { HttpRespone, JWTPayload } from 'src/struct';
-import { ErrorCode } from 'src/errorCode';
-import { BattleRoom } from 'src/Game/Battle';
+import { ErrorCode } from 'src/Shared/ErrorCode';
+import { BattleRoom } from 'src/Game/BattleRoom';
 import { DataCenter } from 'src/Game/DataCenter';
 
 const MAX_CHAR_NUM = 8;
@@ -33,7 +33,7 @@ export class GameController {
             return res;
         }
 
-        let room = new BattleRoom("none", [user]);
+        let room = new BattleRoom("test", 0);
 
         return res;
 

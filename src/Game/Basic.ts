@@ -1,4 +1,4 @@
-import { 傷害類型 } from "./Enum";
+import { 傷害類型 } from "../Shared/Enum";
 
 export abstract class Unit {
 

@@ -7,7 +7,7 @@ import {
 
 import { JwtService } from '@nestjs/jwt';
 import { Request } from 'express';
-import { ErrorCode } from 'src/errorCode';
+import { ErrorCode } from 'src/Shared/ErrorCode';
 import { HttpRespone, JWTPayload } from 'src/struct';
 
 
@@ -19,9 +19,12 @@ export class AuthGuard implements CanActivate {
 
         const request = context.switchToHttp().getRequest();
         const path = request.path as string;
-        if (path == '/login' || path == '/register' || path.startsWith('public/')) {
+        if (path == '/login' || path == '/register' || path.startsWith('/public')) {
             return true;
         }
+
+
+
         const token = this.extractTokenFromHeader(request);
         if (!token) {
             throw new BadRequestException({
@@ -29,22 +32,33 @@ export class AuthGuard implements CanActivate {
 
             } as HttpRespone);
         }
+        let payload: JWTPayload;
         try {
-            const payload = await this.jwtService.verifyAsync(
+            payload = await this.jwtService.verifyAsync(
                 token,
                 {
                     secret: process.env.JWT_KEY
                 }
             ) as JWTPayload;
-            // 💡 We're assigning the payload to the request object here
-            // so that we can access it in our route handlers
-            request['user'] = payload;
+
         } catch {
             throw new BadRequestException({
                 errorCode: ErrorCode.VERIFICATION_EXPIRED,
 
             } as HttpRespone);
         }
+        console.log('payload', payload);
+        //player路由下要檢查是不是有playerToken
+        if (payload.playerId == undefined && path.startsWith('/player/')) {
+            throw new BadRequestException({
+                errorCode: ErrorCode.尚未選擇角色,
+
+            } as HttpRespone);
+        }
+
+
+        request['user'] = payload;
+
         return true;
     }
 

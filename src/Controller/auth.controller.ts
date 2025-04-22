@@ -5,11 +5,12 @@ import { JwtService } from '@nestjs/jwt';
 import md5 from 'md5';
 import { IsNotEmpty } from 'class-validator';
 import { HttpRespone, JWTPayload } from 'src/struct';
-import { ErrorCode } from 'src/errorCode';
+
 import { DataCenter, UserData } from 'src/Game/DataCenter';
 import { AccountORM } from 'src/System/Account.entity';
 import { CharacterORM } from 'src/System/Characte.entity';
 import { InjectRepository } from '@nestjs/typeorm';
+import { ErrorCode } from 'src/Shared/ErrorCode';
 
 class LoginDto {
     @IsNotEmpty()
@@ -44,7 +45,8 @@ export class AuthController {
         //如果有資料要先儲存
         if (DataCenter.Users[user.id] != undefined) {
             let uu = DataCenter.Users[user.id];
-            await this.usersRepo.save(uu.account);
+            if (uu.account)
+                await this.usersRepo.save(uu.account);
             if (uu.character)
                 await this.charRepo.save(uu.character);
         }

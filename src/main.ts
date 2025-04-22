@@ -2,7 +2,7 @@ import { NestFactory, Reflector } from '@nestjs/core';
 import { AppModule } from './app.module';
 import dotenv from 'dotenv';
 import { BadRequestException, ValidationError, ValidationPipe } from '@nestjs/common';
-import { ErrorCode } from './errorCode';
+import { ErrorCode } from './Shared/ErrorCode';
 import { HttpRespone } from './struct';
 import { SetMetadata } from '@nestjs/common';
 
@@ -24,7 +24,7 @@ async function bootstrap() {
         arr.push(validationErrors[i].property + ":" + Object.values(constraints).join(', '));
       }
       return new BadRequestException({
-        errorCode: ErrorCode.ACCOUNT_OR_PASSWORD_ERROR,
+        errorCode: ErrorCode.參數錯誤,
         errorMsg: arr,
         content: null
       } as HttpRespone);
