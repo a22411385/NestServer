@@ -1,9 +1,10 @@
-import { AccountORM } from "src/ORM/Account.entity";
-import { CharacterORM } from "src/ORM/Characte.entity"
+import { AccountORM } from "src/ORM/account.entity";
+import { CharacterORM } from "src/ORM/charater.entity"
 import { BattleRoom } from "../Game/BattleRoom";
 import { Player } from "../Game/Player";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
+import { Injectable } from "@nestjs/common";
 
 export class UserData {
     account: AccountORM;
@@ -12,7 +13,7 @@ export class UserData {
     ws: WebSocket;
     player: Player | null = null;
 }
-
+@Injectable()
 export class DataCenter {
 
     public static Users: Record<number, UserData> = {}
@@ -21,7 +22,7 @@ export class DataCenter {
     @InjectRepository(AccountORM)
     private static usersRepo: Repository<AccountORM>
 
-    public static async GetUser(userId: number): Promise<UserData> {
+    public static async GetUser(userId: number): Promise<UserData | null> {
 
         if (DataCenter.Users[userId] != undefined) return DataCenter.Users[userId]
         const user = await DataCenter.usersRepo.findOne({ where: { id: userId } });
@@ -32,7 +33,7 @@ export class DataCenter {
             DataCenter.Users[userId] = u;
             return u;
         } else {
-            return new UserData();
+            return null;
         }
     }
 }

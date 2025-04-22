@@ -26,7 +26,11 @@ export class GameController {
 
         let user = await DataCenter.GetUser(payload.userId);
         console.log(user);
-        if (user.character == null) {
+        if (user == null) {
+            res.errorCode = ErrorCode.不存在的資料;
+            return res;
+
+        } if (user.character == null) {
             res.errorCode = ErrorCode.尚未選擇角色;
             return res;
         }

@@ -1,4 +1,4 @@
-import { CharacterORM } from "src/ORM/Characte.entity";
+import { CharacterORM } from "src/ORM/charater.entity";
 import { Hero } from "./Basic";
 
 

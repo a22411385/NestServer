@@ -10,8 +10,9 @@ import {
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { RoomService } from '../Service/room.service';
-import * as jwt from 'jsonwebtoken';
+
 import { OnModuleInit } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
 
 @WebSocketGateway({ cors: true })
 export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect, OnModuleInit {
@@ -25,15 +26,26 @@ export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect, On
     }
     constructor(
         private readonly roomService: RoomService,
+        private readonly jwtService: JwtService
         //  private readonly gameService: GameService,
     ) { }
 
     handleConnection(client: Socket) {
         console.log(`Client connected: ${client.id}`);
         //開始驗證
-        const token = client.handshake.query.token as string;
-        const payload = jwt.verify(token, process.env.JWT_KEY ? process.env.JWT_KEY : "");
-        client.data.user = payload;
+        try {
+            const rawToken =
+                client.handshake.query.token as string;
+            //    client.handshake.headers?.authorization?.replace('Bearer ', '') as string;
+            if (!rawToken) {
+                throw new Error('No token found');
+            }
+            const payload = this.jwtService.verify(rawToken, { secret: process.env.JWT_KEY });
+            client.data.user = payload;
+        } catch (err) {
+            console.warn('❌ Token 驗證失敗:', err.message);
+            client.disconnect();
+        }
     }
 
     handleDisconnect(client: Socket) {

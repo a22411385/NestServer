@@ -7,8 +7,8 @@ import { IsNotEmpty } from 'class-validator';
 import { HttpRespone, JWTPayload } from 'src/struct';
 
 import { DataCenter, UserData } from 'src/Provider/DataCenter';
-import { AccountORM } from 'src/ORM/Account.entity';
-import { CharacterORM } from 'src/ORM/Characte.entity';
+import { AccountORM } from 'src/ORM/account.entity';
+import { CharacterORM } from 'src/ORM/charater.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ErrorCode } from 'src/Shared/ErrorCode';
 
