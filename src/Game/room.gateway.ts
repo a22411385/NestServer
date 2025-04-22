@@ -11,15 +11,28 @@ import {
 import { Server, Socket } from 'socket.io';
 import { RoomService } from './room.service';
 import * as jwt from 'jsonwebtoken';
+import { Module, OnModuleInit } from '@nestjs/common';
+
+@Module({
+    exports: [
+        RoomGateway,
+    ],
+    imports: [
+        RoomService
+    ]
+})
 
 @WebSocketGateway({ cors: true })
-export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect {
+
+export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect, OnModuleInit {
 
     @WebSocketServer()
     server: Server;
 
     socketRoomMap = new Map<string, string>();
-
+    onModuleInit() {
+        console.log('✅ GameGateway 已啟動');
+    }
     constructor(
         private readonly roomService: RoomService,
         //  private readonly gameService: GameService,

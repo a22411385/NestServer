@@ -8,6 +8,7 @@ import { HttpRespone, JWTPayload } from 'src/struct';
 import { ErrorCode } from 'src/Shared/ErrorCode';
 import { BattleRoom } from 'src/Game/BattleRoom';
 import { DataCenter } from 'src/Game/DataCenter';
+import { RoomGateway } from 'src/Game/room.gateway';
 
 const MAX_CHAR_NUM = 8;
 
@@ -17,9 +18,10 @@ class BattleParam {
 }
 @Controller()
 export class GameController {
-
+    constructor(private readonly roomGateway: RoomGateway) { }
     //開啟一場單人戰鬥
     @Post('/game/startBattle')
+
     async startBattle(@Req() req: any, @Body() params: BattleParam): Promise<HttpRespone> {
 
         let payload = req.user as JWTPayload;
@@ -33,7 +35,6 @@ export class GameController {
             return res;
         }
 
-        let room = new BattleRoom("test", 0);
 
         return res;
 

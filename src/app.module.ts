@@ -11,24 +11,29 @@ import { CharacterController } from './Controller/character.controller';
 import { AccountORM } from './System/Account.entity';
 import { CharacterORM } from './System/Characte.entity';
 import { GameController } from './Controller/game.controller';
+import { RoomGateway } from './Game/room.gateway';
+import { RoomService } from './Game/room.service';
 
 
 @Module({
-  imports: [JwtModule.register({}),
-  TypeOrmModule.forRoot({
-    type: 'mysql', // 或 'postgres'
-    host: 'localhost',
-    port: 3306,     // 或 postgres 是 5432
-    username: 'root',
-    password: 'root',
-    database: 'game',
-    entities: [AccountORM, CharacterORM],
-    synchronize: true, // 開發環境可以設 true，自動建立表格
-  }),
-  TypeOrmModule.forFeature([AccountORM, CharacterORM])],
+  imports: [
+
+    JwtModule.register({}),
+    TypeOrmModule.forRoot({
+      type: 'mysql', // 或 'postgres'
+      host: 'localhost',
+      port: 3306,     // 或 postgres 是 5432
+      username: 'root',
+      password: 'root',
+      database: 'game',
+      entities: [AccountORM, CharacterORM],
+      synchronize: true, // 開發環境可以設 true，自動建立表格
+    }),
+    TypeOrmModule.forFeature([AccountORM, CharacterORM])],
   controllers: [AppController, AuthController, CharacterController, GameController],
   providers: [
-
+    RoomGateway,
+    RoomService,
     {
       provide: APP_GUARD,
       useClass: AuthGuard,

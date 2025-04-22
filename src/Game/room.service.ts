@@ -1,7 +1,10 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Module } from '@nestjs/common';
 import { Socket } from 'socket.io';
 import { BattleRoom } from './BattleRoom';
+@Module({
+    exports: [RoomService]
 
+})
 @Injectable()
 export class RoomService {
     private roomMap = new Map<string, BattleRoom>();

@@ -47,9 +47,9 @@ export class AuthGuard implements CanActivate {
 
             } as HttpRespone);
         }
-        console.log('payload', payload);
+
         //player路由下要檢查是不是有playerToken
-        if (payload.playerId == undefined && path.startsWith('/player/')) {
+        if (payload.playerId == undefined && (path.startsWith('/player/') || path.startsWith('/game/'))) {
             throw new BadRequestException({
                 errorCode: ErrorCode.尚未選擇角色,
 
