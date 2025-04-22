@@ -1,5 +1,5 @@
 import { Socket } from "socket.io";
-import { UserData } from "./DataCenter";
+import { UserData } from "../Provider/DataCenter";
 import { Monster } from "./Monster";
 import { Player } from "./Player";
 

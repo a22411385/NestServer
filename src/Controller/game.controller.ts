@@ -1,14 +1,10 @@
 import { Controller, Post, Body, Req } from '@nestjs/common';
-import { CharacterORM } from 'src/System/Characte.entity';
-import { Repository } from 'typeorm';
-import { InjectRepository } from '@nestjs/typeorm';
 import { IsNotEmpty } from 'class-validator';
 
 import { HttpRespone, JWTPayload } from 'src/struct';
 import { ErrorCode } from 'src/Shared/ErrorCode';
-import { BattleRoom } from 'src/Game/BattleRoom';
-import { DataCenter } from 'src/Game/DataCenter';
-import { RoomGateway } from 'src/Game/room.gateway';
+import { DataCenter } from 'src/Provider/DataCenter';
+import { RoomGateway } from 'src/Provider/room.gateway';
 
 const MAX_CHAR_NUM = 8;
 

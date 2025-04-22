@@ -1,7 +1,7 @@
-import { AccountORM } from "src/System/Account.entity";
-import { CharacterORM } from "src/System/Characte.entity"
-import { BattleRoom } from "./BattleRoom";
-import { Player } from "./Player";
+import { AccountORM } from "src/ORM/Account.entity";
+import { CharacterORM } from "src/ORM/Characte.entity"
+import { BattleRoom } from "../Game/BattleRoom";
+import { Player } from "../Game/Player";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 

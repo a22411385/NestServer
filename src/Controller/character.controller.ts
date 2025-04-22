@@ -1,5 +1,5 @@
 import { Controller, Post, Body, Req, Get } from '@nestjs/common';
-import { CharacterORM } from 'src/System/Characte.entity';
+import { CharacterORM } from 'src/ORM/Characte.entity';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNotEmpty } from 'class-validator';

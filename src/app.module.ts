@@ -1,43 +1,22 @@
+//--- start app.module.ts --- 
 import { Module } from '@nestjs/common';
-import { AppController } from './Controller/app.controller';
-import { AuthController } from './Controller/auth.controller';
 import { JwtModule } from '@nestjs/jwt';
-
 import { TypeOrmModule } from '@nestjs/typeorm';
-
-import { APP_GUARD } from '@nestjs/core';
-import { AuthGuard } from './Module/AuthGuard';
-import { CharacterController } from './Controller/character.controller';
-import { AccountORM } from './System/Account.entity';
-import { CharacterORM } from './System/Characte.entity';
-import { GameController } from './Controller/game.controller';
-import { RoomGateway } from './Game/room.gateway';
-import { RoomService } from './Game/room.service';
-
+import { AccountORM } from './ORM/Account.entity';
+import { CharacterORM } from './ORM/Characte.entity';
+import { AuthModule } from 'Module/AuthModule';
+import { GameModule } from 'Module/GameModule';
+import { DataModule } from 'Module/DataModule';
 
 @Module({
   imports: [
+    AuthModule,
+    GameModule,
+    DataModule,
 
     JwtModule.register({}),
-    TypeOrmModule.forRoot({
-      type: 'mysql', // 或 'postgres'
-      host: 'localhost',
-      port: 3306,     // 或 postgres 是 5432
-      username: 'root',
-      password: 'root',
-      database: 'game',
-      entities: [AccountORM, CharacterORM],
-      synchronize: true, // 開發環境可以設 true，自動建立表格
-    }),
-    TypeOrmModule.forFeature([AccountORM, CharacterORM])],
-  controllers: [AppController, AuthController, CharacterController, GameController],
-  providers: [
-    RoomGateway,
-    RoomService,
-    {
-      provide: APP_GUARD,
-      useClass: AuthGuard,
-    },
   ],
+
 })
 export class AppModule { }
+//--- end app.module.ts --- 
