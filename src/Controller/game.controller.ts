@@ -1,10 +1,11 @@
 import { Controller, Post, Body, Req } from '@nestjs/common';
 import { IsNotEmpty } from 'class-validator';
 
-import { HttpRespone, JWTPayload } from 'src/struct';
+import { JWTPayload } from 'src/struct';
 import { ErrorCode } from 'src/Shared/ErrorCode';
 import { DataCenter } from 'src/Provider/DataCenter';
 import { RoomGateway } from 'src/Provider/room.gateway';
+import { HttpRespone } from 'src/Shared/struct';
 
 const MAX_CHAR_NUM = 8;
 

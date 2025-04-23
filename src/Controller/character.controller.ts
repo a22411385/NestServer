@@ -4,10 +4,11 @@ import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNotEmpty } from 'class-validator';
 
-import { HttpRespone, JWTPayload } from 'src/struct';
+import { JWTPayload } from 'src/struct';
 import { ErrorCode } from 'src/Shared/ErrorCode';
 import { 職業種類 } from 'src/Shared/Enum';
 import { JwtService } from '@nestjs/jwt';
+import { HttpRespone } from 'src/Shared/struct';
 
 const MAX_CHAR_NUM = 8;
 

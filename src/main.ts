@@ -3,7 +3,7 @@ import { AppModule } from './app.module';
 import dotenv from 'dotenv';
 import { BadRequestException, ValidationError, ValidationPipe } from '@nestjs/common';
 import { ErrorCode } from './Shared/ErrorCode';
-import { HttpRespone } from './struct';
+import { HttpRespone } from './Shared/struct';
 import { SetMetadata } from '@nestjs/common';
 
 export const IS_PUBLIC_KEY = 'isPublic';

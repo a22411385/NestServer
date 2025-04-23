@@ -8,7 +8,8 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import { Request } from 'express';
 import { ErrorCode } from 'src/Shared/ErrorCode';
-import { HttpRespone, JWTPayload } from 'src/struct';
+import { HttpRespone } from 'src/Shared/struct';
+import { JWTPayload } from 'src/struct';
 
 
 @Injectable()
