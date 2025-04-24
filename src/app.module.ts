@@ -5,13 +5,7 @@ import { AuthModule } from './Module/AuthModule';
 import { GameModule } from './Module/GameModule';
 import { DataModule } from './Module/DataModule';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { config } from 'dotenv';
-import path from 'path';
 
-const isProduction = function (): boolean {
-
-  return process.env.NODE_ENV !== 'development';
-}
 @Module({
   imports: [
     TypeOrmModule.forRoot({

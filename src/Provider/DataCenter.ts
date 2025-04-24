@@ -1,10 +1,10 @@
-import { AccountORM } from "src/ORM/account.entity";
 import { CharacterORM } from "src/ORM/charater.entity"
 import { BattleRoom } from "../Game/BattleRoom";
 import { Player } from "../Game/Player";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import { Injectable } from "@nestjs/common";
+import { AccountORM } from "src/ORM/account.entity";
 
 export class UserData {
     account: AccountORM;

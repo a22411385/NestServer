@@ -23,9 +23,6 @@ export class AuthGuard implements CanActivate {
         if (path == '/login' || path == '/register' || path.startsWith('/public')) {
             return true;
         }
-
-
-
         const token = this.extractTokenFromHeader(request);
         if (!token) {
             throw new BadRequestException({
