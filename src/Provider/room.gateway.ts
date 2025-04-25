@@ -13,6 +13,8 @@ import { RoomService } from '../Service/room.service';
 
 import { OnModuleInit } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { MessageID } from 'src/Shared/MessageID';
+import { HttpRespone } from 'src/Shared/struct';
 
 @WebSocketGateway({ cors: true })
 export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect, OnModuleInit {
@@ -42,8 +44,8 @@ export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect, On
             }
             const payload = this.jwtService.verify(rawToken, { secret: process.env.JWT_KEY });
             client.data.user = payload;
-            client.emit('init', 'test');
-            console.log(`Client connected: ${client.id}`);
+            let b = client.emit('init', 'test');
+            console.log(`Client connected: ${client.id}`, b);
 
         } catch (err) {
             console.warn('❌ Token 驗證失敗:', err.message);
@@ -76,6 +78,22 @@ export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect, On
         client.leave(data.roomId);
         this.roomService.removePlayerFromRoom(client);
         client.to(data.roomId).emit('playerLeft', { playerId: data.playerId });
+    }
+
+    //玩家離開
+    @SubscribeMessage(MessageID.STARTBATTLE)
+    startBattle(
+        @MessageBody() data: any,
+        @ConnectedSocket() client: Socket,
+    ) {
+        console.log('開始戰鬥', data);
+
+        return {
+            errorCode: 1,
+            content: 'hihi'
+
+        } as HttpRespone;
+
     }
 
 

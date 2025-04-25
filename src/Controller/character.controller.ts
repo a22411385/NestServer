@@ -51,7 +51,7 @@ export class CharacterController {
         let character = new CharacterORM();
         character.exp = 0;
         character.lv = 1;
-        character.type = 職業種類.初心者;
+        character.type = 職業種類.平民;
         character.name = params.name;
         character.userId = payload.userId;
         await this.characterRepo.save(character);
