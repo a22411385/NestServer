@@ -31,7 +31,7 @@ export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect, On
     ) { }
 
     handleConnection(client: Socket) {
-        console.log(`Client connected: ${client.id}`);
+
         //開始驗證
         try {
             const rawToken =
@@ -42,6 +42,9 @@ export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect, On
             }
             const payload = this.jwtService.verify(rawToken, { secret: process.env.JWT_KEY });
             client.data.user = payload;
+            client.emit('init', 'test');
+            console.log(`Client connected: ${client.id}`);
+
         } catch (err) {
             console.warn('❌ Token 驗證失敗:', err.message);
             client.disconnect();
@@ -52,7 +55,6 @@ export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect, On
         console.log(`Client disconnected: ${client.id}`);
         this.roomService.removePlayerFromRoom(client);
     }
-
     @SubscribeMessage('joinRoom')
     handleJoinRoom(
         @MessageBody() data: { roomId: string; playerId: number },
@@ -75,4 +77,6 @@ export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect, On
         this.roomService.removePlayerFromRoom(client);
         client.to(data.roomId).emit('playerLeft', { playerId: data.playerId });
     }
+
+
 }
