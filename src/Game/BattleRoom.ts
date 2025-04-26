@@ -1,8 +1,6 @@
-import { Socket } from "socket.io";
-import { UserData } from "../Provider/DataCenter";
+import { GamePlayer } from "./Player";
 import { Monster } from "./Monster";
-import { Player } from "./Player";
-
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
 export class BattleRoom {
     private _uniqueID: string;
@@ -15,13 +13,10 @@ export class BattleRoom {
     }
     private _areaId: number;
 
-
-    // private Round: number;
-    // private players: UserData[];
-    // private isSinglePlayer: boolean;
-
-    // private Emenys: Monster[];
-    private playerList: Map<number, Socket> = new Map;
+    //玩家
+    private players: Map<string, GamePlayer> = new Map;
+    private Emenys: Monster[];
+    private eventEmitter: EventEmitter2
 
     constructor(roomName: string, areaID: number) {
 
@@ -29,32 +24,42 @@ export class BattleRoom {
         this._roomName = roomName;
         this._areaId = areaID;
 
-        // this.players = players;
-        // this.uniqueID = this.generateUniqueID();
+        this.戰鬥開始();
+    }
+    private InitPlayers() {
+        //這裡要把所有玩家實體化
 
-        // for (var i in players) {
-        //     if (players[i].character == null) {
+    }
+    private 戰鬥開始() {
+        //初始化玩家資料
+        this.InitPlayers();
 
-        //         throw 'some player data null';
-        //     }
-        //     players[i].player = new Player(players[i].character);
-        // }
-        // this.戰鬥開始();
+
+
     }
 
-    public SetPlayer(playerId: number, socket: Socket) {
-
-        this.playerList.set(playerId, socket);
-    }
-    public RemovePlayer(playerId: number) {
-
-        this.playerList.delete(playerId);
+    private 遊戲結束() {
+        this.eventEmitter.emit('room.close', { roomId: this._uniqueID });
     }
 
-    public GetPlayersId(): number[] {
+    public JoinPlayer(player: GamePlayer): boolean {
 
-        return Array.from(this.playerList.keys());
+        if (this.players.has(player.id)) {
+            console.error(`${player.id}玩家已經在房間裡`)
+            return false;
+        }
+        this.players.set(player.id, player);
+        return true;
     }
+    public RemovePlayer(player: GamePlayer) {
+
+        this.players.delete(player.id);
+    }
+
+    // public GetPlayersId(): number[] {
+
+    //     return Array.from(this.players.keys());
+    // }
     private generateUniqueID(): string {
         return `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
     }

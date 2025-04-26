@@ -5,6 +5,8 @@ import { AuthModule } from './Module/AuthModule';
 import { GameModule } from './Module/GameModule';
 import { DataModule } from './Module/DataModule';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { EventEmitterModule } from '@nestjs/event-emitter';
+import { CacheModule } from '@nestjs/cache-manager';
 
 @Module({
   imports: [
@@ -18,11 +20,16 @@ import { TypeOrmModule } from '@nestjs/typeorm';
       autoLoadEntities: true,
       synchronize: true, // 開發環境可以設 true，自動建立表格
     }),
+    CacheModule.register({
+      ttl: 60 * 60 * 24, // 預設快取時間（秒）
+      max: 100, // 最大快取數量
+      isGlobal: true, // 如果要全域使用，設 true
+    }),
     DataModule,
-
     AuthModule,
     GameModule,
     JwtModule.register({ global: true, secret: process.env.JWT_KEY }),
+    EventEmitterModule.forRoot(),
   ],
 
 })

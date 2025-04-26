@@ -15,31 +15,31 @@ class BattleParam {
 }
 @Controller()
 export class GameController {
-    constructor(private readonly roomGateway: RoomGateway) { }
-    //開啟一場單人戰鬥
-    @Post('/game/startBattle')
+    // constructor(private readonly roomGateway: RoomGateway) { }
+    // //開啟一場單人戰鬥
+    // @Post('/game/startBattle')
 
-    async startBattle(@Req() req: any, @Body() params: BattleParam): Promise<HttpRespone> {
+    // async startBattle(@Req() req: any, @Body() params: BattleParam): Promise<HttpRespone> {
 
-        let payload = req.user as JWTPayload;
-        console.log(payload);
-        let res = { errorCode: ErrorCode.SUCCESS } as HttpRespone;
+    //     let payload = req.user as JWTPayload;
+    //     console.log(payload);
+    //     let res = { errorCode: ErrorCode.SUCCESS } as HttpRespone;
 
-        let user = await DataCenter.GetUser(payload.userId);
-        console.log(user);
-        if (user == null) {
-            res.errorCode = ErrorCode.不存在的資料;
-            return res;
+    //     let user = await DataCenter.GetUser(payload.userId);
+    //     console.log(user);
+    //     if (user == null) {
+    //         res.errorCode = ErrorCode.不存在的資料;
+    //         return res;
 
-        } if (user.character == null) {
-            res.errorCode = ErrorCode.尚未選擇角色;
-            return res;
-        }
+    //     } if (user.character == null) {
+    //         res.errorCode = ErrorCode.尚未選擇角色;
+    //         return res;
+    //     }
 
 
-        return res;
+    //     return res;
 
-    }
+    // }
 
 
 }

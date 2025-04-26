@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "tactile-acrobat-275612",
+  "private_key_id": "01ea0fe9fdf7a5bc3be057e19628b3429aabe4e6",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQDWtR2Z9YQwRKpv\nK9u7SeBsicxl0WeZikOBmtqxwid2Q23R/g66vQzRhLoCTRGepdaHjkmINBxF9Cbb\nA/zKQCkSmd2SaGh8pMOpZwvUB/s9DcLCJifRkVwVThOG7X0zBz8MqDK1Z44TSCms\nsTVOCwGYz5zd+HjKbQcFSzTk7aTFhJMiprXRHjrDKaaUPJ1ATaoVNRDERP34qXpR\naPK4rzYJqN9pB9ENx+1R1Ixt/qwbrFmhgwMH/mL8BKJ3OiV1v+wpDWkN2HjcsYgH\nUwlVqXSbPROE35Ncs4BpRoYgDandBGgs8VwvnwNoG6P3EwGqKcVjm04qzUS5iCnQ\n0JO7IW0ZAgMBAAECggEAEDuzWD+a1fdrF2que1OTl0E35f7WIWK1xefKXyQ5zZQ9\nimH2BSJkBLdPRPtEuMT7GlakspqWBKf4BBkiFLyTHmfpu7cPJ1Vhwb4bw9UypqQS\ntJEj85FU7/tuOIZeL+x9VNymsNZ6hHSxSfBAAn2MilwwFQxDPbLOlBTik+hvy8sd\nyanOs85LtT12WQsJbc/MibtgnogoWK2SLeqRn69ur/Hb04W6bgG5EDsWrBRIUIal\nxdLgNoh+mPmM/onMYcUJGEHUgHWocM6nG0SML6irzs3PrIAEo0qjSuH3KdJ29Z/9\nz+OL4HR0QF+Sjg1ZTPOQoKS0TNe0s6n2uz/hDHHEgQKBgQDxASaJIAH0fbno6OtX\nxtO7Z8bFbcUQZ5olUfXFKJ3gj2NhCPs+1Q2kkFdd/zOpJaQKliG0VN3Xev82Wi2f\nripSL89haSHMxYTXuGCNavKP3RKy+g8Cn/4mOj2IaL2NoWh6nn0UV+8BnS4elZOk\nIcDyNR+BDO6ux/4UhNXiBHFB8QKBgQDkEReV9BGAaxdqQXzaLJZHQWdaYIjE3PXD\n5bvXu+2qcnEcWNbKV+zpiiXfYG63sfChejg7WxroHXSA7gtj26kWDspdSftJ2fJd\nB05E70SwlpweZR18x0kVfnuHrCwpqT6ma4KanBnHyCWiBcwR1ACWNMUDcKLvqp7i\nPaLznxY1qQKBgQDIcliGvGRj4R37JZ54BxqbSBj+o+m/VyvR1nU/YiTNXPUfA8VT\n4QfT02mW+GcTTAc/9tZZkixgyB/0KNTBdq4kZTdqoXJHShDPCr7jYAwWs5yV130c\nhc1wJgh/p/3gCltHgQIvJWPYR87QCUAexyQfTyfAwezS2evtTP5HWcKJQQKBgAhl\nrLWjt+U/jCwoXx11WM8k1FZaiY6eCBp/YewuijClaA7AIqBunlV29bAEz+7JiW+Y\nnWtqDlKPixOYMCksFEywnLjUmYD9mlPcigA1wxSxZuwjkvNeLw2wi4HSUAn0pk7g\nVH2206gscV5G0l2xrZfaN4rJ4eXrJVB1LoPDzsCJAoGBAMXBgWRTob4i6FnTplXj\ngSRCeLs+5RaAuVUQmlI/rrys34jUAe0Hjrc8eTT1vJR5xByKeUZQ658rqbbG8hSf\na0otUo1ue7VD/lXqYFWdeAKDI7MwqSzHPtruV/7TEr/MjWN5NsLJksSdDeTTOf0x\n+Davh0Nkk7KfL/Mz4PbGpLno\n-----END PRIVATE KEY-----\n",
+  "client_email": "rpg-service@tactile-acrobat-275612.iam.gserviceaccount.com",
+  "client_id": "103983512329888350575",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/rpg-service%40tactile-acrobat-275612.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}

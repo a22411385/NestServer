@@ -2,7 +2,7 @@
 
 import { 職業種類 } from "src/Shared/Enum";
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, Index } from "typeorm";
-@Entity()
+@Entity("character")
 export class CharacterORM {
 
     @PrimaryGeneratedColumn()

@@ -85,7 +85,7 @@ export class AuthController {
         let newUser = new AccountORM();
         newUser.account = body.account;
         newUser.password = md5(body.password);
-        newUser.openId = md5(body.account);
+        newUser.openId = md5(body.account + 'rpg');
 
         let u = await this.usersRepo.save(newUser);
 
