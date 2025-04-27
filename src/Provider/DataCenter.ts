@@ -1,6 +1,6 @@
 import { CharacterORM } from "src/ORM/charater.entity"
-import { BattleRoom } from "../Game/BattleRoom";
-import { GamePlayer } from "../Game/Player";
+import { GameSerivce } from "../Service/game.service";
+import { GamePlayer } from "../Game/GamePlayer";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import { Injectable } from "@nestjs/common";
@@ -17,7 +17,7 @@ export class UserData {
 export class DataCenter {
 
     public static Users: Record<number, UserData> = {}
-    public static BattleRooms: Record<string, BattleRoom> = {};
+    public static BattleRooms: Record<string, GameSerivce> = {};
 
     @InjectRepository(AccountORM)
     private static usersRepo: Repository<AccountORM>

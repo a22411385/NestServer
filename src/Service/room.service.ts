@@ -1,20 +1,18 @@
 import { Injectable, Module } from '@nestjs/common';
-import { BattleRoom } from '../Game/BattleRoom';
+import { GameSerivce as GameService } from './game.service';
 import { ErrorCode } from 'src/Shared/ErrorCode';
-import { GamePlayer } from 'src/Game/Player';
+import { GamePlayer } from 'src/Game/GamePlayer';
 import { OnEvent } from '@nestjs/event-emitter';
-
+import { ModuleRef } from '@nestjs/core';
 @Injectable()
 export class RoomService {
+    constructor(private moduleRef: ModuleRef) {
 
-    private roomMap = new Map<string, BattleRoom>();
+    }
+    private roomMap = new Map<string, GameService>();
     async createRoom(roomName: string, areaID: number): Promise<ErrorCode | string> {
 
-        let r = new BattleRoom(roomName, areaID);
-        if (this.roomMap.has(r.UniqueID)) {
-            return ErrorCode.名稱已被使用;
-        }
-
+        const r = await this.moduleRef.resolve(GameService);
         this.roomMap.set(r.UniqueID, r);
         return r.UniqueID;
     }

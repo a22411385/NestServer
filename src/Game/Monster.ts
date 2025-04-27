@@ -1,7 +1,7 @@
 import { Unit } from "./Basic";
 
 export class Monster extends Unit {
-    InitHp(): void {
+    Init(): void {
         this.Hp = 20;
         this.Atk = 5;
     }
@@ -9,7 +9,7 @@ export class Monster extends Unit {
 
     constructor(id: number) {
 
-        super()
+        super(id.toString());
         //先暫時
 
     }

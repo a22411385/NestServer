@@ -20,7 +20,7 @@ import { HttpRespone } from 'src/Shared/struct';
 import { JWTPayload } from 'src/struct';
 
 import { CharacterService } from 'src/Service/charater.serivce';
-import { GamePlayer } from 'src/Game/Player';
+import { GamePlayer } from 'src/Game/GamePlayer';
 import { ErrorCode } from 'src/Shared/ErrorCode';
 import { GoogleSheetsService } from 'src/Service/google-sheets.service';
 import { PROFESSION } from 'src/Data/PROFESSION';
@@ -44,8 +44,7 @@ export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 
         ]);
 
-        let res = await this.googleSheetService.getSheetData('Profession')
-        console.log(res)
+
 
     }
     constructor(

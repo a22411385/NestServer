@@ -1,6 +1,7 @@
 import { 傷害類型 } from "../Shared/Enum";
+import { CombatComponent } from "./Combat/CombatComponent";
 
-export abstract class Unit {
+export abstract class Unit extends CombatComponent {
 
     //動態使用
     protected Hp: number;
@@ -12,10 +13,11 @@ export abstract class Unit {
     protected Atk: number;
     protected Def: number;
 
-    abstract InitHp(): void;
+    abstract Init(): void;
 
-    constructor() {
-        this.InitHp();
+    constructor(id: string) {
+        super({ id: id, hp: 50, maxHp: 50, attackInterval: 1, lastAttackTime: 0, isDead: false });
+        this.Init();
     }
     AtkValue() {
 
@@ -41,7 +43,7 @@ export abstract class Unit {
 }
 
 //英雄單位/玩家單位有主要屬性
-export abstract class Hero extends Unit {
+export class Hero extends Unit {
 
 
 
@@ -52,8 +54,11 @@ export abstract class Hero extends Unit {
     protected Int: number;
     protected Lv: number;
 
+    constructor(id: number) {
+        super(id.toString());
+    }
 
-    override InitHp(): void {
+    override Init(): void {
 
         //先暫時設定
         this.Hp = this.MaxMp = 50;

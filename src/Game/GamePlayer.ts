@@ -9,12 +9,21 @@ export class GamePlayer {
     public roomId: string;
     public state: 'idle' | 'fighting' | 'dead';
     public char: CharacterORM;
-
+    private expTable: number[] = [];
     constructor(char: CharacterORM) {
         this.char = char;
         this.roomId = "";
         this.state = "idle";
+        //  this.expTable = expTable;
 
+    }
+    getLevel(exp: number): number {
+        for (let i = this.expTable.length - 1; i >= 0; i--) {
+            if (exp >= this.expTable[i]) {
+                return i + 1;
+            }
+        }
+        return 1;
     }
 
 

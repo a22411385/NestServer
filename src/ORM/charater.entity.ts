@@ -28,4 +28,6 @@ export class CharacterORM {
     createTime?: Date;
     @UpdateDateColumn()
     updateTime?: Date;
+
+
 }
