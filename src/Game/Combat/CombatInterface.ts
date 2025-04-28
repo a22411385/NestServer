@@ -10,3 +10,13 @@ interface StatusEffect {
     type: 'stun' | 'freeze' | 'silence';
     expiresAt: number; // 秒
 }
+
+export enum 攻擊結果 {
+
+    迴避,
+    目標被擊殺,
+    命中,
+    失敗
+
+
+}

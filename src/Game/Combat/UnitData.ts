@@ -1,20 +1,21 @@
-export class MonsterData {
+abstract class UnitBasicData {
     public ID: number;
     public Name: string;
     public HP: number;
     public ATK: number;
-    public Mp: number;
+    public MP: number;
     public ASpeed: number;
+
+}
+
+export class MonsterData extends UnitBasicData {
 
 
 }
 
-export class ProfessionData {
-    public ID: number;
-    public Name: string;
-    public HP: number;
-    public ATK: number;
-    public Mp: number;
-    public ASpeed: number;
+
+
+export class ProfessionData extends UnitBasicData {
+
 
 }

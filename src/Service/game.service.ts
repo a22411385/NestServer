@@ -1,9 +1,10 @@
 import { GamePlayer } from "../Game/GamePlayer";
-import { EventEmitter2 } from '@nestjs/event-emitter';
+import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import { Injectable, OnModuleDestroy, Scope } from "@nestjs/common";
 import { GoogleSheetsService } from "src/Service/google-sheets.service";
 import { Hero, Monster } from "src/Game/UnitSetting";
 import { MonsterData, ProfessionData } from "src/Game/Combat/UnitData";
+import { BasicUnit } from "src/Game/Combat/UnitBasic";
 
 @Injectable({ scope: Scope.TRANSIENT })
 export class GameService implements OnModuleDestroy {
@@ -21,14 +22,14 @@ export class GameService implements OnModuleDestroy {
     private players: Map<string, GamePlayer> = new Map;
     private PlayerTeam: Hero[] = [];
     private Enemys: Monster[] = [];
-    private eventEmitter: EventEmitter2
+
     private updateInterval: NodeJS.Timeout | null = null;
 
     //先固定一隻
-    private enemyCount: number = 1;
+    private enemyCount: number = 2;
 
     private maxCount: 1;
-    constructor(private goolgeSheetService: GoogleSheetsService) {
+    constructor(private goolgeSheetService: GoogleSheetsService, private eventEmitter: EventEmitter2) {
 
         this._uniqueID = this.generateUniqueID();
 
@@ -57,8 +58,9 @@ export class GameService implements OnModuleDestroy {
         let allReady = true;
         this.players.forEach(pp => { if (pp.state != 'ready') allReady = false });
 
-        if (allReady) this.戰鬥開始();
-
+        if (allReady) {
+            this.戰鬥開始();
+        }
 
     }
 
@@ -73,26 +75,44 @@ export class GameService implements OnModuleDestroy {
         let monster = await this.goolgeSheetService.getSheetData('Monster') as MonsterData[]
         console.log(monster)
 
+        this.enemyCount = 3;
+
         //初始化敵人
         for (let i = 0; i < this.enemyCount; i++) {
-            let enemy = new Monster(monster[Math.floor(Math.random() * monster.length)]);
+            let enemy = new Monster(monster[Math.floor(Math.random() * monster.length)], this.eventEmitter);
             this.Enemys.push(enemy);
         }
-        for (let i in this.players) {
 
+        console.log(`${this.Enemys.length} 個敵人出現 !!`);
+
+        this.players.forEach(pp => {
             //這裡要把所有玩家實體化
-            let findP = Profession.find(item => item.ID == this.players.get(i)?.char.id);
+            let findP = Profession.find(item => item.ID == pp.char.type);
             if (findP != undefined) {
-                let p = new Hero(findP);
+                let p = new Hero(findP, this.eventEmitter);
                 this.PlayerTeam.push(p)
             }
+        });
+    }
+
+    @OnEvent('unit.autoSelectTarget')
+    public 自動尋敵(unit: BasicUnit) {
+        let fisrtEenmy = this.Enemys.find((item) => !item.isDead);
+        if (fisrtEenmy) {
+            console.log(`[${unit.Name}] 重新鎖定目標: [${fisrtEenmy.Name}]`)
+            unit.setTarget(fisrtEenmy);
         }
+        //  unit.setTarget()
 
     }
+
+
     private async 戰鬥開始() {
         await this.Init();
         for (var i in this.PlayerTeam) {
-            this.PlayerTeam[i].setTarget(this.Enemys[0]);
+            let fisrtEenmy = this.Enemys.find((item) => !item.isDead);
+            if (fisrtEenmy)
+                this.PlayerTeam[i].setTarget(fisrtEenmy);
         }
 
         this.updateInterval = setInterval(this.Update.bind(this), 100);
@@ -111,19 +131,20 @@ export class GameService implements OnModuleDestroy {
         for (var i in this.PlayerTeam) {
             this.PlayerTeam[i].update(now);
         }
+
+
+        if (this.Enemys.filter(x => !x.isDead).length == 0 || this.PlayerTeam.filter(x => !x.isDead).length == 0) {
+            console.log("遊戲結束");
+            this.遊戲結束();
+        }
     }
 
     private 遊戲結束() {
+        console.log(`[房間 ${this._uniqueID}] 遊戲結束`);
         this.clearTimer();
         this.eventEmitter.emit('room.close', { roomId: this._uniqueID });
     }
 
-
-
-    // public GetPlayersId(): number[] {
-
-    //     return Array.from(this.players.keys());
-    // }
     private generateUniqueID(): string {
         return `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
     }

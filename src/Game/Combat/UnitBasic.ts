@@ -1,3 +1,7 @@
+
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { 攻擊結果 } from './CombatInterface';
+
 // combat-component.ts
 export interface UnitState {
     id: number;
@@ -13,7 +17,10 @@ export interface UnitState {
 //單位的基底
 export abstract class BasicUnit {
 
-    protected Name: string;
+    protected _name: string;
+    public get Name(): string {
+        return this._name;
+    }
     // state: UnitState;
     target: BasicUnit | null = null;
 
@@ -28,17 +35,19 @@ export abstract class BasicUnit {
     protected Def: number;
 
     attackInterval: number; // 秒
-    lastAttackTime: number; // 秒
+    lastAttackTime: number = 0; // 秒
     isDead: boolean;
 
+    private event: EventEmitter2;
 
-    constructor(initData: UnitState) {
+    constructor(initData: UnitState, event: EventEmitter2) {
+        this.event = event;
         this.isDead = false;
         this.Hp = this.MaxHp = initData.Hp;
         this.Mp = this.MaxMp = initData.Mp;
         this.Atk = initData.Atk;
         this.attackInterval = initData.AtkSpeed;
-        this.Name = initData.Name;
+        this._name = initData.Name;
 
     }
 
@@ -57,21 +66,28 @@ export abstract class BasicUnit {
         if (!this.target) return;
 
         const damage = 10; // 暫定每次打10點傷害
-        console.log(`[${this.Name}] attacks [${this.target.Name}] for ${damage} damage!`);
-        this.target.receiveDamage(damage);
+        console.log(`[${this._name}] attacks [${this.target._name}] for ${damage} damage!`);
+        let attRes = this.target.receiveDamage(damage);
+        if (attRes == 攻擊結果.目標被擊殺) {
+
+            this.event.emit('unit.autoSelectTarget');
+        }
     }
 
-    receiveDamage(amount: number) {
-        if (this.isDead) return;
+    receiveDamage(amount: number): 攻擊結果 {
+        if (this.isDead) return 攻擊結果.失敗;
 
         this.Hp -= amount;
-        console.log(`[${this.Name}] received ${amount} damage. HP: ${this.Hp}/${this.MaxHp}`);
+        console.log(`[${this._name}] received ${amount} damage. HP: ${this.Hp}/${this.MaxHp}`);
 
         if (this.Hp <= 0) {
             this.Hp = 0;
             this.isDead = true;
-            console.log(`[${this.Name}] has died.`);
+            console.log(`[${this._name}] has died.`);
+            this.event.emit('unit.dead', this);
+            return 攻擊結果.目標被擊殺
         }
+        return 攻擊結果.命中
     }
 
 

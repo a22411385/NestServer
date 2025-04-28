@@ -14,6 +14,7 @@ import { MessageID } from 'src/Shared/MessageID';
 import { ErrorCode } from 'src/Shared/ErrorCode';
 import { JWTPayload } from 'src/struct';
 import { MonsterData, ProfessionData } from 'src/Game/Combat/UnitData';
+import { ResponeError, ResponeSuccess } from 'src/Util/respone.util';
 
 @WebSocketGateway({ cors: true })
 export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect, OnModuleInit {
@@ -78,18 +79,18 @@ export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect, On
             const player = this.getPlayerOrThrow(payload.openId);
 
             if (player.roomId !== '') {
-                return this.error(ErrorCode.正在戰鬥中);
+                return ResponeError(ErrorCode.正在戰鬥中);
             }
 
             const res = await this.CreateRoom('single', -1);
             if (typeof res !== 'string') {
-                return this.error(res);
+                return ResponeError(ErrorCode.房間不存在);
             }
 
             this.JoinRoom(res, player);
             player.roomId = res;
 
-            return this.success(res);
+            return ResponeSuccess(res);
         });
     }
 
@@ -100,12 +101,12 @@ export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect, On
             const player = this.getPlayerOrThrow(payload.openId);
 
             if (player.roomId === '') {
-                return this.error(ErrorCode.房間不存在);
+                return ResponeError(ErrorCode.房間不存在);
             }
 
             this.Ready(player.roomId, player);
 
-            return this.success();
+            return ResponeSuccess();
         });
     }
 
@@ -129,6 +130,7 @@ export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 
     @OnEvent('room.close')
     private RoomClose(param: { roomId: string }) {
+        console.log(`[房間 ${param.roomId}] 房間關閉`);
         this.roomMap.delete(param.roomId);
     }
 
@@ -155,22 +157,7 @@ export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect, On
             return await fn();
         } catch (error) {
             console.error('❌ 執行錯誤:', error.message);
-            return this.error(ErrorCode.不存在的資料);
+            return ResponeError(ErrorCode.不存在的資料);
         }
-    }
-
-    private success(content: any = null): HttpRespone {
-        return {
-            errorCode: ErrorCode.SUCCESS,
-            content: content,
-
-        };
-    }
-
-    private error(errorCode: ErrorCode): HttpRespone {
-        return {
-            errorCode: errorCode,
-            content: null,
-        };
     }
 }
