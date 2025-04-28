@@ -5,6 +5,7 @@ import { BadRequestException, ValidationError, ValidationPipe } from '@nestjs/co
 import { ErrorCode } from './Shared/ErrorCode';
 import { HttpRespone } from './Shared/struct';
 import { SetMetadata } from '@nestjs/common';
+import { TestSimulatorService } from './Test/test-simulator.service';
 
 export const IS_PUBLIC_KEY = 'isPublic';
 export const IsPublic = () => SetMetadata(IS_PUBLIC_KEY, true);
@@ -39,6 +40,9 @@ async function bootstrap() {
 
   await app.listen(process.env.PORT ?? 8010, 'localhost');
 
+
+  const testSimulator = app.get(TestSimulatorService);
+  await testSimulator.run();
 
 }
 bootstrap();

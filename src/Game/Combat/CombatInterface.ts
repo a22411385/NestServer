@@ -1,13 +1,3 @@
-interface CombatState {
-    hp: number;
-    maxHp: number;
-    attackInterval: number; // 秒
-    lastAttackTime: number; // 秒
-    skills: SkillInstance[]; // 持有技能
-    statuses: StatusEffect[]; // 異常狀態
-    isDead: boolean;
-}
-
 interface SkillInstance {
     id: string;
     name: string;

@@ -7,9 +7,11 @@ export class GamePlayer {
 
     public id: string;
     public roomId: string;
-    public state: 'idle' | 'fighting' | 'dead';
+    public state: 'idle' | 'fighting' | 'dead' | 'waiting' | 'ready';
     public char: CharacterORM;
     private expTable: number[] = [];
+
+
     constructor(char: CharacterORM) {
         this.char = char;
         this.roomId = "";

@@ -7,6 +7,8 @@ import { DataModule } from './Module/DataModule';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { CacheModule } from '@nestjs/cache-manager';
+import { TestModule } from './Module/TestModule';
+import { HttpService, HttpModule } from '@nestjs/axios';
 
 @Module({
   imports: [
@@ -28,6 +30,9 @@ import { CacheModule } from '@nestjs/cache-manager';
     DataModule,
     AuthModule,
     GameModule,
+    TestModule,
+    HttpModule,
+
     JwtModule.register({ global: true, secret: process.env.JWT_KEY }),
     EventEmitterModule.forRoot(),
   ],
