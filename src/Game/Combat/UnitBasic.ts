@@ -24,6 +24,7 @@ export abstract class BasicUnit {
     // state: UnitState;
     target: BasicUnit | null = null;
 
+    team: string;
     //動態使用
     protected Hp: number;
     protected MaxHp: number;
@@ -37,7 +38,6 @@ export abstract class BasicUnit {
     attackInterval: number; // 秒
     lastAttackTime: number = 0; // 秒
     isDead: boolean;
-
     private event: EventEmitter2;
 
     constructor(initData: UnitState, event: EventEmitter2) {
@@ -53,6 +53,11 @@ export abstract class BasicUnit {
 
     update(currentTime: number) {
         if (this.isDead) return;
+
+        if (this.target == null) {
+            this.event.emit('unit.autoSelectTarget', this);
+            return;
+        }
         if (!this.target || this.target.isDead) return;
 
         if (currentTime - this.lastAttackTime >= this.attackInterval) {
@@ -65,12 +70,12 @@ export abstract class BasicUnit {
     performBasicAttack() {
         if (!this.target) return;
 
-        const damage = 10; // 暫定每次打10點傷害
+        const damage = this.Atk; // 暫定每次打10點傷害
         console.log(`[${this._name}] attacks [${this.target._name}] for ${damage} damage!`);
         let attRes = this.target.receiveDamage(damage);
         if (attRes == 攻擊結果.目標被擊殺) {
-
-            this.event.emit('unit.autoSelectTarget');
+            console.log(`[${this._name}] 擊殺 [${this.target._name}]!`);
+            this.event.emit('unit.autoSelectTarget', this);
         }
     }
 

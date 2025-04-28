@@ -32,7 +32,10 @@ export class GameService implements OnModuleDestroy {
     constructor(private goolgeSheetService: GoogleSheetsService, private eventEmitter: EventEmitter2) {
 
         this._uniqueID = this.generateUniqueID();
-
+        this.eventEmitter.on(
+            'unit.autoSelectTarget',
+            (unit: BasicUnit) => this.自動尋敵(unit),
+        );
     }
 
 
@@ -80,6 +83,7 @@ export class GameService implements OnModuleDestroy {
         //初始化敵人
         for (let i = 0; i < this.enemyCount; i++) {
             let enemy = new Monster(monster[Math.floor(Math.random() * monster.length)], this.eventEmitter);
+            enemy.team = "enemy";
             this.Enemys.push(enemy);
         }
 
@@ -90,17 +94,23 @@ export class GameService implements OnModuleDestroy {
             let findP = Profession.find(item => item.ID == pp.char.type);
             if (findP != undefined) {
                 let p = new Hero(findP, this.eventEmitter);
+                p.team = "player";
                 this.PlayerTeam.push(p)
             }
         });
     }
 
-    @OnEvent('unit.autoSelectTarget')
+
     public 自動尋敵(unit: BasicUnit) {
-        let fisrtEenmy = this.Enemys.find((item) => !item.isDead);
-        if (fisrtEenmy) {
-            console.log(`[${unit.Name}] 重新鎖定目標: [${fisrtEenmy.Name}]`)
-            unit.setTarget(fisrtEenmy);
+        let target: BasicUnit | undefined;
+        if (unit.team != "player") {
+            target = this.PlayerTeam.find((item) => !item.isDead);
+        } else {
+            target = this.Enemys.find((item) => !item.isDead);
+        }
+        if (target) {
+            console.log(`[${unit.Name}] 重新鎖定目標: [${target.Name}]`)
+            unit.setTarget(target);
         }
         //  unit.setTarget()
 
