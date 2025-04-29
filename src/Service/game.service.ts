@@ -124,6 +124,7 @@ export class GameService implements OnModuleDestroy {
     }
 
 
+
     private async 戰鬥開始() {
         await this.Init();
         for (var i in this.PlayerTeam) {
@@ -155,8 +156,15 @@ export class GameService implements OnModuleDestroy {
             this.遊戲結束();
         }
     }
+    private 掉寶() {
 
+    }
+    private 結算() {
+
+
+    }
     private 遊戲結束() {
+        this.結算();
         console.log(`[房間 ${this._uniqueID}] 遊戲結束`);
         this.clearTimer();
         this.eventEmitter.emit('room.close', { roomId: this._uniqueID });
