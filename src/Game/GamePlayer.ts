@@ -1,4 +1,5 @@
 import { CharacterORM } from "src/ORM/charater.entity";
+import { PlayerGameState } from "src/Shared/Enum";
 
 /**
  * 玩家遊戲中使用的資料結構
@@ -7,7 +8,7 @@ export class GamePlayer {
 
     public id: string;
     public roomId: string;
-    public state: 'idle' | 'fighting' | 'dead' | 'waiting' | 'ready';
+    public state: PlayerGameState;
     public char: CharacterORM;
     private expTable: number[] = [];
 
@@ -15,7 +16,7 @@ export class GamePlayer {
     constructor(char: CharacterORM) {
         this.char = char;
         this.roomId = "";
-        this.state = "idle";
+        this.state = PlayerGameState.IDLE;
         //  this.expTable = expTable;
 
     }

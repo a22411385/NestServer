@@ -5,6 +5,8 @@ import { GoogleSheetsService } from "src/Service/google-sheets.service";
 import { Hero, Monster } from "src/Game/UnitSetting";
 import { MonsterData, ProfessionData } from "src/Game/Combat/UnitData";
 import { BasicUnit } from "src/Game/Combat/UnitBasic";
+import { v4 as uuidv4 } from 'uuid';
+import { BattleEvent, BattleEventType, PlayerGameState } from "src/Shared/Enum";
 
 @Injectable({ scope: Scope.TRANSIENT })
 export class GameService implements OnModuleDestroy {
@@ -19,47 +21,56 @@ export class GameService implements OnModuleDestroy {
     private _areaId: number;
 
     //玩家
-    private players: Map<string, GamePlayer> = new Map;
+    private _players: Map<string, GamePlayer> = new Map;
+    public get Players(): Map<string, GamePlayer> {
+        return this._players;
+    }
     private PlayerTeam: Hero[] = [];
     private Enemys: Monster[] = [];
 
     private updateInterval: NodeJS.Timeout | null = null;
 
     //先固定一隻
-    private enemyCount: number = 2;
+    private enemyCount: number = 1;
 
     private maxCount: 1;
     constructor(private goolgeSheetService: GoogleSheetsService, private eventEmitter: EventEmitter2) {
 
-        this._uniqueID = this.generateUniqueID();
+        this._uniqueID = uuidv4();
         this.eventEmitter.on(
             'unit.autoSelectTarget',
             (unit: BasicUnit) => this.自動尋敵(unit),
         );
+
+        this.eventEmitter.on('battleEvent', event => {
+
+            this.eventEmitter.emit('game.battleEvent', { roomId: this._uniqueID, data: event });
+
+        });
     }
 
 
     public JoinPlayer(player: GamePlayer): boolean {
 
-        if (this.players.has(player.id)) {
+        if (this._players.has(player.id)) {
             console.error(`${player.id}玩家已經在房間裡`)
             return false;
         }
         console.log(`${player.id} 玩家加入房間 : ${this.UniqueID}`)
-        player.state = 'waiting';
-        this.players.set(player.id, player);
+        player.state = PlayerGameState.WAITING;
+        this._players.set(player.id, player);
         return true;
     }
 
     public PlayerReady(player: GamePlayer) {
 
-        let p = this.players.get(player.id);
+        let p = this._players.get(player.id);
         if (p != undefined) {
 
-            p.state = 'ready';
+            p.state = PlayerGameState.READY;
         }
         let allReady = true;
-        this.players.forEach(pp => { if (pp.state != 'ready') allReady = false });
+        this._players.forEach(pp => { if (pp.state != 'ready') allReady = false });
 
         if (allReady) {
             this.戰鬥開始();
@@ -69,7 +80,7 @@ export class GameService implements OnModuleDestroy {
 
     public RemovePlayer(player: GamePlayer) {
 
-        this.players.delete(player.id);
+        this._players.delete(player.id);
     }
     async Init() {
 
@@ -77,8 +88,6 @@ export class GameService implements OnModuleDestroy {
         console.log(Profession)
         let monster = await this.goolgeSheetService.getSheetData('Monster') as MonsterData[]
         console.log(monster)
-
-        this.enemyCount = 3;
 
         //初始化敵人
         for (let i = 0; i < this.enemyCount; i++) {
@@ -89,7 +98,7 @@ export class GameService implements OnModuleDestroy {
 
         console.log(`${this.Enemys.length} 個敵人出現 !!`);
 
-        this.players.forEach(pp => {
+        this._players.forEach(pp => {
             //這裡要把所有玩家實體化
             let findP = Profession.find(item => item.ID == pp.char.type);
             if (findP != undefined) {
@@ -112,8 +121,6 @@ export class GameService implements OnModuleDestroy {
             console.log(`[${unit.Name}] 重新鎖定目標: [${target.Name}]`)
             unit.setTarget(target);
         }
-        //  unit.setTarget()
-
     }
 
 
@@ -155,9 +162,6 @@ export class GameService implements OnModuleDestroy {
         this.eventEmitter.emit('room.close', { roomId: this._uniqueID });
     }
 
-    private generateUniqueID(): string {
-        return `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-    }
 
     onModuleDestroy() {
         console.log(`[房間 ${this._uniqueID}] GameService 被銷毀，清理資源`);

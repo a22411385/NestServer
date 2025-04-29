@@ -41,8 +41,8 @@ async function bootstrap() {
   await app.listen(process.env.PORT ?? 8010, 'localhost');
 
 
-  const testSimulator = app.get(TestSimulatorService);
-  await testSimulator.run();
+  //const testSimulator = app.get(TestSimulatorService);
+  //await testSimulator.run();
 
 }
 bootstrap();

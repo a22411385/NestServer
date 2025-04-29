@@ -15,6 +15,7 @@ import { ErrorCode } from 'src/Shared/ErrorCode';
 import { JWTPayload } from 'src/struct';
 import { MonsterData, ProfessionData } from 'src/Game/Combat/UnitData';
 import { ResponeError, ResponeSuccess } from 'src/Util/respone.util';
+import { BattleEvent } from 'src/Shared/Enum';
 
 @WebSocketGateway({ cors: true })
 export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect, OnModuleInit {
@@ -86,7 +87,7 @@ export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect, On
             if (typeof res !== 'string') {
                 return ResponeError(ErrorCode.房間不存在);
             }
-
+            client.join(res);
             this.JoinRoom(res, player);
             player.roomId = res;
 
@@ -131,7 +132,21 @@ export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect, On
     @OnEvent('room.close')
     private RoomClose(param: { roomId: string }) {
         console.log(`[房間 ${param.roomId}] 房間關閉`);
+        this.server.to(param.roomId).emit(MessageID.ROOMISCLOSE)
+        this.server.in(param.roomId).socketsLeave(param.roomId);
+        const room = this.getRoomOrThrow(param.roomId);
+        room.Players.forEach((p) => {
+            p.roomId = "";
+
+        })
+
         this.roomMap.delete(param.roomId);
+    }
+
+    @OnEvent('game.battleEvent')
+    private BattleEvent(param: { roomId: string, data: BattleEvent }) {
+        //  const room = this.getRoomOrThrow(param.roomId);
+        this.server.to(param.roomId).emit(MessageID.BATTLE_EVENT, param.data);
     }
 
     // --- 以下是共用小工具 ---

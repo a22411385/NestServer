@@ -1,4 +1,4 @@
-import type { 職業種類 } from "./Enum";
+import type { PlayerGameState, 職業種類 } from "./Enum";
 
 export interface Character {
     id: number;
@@ -6,5 +6,13 @@ export interface Character {
     lv: number;
     exp: number;
     type: 職業種類
+
+}
+
+export interface GameInit {
+
+    id: number;
+    roomId: string;
+    state: PlayerGameState
 
 }

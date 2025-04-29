@@ -2,7 +2,7 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "type": "pwa-node",
+      "type": "node",
       "request": "launch",
       "name": "NestJS: Debug",
       "skipFiles": ["<node_internals>/**"],
@@ -14,7 +14,7 @@
       ],
       "args": ["${workspaceFolder}/src/main.ts"],
       "cwd": "${workspaceFolder}",
-      "protocol": "inspector",
+
       "envFile": "${workspaceFolder}/.env",
       "autoAttachChildProcesses": true
     }
