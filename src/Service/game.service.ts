@@ -5,8 +5,9 @@ import { GoogleSheetsService } from "src/Service/google-sheets.service";
 import { Hero, Monster } from "src/Game/UnitSetting";
 import { MonsterData, ProfessionData } from "src/Game/Combat/UnitData";
 import { BasicUnit } from "src/Game/Combat/UnitBasic";
-import { v4 as uuidv4 } from 'uuid';
-import { BattleEvent, BattleEventType, PlayerGameState } from "src/Shared/Enum";
+import { PlayerGameState } from "src/Shared/Enum";
+import { randomUUID } from 'crypto';
+
 
 @Injectable({ scope: Scope.TRANSIENT })
 export class GameService implements OnModuleDestroy {
@@ -36,7 +37,7 @@ export class GameService implements OnModuleDestroy {
     private maxCount: 1;
     constructor(private goolgeSheetService: GoogleSheetsService, private eventEmitter: EventEmitter2) {
 
-        this._uniqueID = uuidv4();
+        this._uniqueID = randomUUID();
         this.eventEmitter.on(
             'unit.autoSelectTarget',
             (unit: BasicUnit) => this.自動尋敵(unit),

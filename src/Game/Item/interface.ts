@@ -15,3 +15,4 @@ interface MonsterLoot {
     monsterId: string;
     lootGroups: LootGroup[];
 }
+

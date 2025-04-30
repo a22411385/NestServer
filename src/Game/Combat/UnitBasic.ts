@@ -2,7 +2,7 @@
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { 攻擊結果 } from './CombatInterface';
 import { AttackPayload, BattleEvent, BattleEventType, DamagePayload, 傷害類型 } from "src/Shared/Enum";
-import { v4 as uuidv4 } from 'uuid';
+import { randomUUID } from 'crypto';
 // combat-component.ts
 export interface UnitState {
     id: number;
@@ -46,7 +46,7 @@ export abstract class BasicUnit {
     private event: EventEmitter2;
 
     constructor(initData: UnitState, event: EventEmitter2) {
-        this._uniqueID = uuidv4();
+        this._uniqueID = randomUUID();
         this.event = event;
         this.isDead = false;
         this.Hp = this.MaxHp = initData.Hp;

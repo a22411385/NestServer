@@ -16,6 +16,9 @@ import { JWTPayload } from 'src/struct';
 import { MonsterData, ProfessionData } from 'src/Game/Combat/UnitData';
 import { ResponeError, ResponeSuccess } from 'src/Util/respone.util';
 import { BattleEvent } from 'src/Shared/Enum';
+import { ItemFactoryService } from 'src/Service/ItemFactory.service';
+import { AffixDefinition, ConsumableItem, EquipmentItem, ItemBase } from 'src/Game/Item/ItemData';
+
 
 @WebSocketGateway({ cors: true })
 export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect, OnModuleInit {
@@ -30,15 +33,36 @@ export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect, On
         private readonly jwtService: JwtService,
         private readonly charService: CharacterService,
         private readonly googleSheetService: GoogleSheetsService,
-        private readonly moduleRef: ModuleRef
+        private readonly moduleRef: ModuleRef,
+        private readonly itemService: ItemFactoryService
     ) { }
 
     async onModuleInit() {
         console.log('✅ GameGateway 已啟動');
         await this.googleSheetService.InitData([
+
+            //職業表
             { tableName: "Profession", classType: ProfessionData },
-            { tableName: "Monster", classType: MonsterData }
+            //怪物表
+            { tableName: "Monster", classType: MonsterData },
+
+            //物品基礎表
+            { tableName: "Items", classType: ItemBase },
+            //物品屬性表
+            { tableName: "ItemAffixPool", classType: AffixDefinition },
+            //裝備表
+            { tableName: "ItemEquipment", classType: EquipmentItem },
+
+            //消耗品
+            { tableName: "ConsumableItem", classType: ConsumableItem }
         ]);
+
+        let items = await this.googleSheetService.getSheetData<ItemBase>('ItemBase');
+        let ItemAffix = await this.googleSheetService.getSheetData<AffixDefinition>('ItemAffixPool');
+        let Equipment = await this.googleSheetService.getSheetData<EquipmentItem>('ItemEquipment');
+        let ConsumbleItem = await this.googleSheetService.getSheetData<ConsumableItem>('consumbleItem');
+
+        this.itemService.InitData(items, Equipment, ItemAffix, ConsumbleItem);
     }
 
     async handleConnection(client: Socket) {

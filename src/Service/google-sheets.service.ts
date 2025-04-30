@@ -48,7 +48,7 @@ export class GoogleSheetsService {
     private async fetchTableData<T extends object>(tableName: string, classType: new () => T): Promise<T[]> {
         const res = await this.sheets.spreadsheets.values.get({
             spreadsheetId: SHEETS_ID,
-            range: tableName, // 只要表單名稱就好
+            range: tableName,
         });
 
         const rows = res.data.values;
@@ -59,11 +59,25 @@ export class GoogleSheetsService {
 
         const parsed = dataRows.map(row => {
             const instance = new classType();
+
             headers.forEach((header: string, idx: number) => {
                 const value = row[idx];
-                if (value !== undefined) {
-                    // 如果目標物件上有這個欄位，就設定
-                    if (header in instance) {
+
+                if (value !== undefined && header in instance) {
+                    const targetField = (instance as any)[header];
+
+                    // 檢查是否為陣列型欄位（初始化為空陣列即視為陣列欄位）
+                    const isArrayField = Array.isArray(targetField);
+
+                    if (isArrayField) {
+                        const items = value
+                            .split(',')
+                            .map((x: any) => x.trim())
+                            .filter((x: any) => x !== '')
+                            .map((x: any) => isNaN(Number(x)) ? x : Number(x));
+
+                        (instance as any)[header] = items;
+                    } else {
                         if (!isNaN(Number(value)) && value !== '') {
                             (instance as any)[header] = Number(value);
                         } else {
@@ -72,12 +86,12 @@ export class GoogleSheetsService {
                     }
                 }
             });
+
             return instance;
         });
 
         return parsed;
     }
-
     /**
   * 取得表單資料
   */
