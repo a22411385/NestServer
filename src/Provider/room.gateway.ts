@@ -47,7 +47,7 @@ export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect, On
             { tableName: "Monster", classType: MonsterData },
 
             //物品基礎表
-            { tableName: "Items", classType: ItemBase },
+            { tableName: "ItemBase", classType: ItemBase },
             //物品屬性表
             { tableName: "ItemAffixPool", classType: AffixDefinition },
             //裝備表

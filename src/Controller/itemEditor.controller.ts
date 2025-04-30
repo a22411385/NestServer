@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Req } from '@nestjs/common';
+import { Controller, Post, Body, Req, Get, Query } from '@nestjs/common';
 import { IsNotEmpty } from 'class-validator';
 
 import { JWTPayload } from 'src/struct';
@@ -6,35 +6,41 @@ import { ErrorCode } from 'src/Shared/ErrorCode';
 import { DataCenter } from 'src/Provider/DataCenter';
 import { RoomGateway } from 'src/Provider/room.gateway';
 import { HttpRespone } from 'src/Shared/struct';
+import { ResponeError, ResponeSuccess } from 'src/Util/respone.util';
+import { ItemFactoryService } from 'src/Service/ItemFactory.service';
+
+class CreateItemParam {
 
 
+    lv: number;
+
+}
 @Controller()
 export class ItemEditorController {
-    // constructor(private readonly roomGateway: RoomGateway) { }
+
     // //開啟一場單人戰鬥
-    // @Post('/game/startBattle')
 
-    // async startBattle(@Req() req: any, @Body() params: BattleParam): Promise<HttpRespone> {
+    constructor(private readonly factory: ItemFactoryService) { }
 
-    //     let payload = req.user as JWTPayload;
-    //     console.log(payload);
-    //     let res = { errorCode: ErrorCode.SUCCESS } as HttpRespone;
+    @Get('/item/create')
+    testCreate(
+        @Query('itemId') itemId: string,
+        @Query('level') level?: string,
+        @Query('groupId') groupId?: string,
+    ) {
+        if (!itemId) return { error: '缺少 itemId' };
 
-    //     let user = await DataCenter.GetUser(payload.userId);
-    //     console.log(user);
-    //     if (user == null) {
-    //         res.errorCode = ErrorCode.不存在的資料;
-    //         return res;
+        try {
+            const parsedLevel = level ? parseInt(level, 10) : 1;
 
-    //     } if (user.character == null) {
-    //         res.errorCode = ErrorCode.尚未選擇角色;
-    //         return res;
-    //     }
+            const result = this.factory.createItem(itemId, {
+                level: parsedLevel,
+                groupId: groupId,
+            });
 
-
-    //     return res;
-
-    // }
-
-
+            return ResponeSuccess(result);
+        } catch (e) {
+            return { error: e.message };
+        }
+    }
 }

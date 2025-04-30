@@ -11,7 +11,7 @@ import { DataCenter } from "src/Provider/DataCenter";
         TypeOrmModule.forFeature([AccountORM]),
     ],
     controllers: [],
-    providers: [DataCenter, ItemEditorController,
+    providers: [DataCenter,
     ],
     exports: [], // 給別人用就 export
 })

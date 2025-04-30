@@ -9,13 +9,14 @@ import { RoomGateway } from "src/Provider/room.gateway";
 import { CharacterService } from "src/Service/charater.serivce";
 import { GameService } from "src/Service/game.service";
 import { GoogleSheetsService } from "src/Service/google-sheets.service";
+import { ItemEditorController } from "src/Controller/itemEditor.controller";
 
 @Module({
     imports: [TypeOrmModule.forFeature([AccountORM, CharacterORM])],
-    controllers: [CharacterController, GameController],
+    controllers: [CharacterController, GameController, ItemEditorController],
     providers: [RoomGateway, CharacterService, GoogleSheetsService, GameService, ItemFactoryService],
 
-    exports: [RoomGateway], // 給別人用就 export
+    exports: [RoomGateway, ItemFactoryService], // 給別人用就 export
 
 })
 export class GameModule { }
