@@ -8,6 +8,7 @@ import { RoomGateway } from 'src/Provider/room.gateway';
 import { HttpRespone } from 'src/Shared/struct';
 import { ResponeError, ResponeSuccess } from 'src/Util/respone.util';
 import { ItemFactoryService } from 'src/Service/ItemFactory.service';
+import { IsPublic } from 'src/main';
 
 class CreateItemParam {
 

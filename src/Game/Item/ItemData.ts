@@ -59,3 +59,20 @@ export class PlayerEquipmentData {
         value: number;
     }[];
 }
+
+export class MainGroupData {
+    groupId: string;
+    rolls: number;
+
+}
+
+
+export class GroupEntrieData {
+    groupId: string;
+    refType: string;
+    refId: string;
+    weight: number;
+    qtyMin: number;
+    qtyMax: number;
+
+}
