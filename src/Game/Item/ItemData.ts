@@ -1,9 +1,10 @@
 
-
+export type ITEM_TYPE = 'equipment' | 'consumable' | 'junk' | 'currency';
+export type EQUIP_VERSION = 'normal' | 'superior' | 'exceptional' | 'elite';
 export class ItemBase {
     ItemId: string;
     Name: string;
-    Type: 'equipment' | 'consumable' | 'junk';
+    Type: ITEM_TYPE;
     Price: number;
     Description: string;
     Icon: string;
@@ -16,11 +17,12 @@ export class ItemBase {
 export class EquipmentItem {
     itemId: string;
     slot: 'head' | 'chest' | 'mainHand' | 'offHand' | 'gloves' | 'boots';
-    type: 'cloth' | 'leather' | 'staff' | 'plate' | 'oneHandSword' | 'twoHandSword' | 'bow' | 'dagger' | 'shield' | 'tome'
-    affixPool: string[];
-    affixCount: number;
-    durability: [number, number];
-    Lv: number;
+    type: 'cloth' | 'leather' | 'staff' | 'plate' | 'oneHandSword' | 'twoHandSword' | 'bow' | 'dagger' | 'shield' | 'tome';
+    baseValue: number //裝備基值 武器:攻擊力 防具:防禦
+    // affixPool: string[];
+    //   affixCount: number;
+    //  durability: [number, number];
+    //  Lv: number;
 
 }
 
@@ -44,16 +46,16 @@ export class ConsumableItem {
 }
 
 export class PlayerItem {
-    instanceId: string;
+
     itemId: string;
-    type: string;
-    quantity: number;
-    createdAt: number;
+    price: number;
+    type: ITEM_TYPE;
+    rate: 'common' | 'uncommon' | 'rate' | 'epic' | 'legend';
 }
 
-export class PlayerEquipmentData {
-    instanceId: string;
-    durability: number;
+export class PlayerEquipmentData extends PlayerItem {
+
+    value: number = 0; //防禦或攻擊值
     affixes: {
         key: string;
         value: number;
@@ -75,4 +77,10 @@ export class GroupEntrieData {
     qtyMin: number;
     qtyMax: number;
 
+}
+export type MonsterKind = 'normal' | 'elite' | 'boss';
+export interface DropOptions { kind: MonsterKind; level: number; }
+
+export class RandomAffixData {
+    type: string; mainAffix: string; subAffix: string;
 }

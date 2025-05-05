@@ -7,46 +7,97 @@ import {
     ItemBase, EquipmentItem, AffixDefinition, ConsumableItem,
     PlayerItem, PlayerEquipmentData,
     MainGroupData,
-    GroupEntrieData
+    GroupEntrieData,
+    DropOptions,
+    MonsterKind,
+    RandomAffixData,
+    EQUIP_VERSION
 } from 'src/Game/Item/ItemData';
+import { GoogleSheetsService } from './google-sheets.service';
+import { MonsterData, ProfessionData } from 'src/Game/Combat/UnitData';
+import { InjectRepository } from '@nestjs/typeorm';
+import { PlayerItemORM } from 'src/ORM/playeritem.entity';
+import { Repository } from 'typeorm';
+import { EquipmentDataORM } from 'src/ORM/equipmentData.entity';
 
-export type MonsterKind = 'normal' | 'elite' | 'boss';
-export interface DropOptions { kind: MonsterKind; level: number; }
 
 @Injectable()
 export class ItemFactoryService {
+
+    @InjectRepository(PlayerItemORM)
+    private itemRepo: Repository<PlayerItemORM>
+
+    //基本物品表
     private itemBaseMap: Record<string, ItemBase> = {};
+
+    //裝備表
     private equipmentMap: Record<string, EquipmentItem> = {};
+
+    //物品屬性庫
     private affixPoolMap: Record<string, AffixDefinition> = {};
+    //物品屬性隨機表
+    private randomAffix: Record<string, RandomAffixData> = {};
+
+    //消耗品表
     private consumableMap: Record<string, ConsumableItem> = {};
+
+    //物品掉落
     private mainGroups: MainGroupData[] = [];
     private groupEntries: GroupEntrieData[] = [];
 
-    public InitData(
-        items: ItemBase[],
-        equip: EquipmentItem[],
-        affix: AffixDefinition[],
-        consumable: ConsumableItem[],
-        mainGroups: MainGroupData[],
-        groupEntries: GroupEntrieData[]
+    public async InitData(
+        googleSheetService: GoogleSheetsService,
     ) {
-        this.mainGroups = mainGroups;
-        this.groupEntries = groupEntries;
+
+        await googleSheetService.InitData([
+
+            //職業表
+            { tableName: "Profession", classType: ProfessionData },
+            //怪物表
+            { tableName: "Monster", classType: MonsterData },
+
+            //物品基礎表
+            { tableName: "ItemBase", classType: ItemBase },
+            //物品屬性表
+            { tableName: "ItemAffixPool", classType: AffixDefinition },
+            //裝備表
+            { tableName: "ItemEquipment", classType: EquipmentItem },
+
+            //消耗品
+            { tableName: "ConsumableItem", classType: ConsumableItem },
+
+            //其他設定表
+            { tableName: "MainGroups", classType: MainGroupData },
+            { tableName: "GroupEntries", classType: GroupEntrieData },
+            { tableName: "RandomAffix", classType: RandomAffixData }
+        ]);
+
+        let items = await googleSheetService.getSheetData<ItemBase>('ItemBase');
+        let ItemAffix = await googleSheetService.getSheetData<AffixDefinition>('ItemAffixPool');
+        let Equipment = await googleSheetService.getSheetData<EquipmentItem>('ItemEquipment');
+        let ConsumbleItem = await googleSheetService.getSheetData<ConsumableItem>('ConsumableItem');
+        this.mainGroups = await googleSheetService.getSheetData<MainGroupData>('MainGroups');
+        this.groupEntries = await googleSheetService.getSheetData<GroupEntrieData>('GroupEntries');
+        let random = await googleSheetService.getSheetData<RandomAffixData>('RandomAffix');
+        random.forEach(item => {
+            this.randomAffix[item.type] = item;
+        });
         items.forEach(item => {
             this.itemBaseMap[item.ItemId] = item;
         });
-        equip.forEach(item => {
+        Equipment.forEach(item => {
             this.equipmentMap[item.itemId] = item;
         });
-        affix.forEach(item => {
+        ItemAffix.forEach(item => {
             this.affixPoolMap[item.affixId] = item;
         });
-        consumable.forEach(item => {
+        ConsumbleItem.forEach(item => {
             this.consumableMap[item.itemId] = item;
         });
 
         console.log('✅ 物品系統初始化 完成');
     }
+
 
     /** ===== 產生玩家實體掉落 ===== */
     public generateDrops(opts: DropOptions): (PlayerItem | PlayerEquipmentData)[] {
@@ -60,11 +111,54 @@ export class ItemFactoryService {
             const entry = this.pickWeighted(mainId);
             this.resolveEntry(entry, opts, drops);
         }
+
+
         return drops;
     }
 
+    public async saveItems(items: (PlayerItem | PlayerEquipmentData)[], userId: number) {
+        try {
+            for (let i in items) {
+                let item = items[i];
+                let it = new PlayerItemORM();
+                if (item.type != 'equipment') {
+
+                    it.itemId = item.itemId;
+                    it.rate = item.rate;
+                    it.type = item.type;
+                    it.price = item.price;
+                    it.owner = userId;
+
+                } else {
+                    let eqData = item as PlayerEquipmentData;
+
+                    it.itemId = item.itemId;
+                    it.rate = item.rate;
+                    it.type = item.type;
+                    it.price = item.price;
+                    it.owner = userId;
+
+                    let eq = new EquipmentDataORM();
+                    eq.affix = JSON.stringify(eqData.affixes);
+                    eq.value = eqData.value;
+                    it.equipmentData = eq;
+                }
+
+                await this.itemRepo.save(it);
+            }
+        } catch (error) {
+            console.error(error);
+        }
+    }
+
+
     // ---------- 私有：遞迴解析 ----------
     private resolveEntry(entry: GroupEntrieData, opts: DropOptions, outArr: any) {
+
+        if (entry == undefined) {
+            console.error("掉落物品錯誤");
+        }
+
         const qtyRnd = randomInt(entry.qtyMin, entry.qtyMax + 1);
 
         if (entry.refType === 'group') {
@@ -80,13 +174,24 @@ export class ItemFactoryService {
         // ------------------ item ------------------
         if (entry.refId === 'currency_gold') {
             outArr.push({
-                instanceId: randomUUID(),
+                price: 50,
                 itemId: 'currency_gold',
                 type: 'currency',
-                quantity: qtyRnd,
-                createdAt: Date.now()
+                rate: 'common'
             } as PlayerItem);
             return;
+        }
+        let EquipmentLevel: EQUIP_VERSION = 'normal';
+        //如果是裝備群組 要決定物品階層
+        if (entry.groupId == 'Equip_AllBase') {
+
+            const tier = Math.max(1, Math.ceil(opts.level / 10));
+
+            if (tier > 3) EquipmentLevel = 'superior';
+            if (tier > 5) EquipmentLevel = 'exceptional';
+            if (tier > 8) EquipmentLevel = 'elite';
+
+            entry.refId = entry.refId + "_" + EquipmentLevel;
         }
 
         const base = this.itemBaseMap[entry.refId];
@@ -95,11 +200,10 @@ export class ItemFactoryService {
         // ===== 普通物品（垃圾 / 材料 / 藥水 …）=====
         if (base.Type !== 'equipment') {
             outArr.push({
-                instanceId: randomUUID(),
+                price: base.Price,
                 itemId: base.ItemId,
                 type: base.Type,
-                quantity: qtyRnd,
-                createdAt: Date.now()
+                rate: 'common'
             } as PlayerItem);
             return;
         }
@@ -113,32 +217,83 @@ export class ItemFactoryService {
             : this.buildRandomAffixes(equipMeta, affixCount, opts.level);
 
         outArr.push({
-            instanceId: randomUUID(),
+            price: base.Price,
             itemId: base.ItemId,
             type: 'equipment',
-            quantity: 1,
-            createdAt: Date.now()
-        } as PlayerItem);
-
-        outArr.push({
-            instanceId: randomUUID(),          // 與 PlayerItem 可共用同一 UUID
-            durability: equipMeta.durability[1],
+            rate: rate,
+            value: this.getEquitValue(equipMeta, opts.level, EquipmentLevel),
             affixes                                  // [{ key:'str', value:12 }, …]
         } as PlayerEquipmentData);
     }
 
+    private getEquitValue(meta: EquipmentItem, level: number, eLv: EQUIP_VERSION): number {
+        const tier = Math.max(1, Math.ceil(level / 10));     // 1‑60 → T1‑T6
+
+
+        const 裝備基值 = {
+            "plate": 2,
+            "cloth": 1,
+            "leather": 1.5,
+            "bow": 8,
+            "dagger": 5,
+            "oneHandSword": 10,
+            "twoHandSword": 20,
+            "staff": 3,
+            "tome": 0,
+            "shield": 20,
+        }
+        const rate = {
+            'normal': 1,
+            'superior': 1.5,
+            'exceptional': 2,
+            'elite': 4,
+        }
+
+        let base = 裝備基值[meta.type];
+        switch (meta.slot) {
+            case 'boots':
+                base = 裝備基值[meta.type] * 2;
+                break;
+            case 'gloves':
+                base = 裝備基值[meta.type] * 1;
+                break;
+            case 'chest':
+                base = 裝備基值[meta.type] * 10;
+                break;
+            case 'head':
+                base = 裝備基值[meta.type] * 5;
+                break;
+
+        }
+
+
+        return (base * rate[eLv]) + (base * (tier * 0.5));
+    }
     // ---------- 抽 affix ----------
     private buildRandomAffixes(meta: EquipmentItem, n: number, level: number) {
         if (n === 0) return [];
 
         const tier = Math.max(1, Math.ceil(level / 10));     // 1‑60 → T1‑T6
-        const pool = meta.affixPool.filter(id => id.endsWith('_T' + tier));
+        const pool = this.randomAffix[meta.type];
         const picks: AffixDefinition[] = [];
 
-        while (picks.length < n && pool.length) {
-            const idx = randomInt(0, pool.length);
-            picks.push(this.affixPoolMap[pool.splice(idx, 1)[0]]);
+        let mainAffix = pool.mainAffix.split(',');
+        let subAffix = pool.subAffix.split(',');
+
+        //主屬性
+        let mainMaxCount = n;
+        for (let i = 0; i < mainMaxCount && i < mainAffix.length; i++) {
+            let key = mainAffix[i].trim();
+            picks.push(this.affixPoolMap[key]);
         }
+
+        //副屬性
+        let subMaxCount = n;
+        for (let i = 0; i < subMaxCount && i < subAffix.length; i++) {
+            let key = subAffix[i].trim();
+            picks.push(this.affixPoolMap[key]);
+        }
+
 
         const coef = [0, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4][tier];   // T1‑T6
         return picks.map(p => ({
@@ -178,6 +333,6 @@ export class ItemFactoryService {
     }
 
     private affixCountByRate(rate: string) {
-        return { uncommon: 2, rare: 3, epic: 4 }[rate] ?? 0;
+        return { common: 1, uncommon: 2, rare: 3, epic: 4 }[rate] ?? 0;
     }
 }

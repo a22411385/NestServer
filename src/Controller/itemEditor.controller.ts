@@ -9,6 +9,7 @@ import { HttpRespone } from 'src/Shared/struct';
 import { ResponeError, ResponeSuccess } from 'src/Util/respone.util';
 import { ItemFactoryService } from 'src/Service/ItemFactory.service';
 import { IsPublic } from 'src/main';
+import { MonsterKind } from 'src/Game/Item/ItemData';
 
 class CreateItemParam {
 
@@ -24,24 +25,21 @@ export class ItemEditorController {
     constructor(private readonly factory: ItemFactoryService) { }
 
     @Get('/item/create')
-    testCreate(
-        @Query('itemId') itemId: string,
-        @Query('level') level?: string,
-        @Query('groupId') groupId?: string,
+    async testDrop(
+        @Query('kind') kind: MonsterKind = 'normal',
+        @Query('level') level = 1,
+        @Req() req: any
     ) {
-        if (!itemId) return { error: '缺少 itemId' };
-
-        try {
-            const parsedLevel = level ? parseInt(level, 10) : 1;
-
-            const result = this.factory.createItem(itemId, {
-                level: parsedLevel,
-                groupId: groupId,
-            });
-
-            return ResponeSuccess(result);
-        } catch (e) {
-            return { error: e.message };
+        let payload = req.user as JWTPayload;
+        const drops = this.factory.generateDrops({
+            kind,
+            level: Number(level),
+        });
+        if (payload.playerId) {
+            await this.factory.saveItems(drops, payload.playerId)
+        } else {
+            console.warn("角色不存在 不儲存物品");
         }
+        return ResponeSuccess({ drops });
     }
 }

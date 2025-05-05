@@ -17,7 +17,7 @@ import { MonsterData, ProfessionData } from 'src/Game/Combat/UnitData';
 import { ResponeError, ResponeSuccess } from 'src/Util/respone.util';
 import { BattleEvent } from 'src/Shared/Enum';
 import { ItemFactoryService } from 'src/Service/ItemFactory.service';
-import { AffixDefinition, ConsumableItem, EquipmentItem, GroupEntrieData, ItemBase, MainGroupData } from 'src/Game/Item/ItemData';
+import { AffixDefinition, ConsumableItem, EquipmentItem, GroupEntrieData, ItemBase, MainGroupData, RandomAffixData } from 'src/Game/Item/ItemData';
 
 
 @WebSocketGateway({ cors: true })
@@ -39,34 +39,8 @@ export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 
     async onModuleInit() {
         console.log('✅ GameGateway 已啟動');
-        await this.googleSheetService.InitData([
 
-            //職業表
-            { tableName: "Profession", classType: ProfessionData },
-            //怪物表
-            { tableName: "Monster", classType: MonsterData },
-
-            //物品基礎表
-            { tableName: "ItemBase", classType: ItemBase },
-            //物品屬性表
-            { tableName: "ItemAffixPool", classType: AffixDefinition },
-            //裝備表
-            { tableName: "ItemEquipment", classType: EquipmentItem },
-
-            //消耗品
-            { tableName: "ConsumableItem", classType: ConsumableItem },
-            { tableName: "MainGroups", classType: MainGroupData },
-            { tableName: "GroupEntries", classType: GroupEntrieData }
-        ]);
-
-        let items = await this.googleSheetService.getSheetData<ItemBase>('ItemBase');
-        let ItemAffix = await this.googleSheetService.getSheetData<AffixDefinition>('ItemAffixPool');
-        let Equipment = await this.googleSheetService.getSheetData<EquipmentItem>('ItemEquipment');
-        let ConsumbleItem = await this.googleSheetService.getSheetData<ConsumableItem>('ConsumableItem');
-        let MainGroup = await this.googleSheetService.getSheetData<ConsumableItem>('MainGroups');
-        let GroupEntrie = await this.googleSheetService.getSheetData<ConsumableItem>('GroupEntries');
-
-        this.itemService.InitData(items, Equipment, ItemAffix, ConsumbleItem, MainGroup, GroupEntrie);
+        await this.itemService.InitData(this.googleSheetService);
     }
 
     async handleConnection(client: Socket) {
