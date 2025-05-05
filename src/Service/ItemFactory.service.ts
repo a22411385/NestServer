@@ -2,14 +2,13 @@
 // item-factory.service.ts  （僅示範新增內容，保留你的 InitData）
 // ----------------------------------------------------------
 import { Injectable } from '@nestjs/common';
-import { randomUUID, randomInt } from 'crypto';
+import { randomInt } from 'crypto';
 import {
     ItemBase, EquipmentItem, AffixDefinition, ConsumableItem,
     PlayerItem, PlayerEquipmentData,
     MainGroupData,
     GroupEntrieData,
     DropOptions,
-    MonsterKind,
     RandomAffixData,
     EQUIP_VERSION
 } from 'src/Game/Item/ItemData';
@@ -19,6 +18,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { PlayerItemORM } from 'src/ORM/playeritem.entity';
 import { Repository } from 'typeorm';
 import { EquipmentDataORM } from 'src/ORM/equipmentData.entity';
+import { MonsterKind } from 'src/Shared/Enum';
 
 
 @Injectable()

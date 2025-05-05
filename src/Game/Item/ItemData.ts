@@ -1,3 +1,4 @@
+import { MonsterKind } from "src/Shared/Enum";
 
 export type ITEM_TYPE = 'equipment' | 'consumable' | 'junk' | 'currency';
 export type EQUIP_VERSION = 'normal' | 'superior' | 'exceptional' | 'elite';
@@ -78,7 +79,7 @@ export class GroupEntrieData {
     qtyMax: number;
 
 }
-export type MonsterKind = 'normal' | 'elite' | 'boss';
+
 export interface DropOptions { kind: MonsterKind; level: number; }
 
 export class RandomAffixData {

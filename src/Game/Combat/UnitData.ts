@@ -1,3 +1,10 @@
+export class ExperienceData {
+
+    Lv: number;
+    Exp: number;
+    TotalExp: number;
+}
+
 abstract class UnitBasicData {
     public ID: number;
     public Name: string;

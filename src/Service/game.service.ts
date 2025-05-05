@@ -3,7 +3,7 @@ import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import { Injectable, OnModuleDestroy, Scope } from "@nestjs/common";
 import { GoogleSheetsService } from "src/Service/google-sheets.service";
 import { Hero, Monster } from "src/Game/UnitSetting";
-import { MonsterData, ProfessionData } from "src/Game/Combat/UnitData";
+import { ExperienceData, MonsterData, ProfessionData } from "src/Game/Combat/UnitData";
 import { BasicUnit } from "src/Game/Combat/UnitBasic";
 import { PlayerGameState } from "src/Shared/Enum";
 import { randomUUID } from 'crypto';
@@ -30,7 +30,7 @@ export class GameService implements OnModuleDestroy {
     private Enemys: Monster[] = [];
 
     private updateInterval: NodeJS.Timeout | null = null;
-
+    private expTable: ExperienceData[] = [];
     //先固定一隻
     private enemyCount: number = 1;
 
@@ -48,8 +48,15 @@ export class GameService implements OnModuleDestroy {
             this.eventEmitter.emit('game.battleEvent', { roomId: this._uniqueID, data: event });
 
         });
-    }
+        this.LoadTableData();
 
+    }
+    public async LoadTableData() {
+        this.goolgeSheetService.InitData([
+            { tableName: "ExperienceTable", classType: ExperienceData }
+        ]),
+            this.expTable = await this.goolgeSheetService.getSheetData<ExperienceData>('ExperienceTable');
+    }
 
     public JoinPlayer(player: GamePlayer): boolean {
 
@@ -157,11 +164,20 @@ export class GameService implements OnModuleDestroy {
             this.遊戲結束();
         }
     }
+    private 給經驗(playerLv: number, monsterLv: number, expToNext: number, type: 'normal' | 'elite' | 'boss'): number {
+
+
+
+        const diff = monsterLv - playerLv;
+        const levelBias = Math.max(0.1, 1 + 0.05 * diff); // 高等怪補正
+        const typeFactor = type === 'boss' ? 5 : type === 'elite' ? 2 : 1;
+        return Math.floor(expToNext * 0.1 * typeFactor * levelBias);
+
+    }
     private 掉寶() {
 
     }
     private 結算() {
-
 
     }
     private 遊戲結束() {

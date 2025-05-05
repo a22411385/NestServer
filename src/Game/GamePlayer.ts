@@ -10,24 +10,17 @@ export class GamePlayer {
     public roomId: string;
     public state: PlayerGameState;
     public char: CharacterORM;
-    private expTable: number[] = [];
+    public 累積經驗值: number;
 
 
     constructor(char: CharacterORM) {
         this.char = char;
         this.roomId = "";
         this.state = PlayerGameState.IDLE;
-        //  this.expTable = expTable;
+        this.累積經驗值 = 0;
 
     }
-    getLevel(exp: number): number {
-        for (let i = this.expTable.length - 1; i >= 0; i--) {
-            if (exp >= this.expTable[i]) {
-                return i + 1;
-            }
-        }
-        return 1;
-    }
+
 
 
     public ToJson() {

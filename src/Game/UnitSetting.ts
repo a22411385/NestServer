@@ -30,7 +30,7 @@ export class Hero extends BasicUnit {
     protected Agi: number;
     protected Vit: number;
     protected Int: number;
-    protected Lv: number;
+
     constructor(data: ProfessionData, eventEmitter: EventEmitter2) {
 
         super({

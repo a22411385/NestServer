@@ -1,7 +1,7 @@
 
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { 攻擊結果 } from './CombatInterface';
-import { AttackPayload, BattleEvent, BattleEventType, DamagePayload, 傷害類型 } from "src/Shared/Enum";
+import { AttackPayload, BattleEvent, BattleEventType, DamagePayload, DeathPayload, 傷害類型 } from "src/Shared/Enum";
 import { randomUUID } from 'crypto';
 // combat-component.ts
 export interface UnitState {
@@ -40,6 +40,10 @@ export abstract class BasicUnit {
     protected Atk: number;
     protected Def: number;
 
+    protected _lv: number;
+    public get Lv(): number {
+        return this._lv;
+    }
     attackInterval: number; // 秒
     lastAttackTime: number = 0; // 秒
     isDead: boolean;
@@ -117,10 +121,10 @@ export abstract class BasicUnit {
             console.log(`[${this._name}] has died.`);
 
             if (this.isDead) {
-                const deathEvt: BattleEvent = {
+                const deathEvt: BattleEvent<DeathPayload> = {
                     type: BattleEventType.Death,
                     timestamp: Date.now(),
-                    payload: { targetId: this.UniqueID }
+                    payload: { targetId: this.UniqueID, lv: this.Lv, type: 'normal' }
                 };
                 this.event.emit('battleEvent', deathEvt);
             }

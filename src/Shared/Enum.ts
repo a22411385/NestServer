@@ -51,3 +51,11 @@ export interface DamagePayload {
     amount: number;
     damageType: 傷害類型;
 }
+
+export type MonsterKind = 'normal' | 'elite' | 'boss';
+// Death 事件的 payload
+export interface DeathPayload {
+    targetId: string;
+    lv: number;
+    type: MonsterKind
+}
