@@ -9,6 +9,7 @@ import { ErrorCode } from 'src/Shared/ErrorCode';
 import { 職業種類 } from 'src/Shared/Enum';
 import { JwtService } from '@nestjs/jwt';
 import { HttpRespone } from 'src/Shared/struct';
+import { AccountORM } from 'src/ORM/account.entity';
 
 const MAX_CHAR_NUM = 8;
 
@@ -31,14 +32,20 @@ export class CharacterController {
     @InjectRepository(CharacterORM)
     private characterRepo: Repository<CharacterORM>
 
+    @InjectRepository(AccountORM)
+    private accountRepo: Repository<AccountORM>
+
     @Post('/char/create')
     async create(@Req() req: any, @Body() params: CreateDto): Promise<HttpRespone> {
 
         let payload = req.user as JWTPayload;
 
         let res = { errorCode: ErrorCode.SUCCESS } as HttpRespone;
-        const characters = await this.characterRepo.find({ where: { userId: payload.userId } });
-        if (characters.length >= MAX_CHAR_NUM) {
+
+        const account = await this.accountRepo.findOneOrFail({ where: { id: payload.userId }, relations: { characters: true } });
+
+        console.log(account);
+        if (account.characters.length >= MAX_CHAR_NUM) {
             res.errorCode = ErrorCode.OUT_OF_RANGE;
             return res;
         }
@@ -53,7 +60,7 @@ export class CharacterController {
         character.lv = 1;
         character.type = 職業種類.平民;
         character.name = params.name;
-        character.userId = payload.userId;
+        character.user = account;
         await this.characterRepo.save(character);
         return res;
 
@@ -65,12 +72,16 @@ export class CharacterController {
         let payload = req.user as JWTPayload;
 
         let res = { errorCode: ErrorCode.SUCCESS } as HttpRespone;
-        const characters = await this.characterRepo.find({
+
+        const account = await this.accountRepo.findOneOrFail({
             select: {
-                "exp": true, "lv": true, "name": true, "type": true, "id": true
-            }, where: { userId: payload.userId }
+                characters: {
+                    "exp": true, "lv": true, "name": true, "type": true, "id": true
+                }
+            }, where: { id: payload.userId },
+            relations: { characters: true, }
         });
-        res.content = characters;
+        res.content = account.characters;
 
         return res;
 
@@ -82,7 +93,7 @@ export class CharacterController {
 
         let payload = req.user as JWTPayload;
         let res = { errorCode: ErrorCode.SUCCESS } as HttpRespone;
-        const char = await this.characterRepo.findOne({ where: { userId: payload.userId, id: params.id } });
+        const char = await this.accountRepo.findOne({ where: { id: payload.userId, characters: { id: params.id } } });
         if (char) {
             //重新簽發token
             const e = { userId: payload.userId, openId: payload.openId, playerId: params.id } as JWTPayload;

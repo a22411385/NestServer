@@ -1,16 +1,16 @@
 
 
 import { 職業種類 } from "src/Shared/Enum";
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, Index } from "typeorm";
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, Index, ManyToOne, JoinColumn } from "typeorm";
+import { AccountORM } from "./account.entity";
 @Entity("character")
 export class CharacterORM {
 
     @PrimaryGeneratedColumn()
     id: number;
 
-    @Column()
-    @Index('user')
-    userId: number;
+    // @Column()
+    // userId: number;
 
     @Column()
     name: string = "";
@@ -29,5 +29,9 @@ export class CharacterORM {
     @UpdateDateColumn()
     updateTime?: Date;
 
+    @ManyToOne(() => AccountORM, account => account.characters, {
+        onDelete: 'CASCADE', // 若帳號被刪除，角色也會自動刪除
+    })
+    user: AccountORM;
 
 }

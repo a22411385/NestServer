@@ -60,7 +60,7 @@ export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect, On
                 player.id = payload.openId;
                 this.players.set(payload.openId, player);
             }
-
+            player.socket = client;
             client.data.user = payload;
             client.emit('init', player.ToJson());
 
@@ -73,6 +73,18 @@ export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 
     handleDisconnect(client: Socket) {
         console.log(`Client disconnected: ${client.id}`);
+    }
+
+
+    public async startBattleTest(openId: string) {
+        let p = this.players.get(openId);
+        if (p) {
+            await this.startBattle({}, p.socket);
+            this.Ready(p.roomId, p);
+        }
+        else {
+            console.error("玩家不存在");
+        }
     }
 
     @SubscribeMessage(MessageID.STARTBATTLE)

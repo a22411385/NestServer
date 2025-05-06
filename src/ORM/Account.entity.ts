@@ -1,4 +1,5 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, Index } from "typeorm";
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, Index, OneToMany } from "typeorm";
+import { CharacterORM } from "./charater.entity";
 
 @Entity({ name: "account" })
 export class AccountORM {
@@ -15,6 +16,10 @@ export class AccountORM {
 
     @Column()
     password: string = "";
+
+
+    @OneToMany(() => CharacterORM, character => character.user)
+    characters: CharacterORM[];
 
     @CreateDateColumn()
     createTime?: Date;
