@@ -5,8 +5,8 @@ import { GoogleSheetsService } from "src/Service/google-sheets.service";
 import { Hero, Monster } from "src/Game/UnitSetting";
 import { ExperienceData, MonsterData, ProfessionData } from "src/Game/Combat/UnitData";
 import { BasicUnit } from "src/Game/Combat/UnitBasic";
-import { PlayerGameState } from "src/Shared/Enum";
-import { randomUUID } from 'crypto';
+import { MonsterKind, PlayerGameState } from "src/Shared/Enum";
+import { randomInt, randomUUID } from 'crypto';
 
 
 @Injectable({ scope: Scope.TRANSIENT })
@@ -42,6 +42,10 @@ export class GameService implements OnModuleDestroy {
             'unit.autoSelectTarget',
             (unit: BasicUnit) => this.自動尋敵(unit),
         );
+        this.eventEmitter.on(
+            'unit.killTarget',
+            (unit: BasicUnit, target: BasicUnit) => this.擊殺目標(unit, target),
+        );
 
         this.eventEmitter.on('battleEvent', event => {
 
@@ -56,6 +60,8 @@ export class GameService implements OnModuleDestroy {
             { tableName: "ExperienceTable", classType: ExperienceData }
         ]),
             this.expTable = await this.goolgeSheetService.getSheetData<ExperienceData>('ExperienceTable');
+
+        //console.log("經驗表", this.expTable);
     }
 
     public JoinPlayer(player: GamePlayer): boolean {
@@ -99,7 +105,8 @@ export class GameService implements OnModuleDestroy {
 
         //初始化敵人
         for (let i = 0; i < this.enemyCount; i++) {
-            let enemy = new Monster(monster[Math.floor(Math.random() * monster.length)], this.eventEmitter);
+            let ramdomLv = randomInt(0, 10); //先固定10等
+            let enemy = new Monster(ramdomLv, monster[Math.floor(Math.random() * monster.length)], this.eventEmitter);
             enemy.team = "enemy";
             this.Enemys.push(enemy);
         }
@@ -110,13 +117,25 @@ export class GameService implements OnModuleDestroy {
             //這裡要把所有玩家實體化
             let findP = Profession.find(item => item.ID == pp.char.type);
             if (findP != undefined) {
-                let p = new Hero(findP, this.eventEmitter);
+                let p = new Hero(pp.char.lv, pp.id, findP, this.eventEmitter);
                 p.team = "player";
                 this.PlayerTeam.push(p)
+            } else {
+                console.error('生成職業錯誤:', pp.char.type);
             }
         });
     }
+    擊殺目標(unit: BasicUnit, target: BasicUnit) {
 
+        let pp = this.Players.get(unit.PlayerId);
+        //找到單位擁有玩家
+        if (pp) {
+            let exp = this.給經驗(unit.Lv, target.Lv, this.expTable[unit.Lv + 1].Exp, target.type)
+            console.log("獲得經驗:" + exp);
+            pp.累積經驗值 += exp;
+
+        }
+    }
 
     public 自動尋敵(unit: BasicUnit) {
         let target: BasicUnit | undefined;
@@ -164,7 +183,7 @@ export class GameService implements OnModuleDestroy {
             this.遊戲結束();
         }
     }
-    private 給經驗(playerLv: number, monsterLv: number, expToNext: number, type: 'normal' | 'elite' | 'boss'): number {
+    private 給經驗(playerLv: number, monsterLv: number, expToNext: number, type: MonsterKind): number {
 
 
 

@@ -1,22 +1,23 @@
 
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { 攻擊結果 } from './CombatInterface';
-import { AttackPayload, BattleEvent, BattleEventType, DamagePayload, DeathPayload, 傷害類型 } from "src/Shared/Enum";
+import { AttackPayload, BattleEvent, BattleEventType, DamagePayload, DeathPayload, MonsterKind, 傷害類型 } from "src/Shared/Enum";
 import { randomUUID } from 'crypto';
 // combat-component.ts
 export interface UnitState {
-    id: number;
+    id: string;
     Hp: number;
     Mp: number;
     Atk: number;
     Def: number;
     AtkSpeed: number;
-
+    Lv: number;
     Name: string;
 }
 
 //單位的基底
 export abstract class BasicUnit {
+
     protected _uniqueID: string;
     public get UniqueID(): string {
 
@@ -26,9 +27,19 @@ export abstract class BasicUnit {
     public get Name(): string {
         return this._name;
     }
+
+    // protected _isNpc: boolean;
+    // public get IsNpc(): boolean {
+    //     return this._isNpc;
+    // }
+
+    protected _playerId: string;
+    public get PlayerId(): string {
+        return this._playerId;
+    }
     // state: UnitState;
     target: BasicUnit | null = null;
-
+    type: MonsterKind = 'normal';
     team: string;
     //動態使用
     protected Hp: number;
@@ -58,6 +69,7 @@ export abstract class BasicUnit {
         this.Atk = initData.Atk;
         this.attackInterval = initData.AtkSpeed;
         this._name = initData.Name;
+
 
     }
 
@@ -98,6 +110,7 @@ export abstract class BasicUnit {
         if (attRes == 攻擊結果.目標被擊殺) {
             console.log(`[${this._name}] 擊殺 [${this.target._name}]!`);
             this.event.emit('unit.autoSelectTarget', this);
+            this.event.emit('unit.killTarget', this, this.target);
         }
     }
 

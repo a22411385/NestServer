@@ -5,9 +5,10 @@ import { MonsterData, ProfessionData } from "./Combat/UnitData";
 
 export class Monster extends BasicUnit {
 
-    constructor(data: MonsterData, eventEmitter: EventEmitter2) {
+    constructor(Lv: number, data: MonsterData, eventEmitter: EventEmitter2) {
 
         super({
+            Lv: Lv,
             Mp: data.MP,
             Hp: data.HP,
             Atk: data.ATK,
@@ -16,7 +17,8 @@ export class Monster extends BasicUnit {
             id: data.ID,
             Def: 0
         }, eventEmitter);
-        //先暫時
+        this._playerId = 'npc';
+
 
     }
 
@@ -31,9 +33,10 @@ export class Hero extends BasicUnit {
     protected Vit: number;
     protected Int: number;
 
-    constructor(data: ProfessionData, eventEmitter: EventEmitter2) {
+    constructor(Lv: number, playerId: string, data: ProfessionData, eventEmitter: EventEmitter2) {
 
         super({
+            Lv: Lv,
             Mp: data.MP,
             Hp: data.HP,
             Atk: data.ATK,
@@ -42,7 +45,7 @@ export class Hero extends BasicUnit {
             id: data.ID,
             Def: 0
         }, eventEmitter);
-        //先暫時
+        this._playerId = playerId;
 
     }
 

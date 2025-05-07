@@ -6,7 +6,7 @@ export class ExperienceData {
 }
 
 abstract class UnitBasicData {
-    public ID: number;
+    public ID: string;
     public Name: string;
     public HP: number;
     public ATK: number;
@@ -16,7 +16,6 @@ abstract class UnitBasicData {
 }
 
 export class MonsterData extends UnitBasicData {
-
 
 }
 

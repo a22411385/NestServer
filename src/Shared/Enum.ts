@@ -1,10 +1,10 @@
 export enum 職業種類 {
 
-    平民 = 0,
-    戰士 = 1,
-    法師 = 2,
-    盜賊 = 3,
-    牧師 = 4,
+    平民 = 'commoner',
+    戰士 = 'warrior',
+    法師 = 'mage',
+    盜賊 = 'rogue',
+    牧師 = 'priest',
 }
 
 export enum 傷害類型 {
