@@ -21,7 +21,7 @@ export class CharacterORM {
     @Column()
     exp: number = 0;
 
-    @Column('string')
+    @Column()
     type: 職業種類 = 職業種類.平民;
 
     @CreateDateColumn()

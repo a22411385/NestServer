@@ -69,7 +69,7 @@ export abstract class BasicUnit {
         this.Atk = initData.Atk;
         this.attackInterval = initData.AtkSpeed;
         this._name = initData.Name;
-
+        this._lv = initData.Lv;
 
     }
 
