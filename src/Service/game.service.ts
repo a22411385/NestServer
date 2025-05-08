@@ -70,12 +70,7 @@ export class GameService implements OnModuleDestroy {
             { tableName: "ExperienceTable", classType: ExperienceData }
         ])
         let exp = await this.goolgeSheetService.getSheetData<ExperienceData>('ExperienceTable');
-        let arr = []
-        for (var i = 0; i < exp.length; i++) {
-            arr.push(exp[i].TotalExp);
-        }
-
-        LevelUtils.load(arr);
+        LevelUtils.load(exp);
         //console.log("經驗表", this.expTable);
     }
 
@@ -224,7 +219,7 @@ export class GameService implements OnModuleDestroy {
                 for (let ii = 0; ii < pp.killList.length; ii++) {
 
                     let target = pp.killList[ii]
-                    let exp = this.給經驗(pp.char.Lv, target.lv, this.expTable[pp.char.Lv].Exp, target.type)
+                    let exp = this.給經驗(pp.char.Lv, target.lv, LevelUtils.expTable[pp.char.Lv].Exp, target.type)
                     console.log(`[${pp.char.name}] 獲得經驗: ${exp}`);
 
                     let items = this.Itemfactory.generateDrops({ level: target.lv, kind: target.type });

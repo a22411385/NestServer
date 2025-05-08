@@ -57,7 +57,7 @@ export class CharacterController {
         }
         let character = new CharacterORM();
         character.exp = 0;
-        character.lv = 1;
+
         character.type = 職業種類.平民;
         character.name = params.name;
         character.user = account;
@@ -76,7 +76,7 @@ export class CharacterController {
         const account = await this.accountRepo.findOneOrFail({
             select: {
                 characters: {
-                    "exp": true, "lv": true, "name": true, "type": true, "id": true
+                    "exp": true, "name": true, "type": true, "id": true
                 }
             }, where: { id: payload.userId },
             relations: { characters: true, }
