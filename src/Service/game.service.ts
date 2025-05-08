@@ -7,6 +7,11 @@ import { ExperienceData, MonsterData, ProfessionData } from "src/Game/Combat/Uni
 import { BasicUnit } from "src/Game/Combat/UnitBasic";
 import { MonsterKind, PlayerGameState } from "src/Shared/Enum";
 import { randomInt, randomUUID } from 'crypto';
+import { ItemFactoryService } from "./ItemFactory.service";
+import { CharacterORM } from "src/ORM/charater.entity";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Repository } from "typeorm";
+import { LevelUtils } from "src/Util/Utils";
 
 
 @Injectable({ scope: Scope.TRANSIENT })
@@ -30,12 +35,17 @@ export class GameService implements OnModuleDestroy {
     private Enemys: Monster[] = [];
 
     private updateInterval: NodeJS.Timeout | null = null;
-    private expTable: ExperienceData[] = [];
+    // private expTable: ExperienceData[] = [];
     //先固定一隻
     private enemyCount: number = 1;
 
     private maxCount: 1;
-    constructor(private goolgeSheetService: GoogleSheetsService, private eventEmitter: EventEmitter2) {
+    constructor(
+        @InjectRepository(CharacterORM)
+        private readonly characterRepo: Repository<CharacterORM>,
+        private goolgeSheetService: GoogleSheetsService,
+        private eventEmitter: EventEmitter2,
+        private readonly Itemfactory: ItemFactoryService) {
 
         this._uniqueID = randomUUID();
         this.eventEmitter.on(
@@ -58,9 +68,14 @@ export class GameService implements OnModuleDestroy {
     public async LoadTableData() {
         this.goolgeSheetService.InitData([
             { tableName: "ExperienceTable", classType: ExperienceData }
-        ]),
-            this.expTable = await this.goolgeSheetService.getSheetData<ExperienceData>('ExperienceTable');
+        ])
+        let exp = await this.goolgeSheetService.getSheetData<ExperienceData>('ExperienceTable');
+        let arr = []
+        for (var i = 0; i < exp.length; i++) {
+            arr.push(exp[i].TotalExp);
+        }
 
+        LevelUtils.load(arr);
         //console.log("經驗表", this.expTable);
     }
 
@@ -117,7 +132,7 @@ export class GameService implements OnModuleDestroy {
             //這裡要把所有玩家實體化
             let findP = Profession.find(item => item.ID == pp.char.type);
             if (findP != undefined) {
-                let p = new Hero(pp.char.lv, pp.id, findP, this.eventEmitter);
+                let p = new Hero(pp.char.Lv, pp.id, findP, this.eventEmitter);
                 p.team = "player";
                 this.PlayerTeam.push(p)
             } else {
@@ -130,9 +145,13 @@ export class GameService implements OnModuleDestroy {
         let pp = this.Players.get(unit.PlayerId);
         //找到單位擁有玩家
         if (pp) {
-            let exp = this.給經驗(unit.Lv, target.Lv, this.expTable[unit.Lv + 1].Exp, target.type)
-            console.log("獲得經驗:" + exp);
-            pp.累積經驗值 += exp;
+            pp.killList.push({
+
+                lv: target.Lv,
+                type: target.type,
+                uniqueID: target.UniqueID
+
+            });
 
         }
     }
@@ -179,7 +198,7 @@ export class GameService implements OnModuleDestroy {
 
 
         if (this.Enemys.filter(x => !x.isDead).length == 0 || this.PlayerTeam.filter(x => !x.isDead).length == 0) {
-            console.log("遊戲結束");
+            this.clearTimer();
             this.遊戲結束();
         }
     }
@@ -196,13 +215,37 @@ export class GameService implements OnModuleDestroy {
     private 掉寶() {
 
     }
-    private 結算() {
+    private async 結算() {
+
+        console.log("開始結算");
+        for (const [key, pp] of this.Players) {
+
+            if (pp)
+                for (let ii = 0; ii < pp.killList.length; ii++) {
+
+                    let target = pp.killList[ii]
+                    let exp = this.給經驗(pp.char.Lv, target.lv, this.expTable[pp.char.Lv].Exp, target.type)
+                    console.log(`[${pp.char.name}] 獲得經驗: ${exp}`);
+
+                    let items = this.Itemfactory.generateDrops({ level: target.lv, kind: target.type });
+                    console.log(`[${pp.char.name}] 獲得道具:`, items);
+                    await this.Itemfactory.saveItems(items, pp.char.id);
+
+                    pp.char.exp += exp;
+                    await this.characterRepo.save(pp.char);
+
+                }
+
+        }
+
 
     }
-    private 遊戲結束() {
-        this.結算();
+    private async 遊戲結束() {
+
+        console.log("遊戲結束");
+        await this.結算();
         console.log(`[房間 ${this._uniqueID}] 遊戲結束`);
-        this.clearTimer();
+
         this.eventEmitter.emit('room.close', { roomId: this._uniqueID });
     }
 

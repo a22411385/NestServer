@@ -1,3 +1,5 @@
+import { MonsterKind } from "src/Shared/Enum";
+
 interface SkillInstance {
     id: string;
     name: string;
@@ -11,6 +13,14 @@ interface StatusEffect {
     expiresAt: number; // 秒
 }
 
+export interface KillInfo {
+
+    lv: number;
+    type: MonsterKind;
+    uniqueID: string;
+
+
+}
 export enum 攻擊結果 {
 
     迴避,

@@ -3,6 +3,7 @@
 import { 職業種類 } from "src/Shared/Enum";
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, Index, ManyToOne, JoinColumn } from "typeorm";
 import { AccountORM } from "./account.entity";
+import { LevelUtils } from "src/Util/Utils";
 @Entity("character")
 export class CharacterORM {
 
@@ -14,9 +15,6 @@ export class CharacterORM {
 
     @Column()
     name: string = "";
-
-    @Column()
-    lv: number = 1;
 
     @Column()
     exp: number = 0;
@@ -34,4 +32,9 @@ export class CharacterORM {
     })
     user: AccountORM;
 
+
+    public get Lv(): number {
+        const lv = LevelUtils.getLevelByExp(this.exp);
+        return lv;
+    }
 }

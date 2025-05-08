@@ -13,12 +13,9 @@ import { HttpRespone } from 'src/Shared/struct';
 import { MessageID } from 'src/Shared/MessageID';
 import { ErrorCode } from 'src/Shared/ErrorCode';
 import { JWTPayload } from 'src/struct';
-import { MonsterData, ProfessionData } from 'src/Game/Combat/UnitData';
 import { ResponeError, ResponeSuccess } from 'src/Util/respone.util';
 import { BattleEvent } from 'src/Shared/Enum';
 import { ItemFactoryService } from 'src/Service/ItemFactory.service';
-import { AffixDefinition, ConsumableItem, EquipmentItem, GroupEntrieData, ItemBase, MainGroupData, RandomAffixData } from 'src/Game/Item/ItemData';
-
 
 @WebSocketGateway({ cors: true })
 export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect, OnModuleInit {
