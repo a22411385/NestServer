@@ -5,7 +5,7 @@ import { GoogleSheetsService } from "src/Service/google-sheets.service";
 import { Hero, Monster } from "src/Game/UnitSetting";
 import { ExperienceData, MonsterData, ProfessionData } from "src/Game/Combat/UnitData";
 import { BasicUnit } from "src/Game/Combat/UnitBasic";
-import { MonsterKind, PlayerGameState } from "src/Shared/Enum";
+import { BattleEvent, BattleEventType, MonsterKind, PlayerGameState } from "src/Shared/Enum";
 import { randomInt, randomUUID } from 'crypto';
 import { ItemFactoryService } from "./ItemFactory.service";
 import { CharacterORM } from "src/ORM/charater.entity";
@@ -59,7 +59,9 @@ export class GameService implements OnModuleDestroy {
 
         this.eventEmitter.on('battleEvent', event => {
 
+
             this.eventEmitter.emit('game.battleEvent', { roomId: this._uniqueID, data: event });
+
 
         });
         this.LoadTableData();
@@ -134,6 +136,11 @@ export class GameService implements OnModuleDestroy {
                 console.error('生成職業錯誤:', pp.char.type);
             }
         });
+        this.SendBattleEvent(BattleEventType.Init, {
+            players: this.PlayerTeam,
+            enemys: this.Enemys
+        });
+
     }
     擊殺目標(unit: BasicUnit, target: BasicUnit) {
 
@@ -242,6 +249,17 @@ export class GameService implements OnModuleDestroy {
         console.log(`[房間 ${this._uniqueID}] 遊戲結束`);
 
         this.eventEmitter.emit('room.close', { roomId: this._uniqueID });
+    }
+
+    private SendBattleEvent<T>(type: BattleEventType, data: T) {
+
+        let event: BattleEvent<T> = {
+            type: type,
+            payload: data,
+            timestamp: Date.now()
+        }
+
+        this.eventEmitter.emit('game.battleEvent', { roomId: this._uniqueID, data: event });
     }
 
 

@@ -16,6 +16,7 @@ export enum 傷害類型 {
 }
 
 export enum PlayerGameState {
+
     IDLE = "idle",
     DEAD = "dead",
     WAITING = "waiting",
@@ -25,11 +26,12 @@ export enum PlayerGameState {
 
 }
 export enum BattleEventType {
+
     Attack = 'attack',
     Damage = 'damage',
     Death = 'death',
     Heal = 'heal',
-
+    Init = "init",
 }
 
 export interface BattleEvent<T = any> {

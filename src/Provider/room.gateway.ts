@@ -75,7 +75,7 @@ export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 
     public async startBattleTest(openId: string) {
         let p = this.players.get(openId);
-        if (p) {
+        if (p && p.socket) {
             await this.startBattle({}, p.socket);
             this.Ready(p.roomId, p);
         }
@@ -84,7 +84,7 @@ export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect, On
         }
     }
 
-    @SubscribeMessage(MessageID.STARTBATTLE)
+    @SubscribeMessage(MessageID.HOSTBATTLE)
     async startBattle(@MessageBody() data: any, @ConnectedSocket() client: Socket): Promise<HttpRespone> {
         return this.safeExecute(async () => {
             const payload = client.data.user as JWTPayload;

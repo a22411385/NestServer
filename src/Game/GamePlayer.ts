@@ -15,7 +15,7 @@ export class GamePlayer {
     public state: PlayerGameState;
     public char: CharacterORM;
 
-    public socket: Socket;
+    public socket: Socket | null;
 
     constructor(char: CharacterORM) {
         this.char = char;
