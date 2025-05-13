@@ -36,14 +36,6 @@ export class CharacterService {
         }
         return character;
     }
-
-    /**
-     * 依條件查詢
-     */
-    async findCharactersByCondition(condition: Partial<CharacterORM>): Promise<CharacterORM[]> {
-        return await this.characterRepo.find({ where: condition });
-    }
-
     /**
      * 儲存角色（自動清除快取）
      */

@@ -79,9 +79,16 @@ export class CharacterController {
                     "exp": true, "name": true, "type": true, "id": true
                 }
             }, where: { id: payload.userId },
-            relations: { characters: true, }
+            relations: { characters: true, },
+
         });
-        res.content = account.characters;
+        res.content = account.characters.map(char => ({
+            id: char.id,
+            name: char.name,
+            exp: char.exp,
+            type: char.type,
+            lv: char.Lv, // 使用 getter 計算等級
+        }));;
 
         return res;
 

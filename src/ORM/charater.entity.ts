@@ -37,4 +37,15 @@ export class CharacterORM {
         const lv = LevelUtils.getLevelByExp(this.exp);
         return lv;
     }
+
+    public ToData(): any {
+
+        return {
+            lv: this.Lv,
+            name: this.name,
+            exp: this.exp,
+            type: this.type,
+        }
+
+    }
 }
