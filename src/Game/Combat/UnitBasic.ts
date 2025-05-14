@@ -157,5 +157,16 @@ export abstract class BasicUnit {
     SendBattle<T>(evnt: BattleEvent<T>) {
         this.event.emit('battleEvent', evnt);
     }
+    public toJSON() {
+        return {
+            id: this._uniqueID,
+            name: this.Name,
+            hp: this.Hp,
+            mp: this.Mp,
+            maxHp: this.MaxHp,
+            maxMp: this.MaxMp,
+            lv: this.Lv,
 
+        };
+    }
 }

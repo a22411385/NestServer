@@ -9,9 +9,11 @@ export class LevelUtils {
   }
 
   static getLevelByExp(exp: number): number {
-    for (let i = this.expTable.length - 1; i >= 0; i--) {
-      if (exp >= this.expTable[i].TotalExp) return i + 1; // 等級從 1 開始
+    let lv = 1;
+    for (let i = 0; i < this.expTable.length; i++) {
+      if (exp >= this.expTable[i].TotalExp)
+        lv = i + 1;
     }
-    return 1;
+    return lv;
   }
 }

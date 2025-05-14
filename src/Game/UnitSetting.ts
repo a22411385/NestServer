@@ -27,6 +27,7 @@ export class Monster extends BasicUnit {
 //英雄單位/玩家單位有主要屬性
 export class Hero extends BasicUnit {
 
+    public userName: string;
     //基礎屬性
     protected Str: number;
     protected Agi: number;
@@ -48,5 +49,11 @@ export class Hero extends BasicUnit {
         this._playerId = playerId;
 
     }
+    public toJSON() {
+        let json = super.toJSON() as any;
+        json['userName'] = this.userName;
+        return json;
+    }
+
 
 }

@@ -16,6 +16,8 @@ import { JWTPayload } from 'src/struct';
 import { ResponeError, ResponeSuccess } from 'src/Util/respone.util';
 import { BattleEvent } from 'src/Shared/Enum';
 import { ItemFactoryService } from 'src/Service/ItemFactory.service';
+import { ExperienceData } from 'src/Game/Combat/UnitData';
+import { LevelUtils } from 'src/Util/Utils';
 
 @WebSocketGateway({ cors: true })
 export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect, OnModuleInit {
@@ -38,6 +40,11 @@ export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect, On
         console.log('✅ GameGateway 已啟動');
 
         await this.itemService.InitData(this.googleSheetService);
+        this.googleSheetService.InitData([
+            { tableName: "ExperienceTable", classType: ExperienceData }
+        ])
+        let exp = await this.googleSheetService.getSheetData<ExperienceData>('ExperienceTable');
+        LevelUtils.load(exp);
     }
 
     async handleConnection(client: Socket) {
@@ -53,7 +60,7 @@ export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect, On
                 const ch = await this.charService.getCharacterById(payload.playerId);
                 if (!ch) throw new Error('沒有角色資料');
 
-                player = new GamePlayer(ch);
+                player = new GamePlayer(ch, ch.name);
                 player.id = payload.openId;
                 this.players.set(payload.openId, player);
             }
@@ -147,8 +154,8 @@ export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect, On
         this.server.in(param.roomId).socketsLeave(param.roomId);
         const room = this.getRoomOrThrow(param.roomId);
         room.Players.forEach((p) => {
-            p.roomId = "";
-
+            let pp = this.players.get(p.id);
+            if (pp) pp.roomId = "";
         })
 
         this.roomMap.delete(param.roomId);

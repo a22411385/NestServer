@@ -45,7 +45,7 @@ export class TestSimulatorService {
         this.ws = new SocketService();
         await this.ws.init(`http://localhost:${process.env.PORT}?token=${this.token}`);
         //等待連線後繼續
-        await this.ws.send(MessageID.STARTBATTLE, { id: 1 })
+        await this.ws.send(MessageID.HOSTBATTLE, { id: 1 })
         await this.ws.send(MessageID.READYFORGAME, { id: 1 })
     }
 

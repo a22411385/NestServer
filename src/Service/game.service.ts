@@ -1,9 +1,9 @@
 import { GamePlayer } from "../Game/GamePlayer";
-import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Injectable, OnModuleDestroy, Scope } from "@nestjs/common";
 import { GoogleSheetsService } from "src/Service/google-sheets.service";
 import { Hero, Monster } from "src/Game/UnitSetting";
-import { ExperienceData, MonsterData, ProfessionData } from "src/Game/Combat/UnitData";
+import { MonsterData, ProfessionData } from "src/Game/Combat/UnitData";
 import { BasicUnit } from "src/Game/Combat/UnitBasic";
 import { BattleEvent, BattleEventType, MonsterKind, PlayerGameState } from "src/Shared/Enum";
 import { randomInt, randomUUID } from 'crypto';
@@ -64,17 +64,10 @@ export class GameService implements OnModuleDestroy {
 
 
         });
-        this.LoadTableData();
+
 
     }
-    public async LoadTableData() {
-        this.goolgeSheetService.InitData([
-            { tableName: "ExperienceTable", classType: ExperienceData }
-        ])
-        let exp = await this.goolgeSheetService.getSheetData<ExperienceData>('ExperienceTable');
-        LevelUtils.load(exp);
-        //console.log("經驗表", this.expTable);
-    }
+
 
     public JoinPlayer(player: GamePlayer): boolean {
 
@@ -131,6 +124,7 @@ export class GameService implements OnModuleDestroy {
             if (findP != undefined) {
                 let p = new Hero(pp.char.Lv, pp.id, findP, this.eventEmitter);
                 p.team = "player";
+                p.userName = pp.userName;
                 this.PlayerTeam.push(p)
             } else {
                 console.error('生成職業錯誤:', pp.char.type);

@@ -38,7 +38,7 @@ export class CharacterORM {
         return lv;
     }
 
-    public ToData(): any {
+    public toJSON(): any {
 
         return {
             lv: this.Lv,

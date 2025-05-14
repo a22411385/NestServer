@@ -14,14 +14,15 @@ export class GamePlayer {
     public roomId: string;
     public state: PlayerGameState;
     public char: CharacterORM;
-
+    public userName: string;
     public socket: Socket | null;
 
-    constructor(char: CharacterORM) {
+    constructor(char: CharacterORM, userName: string) {
         this.char = char;
         this.roomId = "";
         this.state = PlayerGameState.IDLE;
         this.killList = [];
+        this.userName = userName;
     }
 
 
