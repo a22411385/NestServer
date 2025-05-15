@@ -1,7 +1,6 @@
-import { MonsterKind } from "src/Shared/Enum";
+import { ITEM_RATE, ITEM_TYPE, MonsterKind } from "src/Shared/Enum";
 
-export type ITEM_TYPE = 'equipment' | 'consumable' | 'junk' | 'currency';
-export type EQUIP_VERSION = 'normal' | 'superior' | 'exceptional' | 'elite';
+
 export class ItemBase {
     ItemId: string;
     Name: string;
@@ -12,7 +11,7 @@ export class ItemBase {
     Stackable: boolean;
     MaxStack: number;
     Sellable: boolean;
-    Rate: 'common' | 'uncommon' | 'rate' | 'epic' | 'legend'
+    Rate: ITEM_RATE
 }
 
 export class EquipmentItem {
@@ -45,22 +44,40 @@ export class ConsumableItem {
     cooldown: number;
 
 }
-
-export class PlayerItem {
-
+export interface IItemBase {
+    name: string;
     itemId: string;
     price: number;
     type: ITEM_TYPE;
-    rate: 'common' | 'uncommon' | 'rate' | 'epic' | 'legend';
+    rate: ITEM_RATE;
+}
+export class PlayerItem implements IItemBase {
+
+    constructor(
+        public name: string,
+        public itemId: string,
+        public price: number,
+        public type: ITEM_TYPE,
+        public rate: ITEM_RATE) {
+    }
 }
 
-export class PlayerEquipmentData extends PlayerItem {
+export class PlayerEquipmentData implements IItemBase {
 
-    value: number = 0; //防禦或攻擊值
-    affixes: {
-        key: string;
-        value: number;
-    }[];
+    constructor(
+        public name: string,
+        public itemId: string,
+        public price: number,
+        public type: ITEM_TYPE,
+        public rate: ITEM_RATE,
+        public value: number,
+        public affixes: {
+            key: string;
+            value: number;
+        }[]
+    ) {
+
+    }
 }
 
 export class MainGroupData {

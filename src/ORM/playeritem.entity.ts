@@ -1,6 +1,7 @@
-import { ITEM_TYPE, PlayerEquipmentData } from "src/Game/Item/ItemData";
+
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, Index, OneToOne } from "typeorm";
 import { EquipmentDataORM } from "./equipmentData.entity";
+import { ITEM_TYPE } from "src/Shared/Enum";
 
 @Entity()
 export class PlayerItemORM {
@@ -35,4 +36,13 @@ export class PlayerItemORM {
     createTime?: Date;
     @UpdateDateColumn()
     updateTime?: Date;
+
+    public toJSON() {
+        return {
+            itemId: this.itemId,
+            rate: this.rate,
+            price: this.price,
+            equipmentData: this.equipmentData
+        }
+    }
 }

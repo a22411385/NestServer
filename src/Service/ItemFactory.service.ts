@@ -9,8 +9,7 @@ import {
     MainGroupData,
     GroupEntrieData,
     DropOptions,
-    RandomAffixData,
-    EQUIP_VERSION
+    RandomAffixData
 } from 'src/Game/Item/ItemData';
 import { GoogleSheetsService } from './google-sheets.service';
 import { MonsterData, ProfessionData } from 'src/Game/Combat/UnitData';
@@ -18,7 +17,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { PlayerItemORM } from 'src/ORM/playeritem.entity';
 import { Repository } from 'typeorm';
 import { EquipmentDataORM } from 'src/ORM/equipmentData.entity';
-import { MonsterKind } from 'src/Shared/Enum';
+import { EQUIP_VERSION, ITEM_RATE, ITEM_RATES, ITEM_TYPE, MonsterKind } from 'src/Shared/Enum';
 
 
 @Injectable()
@@ -121,6 +120,7 @@ export class ItemFactoryService {
             for (let i in items) {
                 let item = items[i];
                 let it = new PlayerItemORM();
+
                 if (item.type != 'equipment') {
 
                     it.itemId = item.itemId;
@@ -170,41 +170,37 @@ export class ItemFactoryService {
             }
             return;
         }
-
-        // ------------------ item ------------------
-        if (entry.refId === 'currency_gold') {
-            outArr.push({
-                price: 50,
-                itemId: 'currency_gold',
-                type: 'currency',
-                rate: 'common'
-            } as PlayerItem);
+        const base = this.itemBaseMap[entry.refId];
+        if (!base) {
+            console.error('找不到物品:', entry.refId)
             return;
         }
-        let EquipmentLevel: EQUIP_VERSION = 'normal';
+        // ------------------ item ------------------
+        if (entry.refId === 'currency_gold') {
+            outArr.push(
+                new PlayerItem(base.Name, entry.refId, 50, ITEM_TYPE.currency, 'common')
+            );
+            return;
+        }
+        let EquipmentLevel: EQUIP_VERSION = EQUIP_VERSION.normal;
         //如果是裝備群組 要決定物品階層
         if (entry.groupId == 'Equip_AllBase') {
 
             const tier = Math.max(1, Math.ceil(opts.level / 10));
 
-            if (tier > 3) EquipmentLevel = 'superior';
-            if (tier > 5) EquipmentLevel = 'exceptional';
-            if (tier > 8) EquipmentLevel = 'elite';
+            if (tier > 3) EquipmentLevel = EQUIP_VERSION.superior;
+            if (tier > 5) EquipmentLevel = EQUIP_VERSION.exceptional;
+            if (tier > 8) EquipmentLevel = EQUIP_VERSION.elite;
 
             entry.refId = entry.refId + "_" + EquipmentLevel;
         }
 
-        const base = this.itemBaseMap[entry.refId];
-        if (!base) return;
+
 
         // ===== 普通物品（垃圾 / 材料 / 藥水 …）=====
         if (base.Type !== 'equipment') {
-            outArr.push({
-                price: base.Price,
-                itemId: base.ItemId,
-                type: base.Type,
-                rate: 'common'
-            } as PlayerItem);
+
+            outArr.push(new PlayerItem(base.Name, base.ItemId, base.Price, base.Type, 'common'));
             return;
         }
 
@@ -216,16 +212,17 @@ export class ItemFactoryService {
             ? this.buildLegendAffixes(base.ItemId)
             : this.buildRandomAffixes(equipMeta, affixCount, opts.level);
 
-        outArr.push({
-            price: base.Price,
-            itemId: base.ItemId,
-            type: 'equipment',
-            rate: rate,
-            value: this.getEquitValue(equipMeta, opts.level, EquipmentLevel),
-            affixes                                  // [{ key:'str', value:12 }, …]
-        } as PlayerEquipmentData);
+        outArr.push(new PlayerEquipmentData(
+            base.Name,
+            base.ItemId, base.Price,
+            ITEM_TYPE.equipment,
+            rate, this.getEquitValue(equipMeta, opts.level, EquipmentLevel),
+            affixes
+        ));
     }
-
+    private getItemName(itemId: string): string {
+        return this.itemBaseMap[itemId].Name;
+    }
     private getEquitValue(meta: EquipmentItem, level: number, eLv: EQUIP_VERSION): number {
         const tier = Math.max(1, Math.ceil(level / 10));     // 1‑60 → T1‑T6
 
@@ -320,15 +317,16 @@ export class ItemFactoryService {
         return k === 'normal' ? 'Mob_Normal' : k === 'elite' ? 'Mob_Elite' : 'Mob_Boss';
     }
 
-    private rollQuality(k: MonsterKind) {
+    private rollQuality(k: MonsterKind): ITEM_RATE {
         const tbl = {
             normal: [65, 25, 9, 1, 0.05],
             elite: [30, 35, 25, 9.5, 0.5],
             boss: [0, 0, 0, 95, 5]
         }[k];
-        const names = ['common', 'uncommon', 'rare', 'epic', 'legend'];
         let r = Math.random() * 100;
-        for (let i = 0; i < tbl.length; i++) if ((r -= tbl[i]) <= 0) return names[i];
+        for (let i = 0; i < tbl.length; i++) {
+            if ((r -= tbl[i]) <= 0) return ITEM_RATES[i];
+        }
         return 'common';
     }
 

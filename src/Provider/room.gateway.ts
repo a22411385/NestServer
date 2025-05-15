@@ -149,8 +149,10 @@ export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 
     @OnEvent('room.close')
     private RoomClose(param: { roomId: string }) {
+
         console.log(`[房間 ${param.roomId}] 房間關閉`);
         this.server.to(param.roomId).emit(MessageID.ROOMISCLOSE)
+
         this.server.in(param.roomId).socketsLeave(param.roomId);
         const room = this.getRoomOrThrow(param.roomId);
         room.Players.forEach((p) => {

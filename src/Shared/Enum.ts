@@ -32,6 +32,7 @@ export enum BattleEventType {
     Death = 'death',
     Heal = 'heal',
     Init = "init",
+    GameOver = 'game_over',
 }
 
 export interface BattleEvent<T = any> {
@@ -53,6 +54,29 @@ export interface DamagePayload {
     amount: number;
     damageType: 傷害類型;
 }
+export const ITEM_RATES = ['common', 'uncommon', 'rate', 'epic', 'legend'] as const;
+export type ITEM_RATE = typeof ITEM_RATES[number];
+
+export const enum ITEM_TYPE {
+
+    equipment = 'equipment',
+    consumable = 'consumable',
+    junk = 'junk',
+    currency = 'currency'
+
+}
+
+export const enum EQUIP_VERSION {
+
+
+    normal = 'normal',
+    superior = 'superior',
+    exceptional = 'exceptional',
+    elite = 'elite'
+
+}
+
+
 
 export type MonsterKind = 'normal' | 'elite' | 'boss';
 // Death 事件的 payload

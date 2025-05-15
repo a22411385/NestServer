@@ -20,4 +20,12 @@ export class EquipmentDataORM {
     createTime?: Date;
     @UpdateDateColumn()
     updateTime?: Date;
+
+    public toJSON() {
+        return {
+            affix: this.affix,
+            value: this.value,
+        }
+
+    }
 }

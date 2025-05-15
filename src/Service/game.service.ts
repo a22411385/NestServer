@@ -12,6 +12,7 @@ import { CharacterORM } from "src/ORM/charater.entity";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import { LevelUtils } from "src/Util/Utils";
+import { MessageID } from "src/Shared/MessageID";
 
 
 @Injectable({ scope: Scope.TRANSIENT })
@@ -208,9 +209,7 @@ export class GameService implements OnModuleDestroy {
         return Math.floor(expToNext * 0.1 * typeFactor * levelBias);
 
     }
-    private 掉寶() {
 
-    }
     private async 結算() {
 
         console.log("開始結算");
@@ -230,11 +229,17 @@ export class GameService implements OnModuleDestroy {
                     pp.char.exp += exp;
                     await this.characterRepo.save(pp.char);
 
+                    pp.socket?.emit(MessageID.BATTLE_EVENT, {
+                        type: BattleEventType.GameOver,
+                        timestamp: Date.now(),
+                        payload: {
+                            exp: exp,
+                            items: items
+                        }
+                    } as BattleEvent);
                 }
 
         }
-
-
     }
     private async 遊戲結束() {
 
