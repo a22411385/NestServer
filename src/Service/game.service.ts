@@ -1,22 +1,24 @@
 import { GamePlayer } from "../Game/GamePlayer";
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Injectable, OnModuleDestroy, Scope } from "@nestjs/common";
-import { GoogleSheetsService } from "src/Service/google-sheets.service";
 import { Hero, Monster } from "src/Game/UnitSetting";
-import { MonsterData, ProfessionData } from "src/Game/Combat/UnitData";
 import { BasicUnit } from "src/Game/Combat/UnitBasic";
 import { BattleEvent, BattleEventType, MonsterKind, PlayerGameState } from "src/Shared/Enum";
-import { randomInt, randomUUID } from 'crypto';
+import { randomUUID } from 'crypto';
 import { ItemFactoryService } from "./ItemFactory.service";
 import { CharacterORM } from "src/ORM/charater.entity";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import { LevelUtils } from "src/Util/Utils";
 import { MessageID } from "src/Shared/MessageID";
-
-
+export enum UnitEvent {
+    AutoSelect = 'unit.autoSelectTarget',
+    KillTarget = 'unit.killTarget',
+    Battle = 'battleEvent',
+}
 @Injectable({ scope: Scope.TRANSIENT })
 export class GameService implements OnModuleDestroy {
+
     private _uniqueID: string;
     public get UniqueID(): string {
         return this._uniqueID;
@@ -36,40 +38,30 @@ export class GameService implements OnModuleDestroy {
     private Enemys: Monster[] = [];
 
     private updateInterval: NodeJS.Timeout | null = null;
-    // private expTable: ExperienceData[] = [];
-    //先固定一隻
-    private enemyCount: number = 1;
 
-    private maxCount: 1;
     constructor(
         @InjectRepository(CharacterORM)
         private readonly characterRepo: Repository<CharacterORM>,
-        private goolgeSheetService: GoogleSheetsService,
         private eventEmitter: EventEmitter2,
         private readonly Itemfactory: ItemFactoryService) {
 
         this._uniqueID = randomUUID();
+        this.registerUnitEvents();
+
+    }
+    private registerUnitEvents() {
         this.eventEmitter.on(
-            'unit.autoSelectTarget',
+            UnitEvent.AutoSelect,
             (unit: BasicUnit) => this.自動尋敵(unit),
         );
         this.eventEmitter.on(
-            'unit.killTarget',
+            UnitEvent.KillTarget,
             (unit: BasicUnit, target: BasicUnit) => this.擊殺目標(unit, target),
         );
-
-        this.eventEmitter.on('battleEvent', event => {
-
-
+        this.eventEmitter.on(UnitEvent.Battle, event => {
             this.eventEmitter.emit('game.battleEvent', { roomId: this._uniqueID, data: event });
-
-
         });
-
-
     }
-
-
     public JoinPlayer(player: GamePlayer): boolean {
 
         if (this._players.has(player.id)) {
@@ -104,36 +96,23 @@ export class GameService implements OnModuleDestroy {
     }
     async Init() {
 
-        let Profession = await this.goolgeSheetService.getSheetData('Profession') as ProfessionData[]
-        console.log(Profession)
-        let monster = await this.goolgeSheetService.getSheetData('Monster') as MonsterData[]
-        console.log(monster)
-
-        //初始化敵人
-        for (let i = 0; i < this.enemyCount; i++) {
-            let ramdomLv = randomInt(0, 10); //先固定10等
-            let enemy = new Monster(ramdomLv, monster[Math.floor(Math.random() * monster.length)], this.eventEmitter);
-            enemy.team = "enemy";
-            this.Enemys.push(enemy);
-        }
-
         console.log(`${this.Enemys.length} 個敵人出現 !!`);
 
-        this._players.forEach(pp => {
-            //這裡要把所有玩家實體化
-            let findP = Profession.find(item => item.ID == pp.char.type);
-            if (findP != undefined) {
-                let p = new Hero(pp.char.Lv, pp.id, findP, this.eventEmitter);
-                p.team = "player";
-                p.userName = pp.userName;
-                this.PlayerTeam.push(p)
-            } else {
-                console.error('生成職業錯誤:', pp.char.type);
-            }
-        });
+        // this._players.forEach(pp => {
+        //     //這裡要把所有玩家實體化
+        //     let findP = Profession.find(item => item.ID == pp.char.type);
+        //     if (findP != undefined) {
+        //         let p = new Hero(pp.char.Lv, pp.id, findP, this.eventEmitter);
+        //         p.team = "player";
+        //         p.userName = pp.userName;
+        //         this.PlayerTeam.push(p)
+        //     } else {
+        //         console.error('生成職業錯誤:', pp.char.type);
+        //     }
+        // });
         this.SendBattleEvent(BattleEventType.Init, {
             players: this.PlayerTeam,
-            enemys: this.Enemys
+
         });
 
     }
