@@ -41,6 +41,9 @@ export abstract class BasicUnit {
     target: BasicUnit | null = null;
     type: MonsterKind = 'normal';
     team: string;
+
+    x: number;
+    y: number;
     //動態使用
     protected Hp: number;
     protected MaxHp: number;

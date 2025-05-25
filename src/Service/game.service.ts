@@ -11,6 +11,10 @@ import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import { LevelUtils } from "src/Util/Utils";
 import { MessageID } from "src/Shared/MessageID";
+
+import { SurviveGame } from "src/Game/SurviveGame";
+
+
 export enum UnitEvent {
     AutoSelect = 'unit.autoSelectTarget',
     KillTarget = 'unit.killTarget',
@@ -18,6 +22,7 @@ export enum UnitEvent {
 }
 @Injectable({ scope: Scope.TRANSIENT })
 export class GameService implements OnModuleDestroy {
+    private gameMain: SurviveGame = new SurviveGame();
 
     private _uniqueID: string;
     public get UniqueID(): string {
@@ -49,6 +54,7 @@ export class GameService implements OnModuleDestroy {
         this.registerUnitEvents();
 
     }
+    //註冊事件
     private registerUnitEvents() {
         this.eventEmitter.on(
             UnitEvent.AutoSelect,
@@ -62,6 +68,10 @@ export class GameService implements OnModuleDestroy {
             this.eventEmitter.emit('game.battleEvent', { roomId: this._uniqueID, data: event });
         });
     }
+
+    //#region 玩家進入/準備/離開
+
+    //玩家進入
     public JoinPlayer(player: GamePlayer): boolean {
 
         if (this._players.has(player.id)) {
@@ -94,6 +104,9 @@ export class GameService implements OnModuleDestroy {
 
         this._players.delete(player.id);
     }
+    //#endregion
+
+
     async Init() {
 
         console.log(`${this.Enemys.length} 個敵人出現 !!`);
@@ -163,24 +176,28 @@ export class GameService implements OnModuleDestroy {
     private Update() {
 
         const now = Date.now() / 1000; // 秒
-        for (var i in this.Enemys) {
 
-            this.Enemys[i].update(now);
-            //playerB.update(now);
-        }
-        for (var i in this.PlayerTeam) {
-            this.PlayerTeam[i].update(now);
-        }
+        this.gameMain.Update();
+        // for (var i in this.Enemys) {
+
+        //     this.Enemys[i].update(now);
+        //     //playerB.update(now);
+        // }
+        // for (var i in this.PlayerTeam) {
+        //     this.PlayerTeam[i].update(now);
+        // }
 
 
-        if (this.Enemys.filter(x => !x.isDead).length == 0 || this.PlayerTeam.filter(x => !x.isDead).length == 0) {
-            this.clearTimer();
-            this.遊戲結束();
-        }
+        // if (this.Enemys.filter(x => !x.isDead).length == 0 || this.PlayerTeam.filter(x => !x.isDead).length == 0) {
+        //     this.clearTimer();
+        //     this.遊戲結束();
+        // }
     }
+
+
+
+
     private 給經驗(playerLv: number, monsterLv: number, expToNext: number, type: MonsterKind): number {
-
-
 
         const diff = monsterLv - playerLv;
         const levelBias = Math.max(0.1, 1 + 0.05 * diff); // 高等怪補正
