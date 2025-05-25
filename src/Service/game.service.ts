@@ -3,7 +3,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Injectable, OnModuleDestroy, Scope } from "@nestjs/common";
 import { Hero, Monster } from "src/Game/UnitSetting";
 import { BasicUnit } from "src/Game/Combat/UnitBasic";
-import { BattleEvent, BattleEventType, MonsterKind, PlayerGameState } from "src/Shared/Enum";
+import { AttackPayload, BattleEvent, BattleEventType, MonsterKind, PlayerGameState } from "src/Shared/Enum";
 import { randomUUID } from 'crypto';
 import { ItemFactoryService } from "./ItemFactory.service";
 import { CharacterORM } from "src/ORM/charater.entity";
@@ -14,16 +14,9 @@ import { MessageID } from "src/Shared/MessageID";
 
 import { SurviveGame } from "src/Game/SurviveGame";
 
-
-export enum UnitEvent {
-    AutoSelect = 'unit.autoSelectTarget',
-    KillTarget = 'unit.killTarget',
-    Battle = 'battleEvent',
-}
 @Injectable({ scope: Scope.TRANSIENT })
 export class GameService implements OnModuleDestroy {
-    private gameMain: SurviveGame = new SurviveGame();
-
+    private gameMain: SurviveGame;
     private _uniqueID: string;
     public get UniqueID(): string {
         return this._uniqueID;
@@ -39,10 +32,7 @@ export class GameService implements OnModuleDestroy {
     public get Players(): Map<string, GamePlayer> {
         return this._players;
     }
-    private PlayerTeam: Hero[] = [];
-    private Enemys: Monster[] = [];
 
-    private updateInterval: NodeJS.Timeout | null = null;
 
     constructor(
         @InjectRepository(CharacterORM)
@@ -52,22 +42,23 @@ export class GameService implements OnModuleDestroy {
 
         this._uniqueID = randomUUID();
         this.registerUnitEvents();
-
+        this.gameMain = new SurviveGame(this.eventEmitter);
     }
     //註冊事件
     private registerUnitEvents() {
-        this.eventEmitter.on(
-            UnitEvent.AutoSelect,
-            (unit: BasicUnit) => this.自動尋敵(unit),
-        );
-        this.eventEmitter.on(
-            UnitEvent.KillTarget,
-            (unit: BasicUnit, target: BasicUnit) => this.擊殺目標(unit, target),
-        );
-        this.eventEmitter.on(UnitEvent.Battle, event => {
+        // this.eventEmitter.on(
+        //     UnitEvent.AutoSelect,
+        //     (unit: BasicUnit) => this.自動尋敵(unit),
+        // );
+        // this.eventEmitter.on(
+        //     UnitEvent.KillTarget,
+        //     (unit: BasicUnit, target: BasicUnit) => this.擊殺目標(unit, target),
+        // );
+        this.eventEmitter.on('battleEvent', event => {
             this.eventEmitter.emit('game.battleEvent', { roomId: this._uniqueID, data: event });
         });
     }
+
 
     //#region 玩家進入/準備/離開
 
@@ -95,7 +86,7 @@ export class GameService implements OnModuleDestroy {
         this._players.forEach(pp => { if (pp.state != 'ready') allReady = false });
 
         if (allReady) {
-            this.戰鬥開始();
+            this.gameMain.戰鬥開始();
         }
 
     }
@@ -109,8 +100,6 @@ export class GameService implements OnModuleDestroy {
 
     async Init() {
 
-        console.log(`${this.Enemys.length} 個敵人出現 !!`);
-
         // this._players.forEach(pp => {
         //     //這裡要把所有玩家實體化
         //     let findP = Profession.find(item => item.ID == pp.char.type);
@@ -123,79 +112,13 @@ export class GameService implements OnModuleDestroy {
         //         console.error('生成職業錯誤:', pp.char.type);
         //     }
         // });
-        this.SendBattleEvent(BattleEventType.Init, {
-            players: this.PlayerTeam,
+        // this.SendBattleEvent(BattleEventType.Init, {
+        //     players: this.PlayerTeam,
 
-        });
-
-    }
-    擊殺目標(unit: BasicUnit, target: BasicUnit) {
-
-        let pp = this.Players.get(unit.PlayerId);
-        //找到單位擁有玩家
-        if (pp) {
-            pp.killList.push({
-
-                lv: target.Lv,
-                type: target.type,
-                uniqueID: target.UniqueID
-
-            });
-
-        }
-    }
-
-    public 自動尋敵(unit: BasicUnit) {
-        let target: BasicUnit | undefined;
-        if (unit.team != "player") {
-            target = this.PlayerTeam.find((item) => !item.isDead);
-        } else {
-            target = this.Enemys.find((item) => !item.isDead);
-        }
-        if (target) {
-            console.log(`[${unit.Name}] 重新鎖定目標: [${target.Name}]`)
-            unit.setTarget(target);
-        }
-    }
-
-
-
-    private async 戰鬥開始() {
-        await this.Init();
-        for (var i in this.PlayerTeam) {
-            let fisrtEenmy = this.Enemys.find((item) => !item.isDead);
-            if (fisrtEenmy)
-                this.PlayerTeam[i].setTarget(fisrtEenmy);
-        }
-
-        this.updateInterval = setInterval(this.Update.bind(this), 100);
+        // });
 
     }
-
-    //每0.1秒更新一次
-    private Update() {
-
-        const now = Date.now() / 1000; // 秒
-
-        this.gameMain.Update();
-        // for (var i in this.Enemys) {
-
-        //     this.Enemys[i].update(now);
-        //     //playerB.update(now);
-        // }
-        // for (var i in this.PlayerTeam) {
-        //     this.PlayerTeam[i].update(now);
-        // }
-
-
-        // if (this.Enemys.filter(x => !x.isDead).length == 0 || this.PlayerTeam.filter(x => !x.isDead).length == 0) {
-        //     this.clearTimer();
-        //     this.遊戲結束();
-        // }
-    }
-
-
-
+    //
 
     private 給經驗(playerLv: number, monsterLv: number, expToNext: number, type: MonsterKind): number {
 
@@ -237,6 +160,7 @@ export class GameService implements OnModuleDestroy {
 
         }
     }
+
     private async 遊戲結束() {
 
         console.log("遊戲結束");
@@ -260,13 +184,7 @@ export class GameService implements OnModuleDestroy {
 
     onModuleDestroy() {
         console.log(`[房間 ${this._uniqueID}] GameService 被銷毀，清理資源`);
-        this.clearTimer();
-    }
-    private clearTimer() {
-        if (this.updateInterval) {
-            clearInterval(this.updateInterval);
-            this.updateInterval = null;
-        }
+        this.gameMain.Destroy();
     }
 
 }

@@ -41,7 +41,7 @@ export abstract class BasicUnit {
     target: BasicUnit | null = null;
     type: MonsterKind = 'normal';
     team: string;
-
+    attackRange: number;
     x: number;
     y: number;
     //動態使用
@@ -62,7 +62,7 @@ export abstract class BasicUnit {
     lastAttackTime: number = 0; // 秒
     isDead: boolean;
     private event: EventEmitter2;
-
+    protected isNPC: boolean;
     constructor(initData: UnitState, event: EventEmitter2) {
         this._uniqueID = randomUUID();
         this.event = event;
@@ -79,17 +79,26 @@ export abstract class BasicUnit {
     update(currentTime: number) {
         if (this.isDead) return;
 
-        if (this.target == null) {
+        if (this.target == null && this.isNPC) {
             this.event.emit('unit.autoSelectTarget', this);
             return;
         }
         if (!this.target || this.target.isDead) return;
 
-        if (currentTime - this.lastAttackTime >= this.attackInterval) {
+        if (currentTime - this.lastAttackTime >= this.attackInterval && this.checkAttackRange(this, this.target)) {
 
             this.performBasicAttack();
             this.lastAttackTime = currentTime;
         }
+    }
+
+
+    checkAttackRange(attacker: BasicUnit, target: BasicUnit): boolean {
+        const dx = attacker.x - target.x;
+        const dy = attacker.y - target.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+
+        return distance <= attacker.attackRange;
     }
 
     performBasicAttack() {
