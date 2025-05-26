@@ -26,18 +26,20 @@ export enum PlayerGameState {
 
 }
 export enum BattleEventType {
-
+    同步快照 = 'sync.snapshot',
+    MonsterSpawn = 'MonsterSpawn',
+    UnitMove = 'UnitMove',
     Attack = 'attack',
     Damage = 'damage',
     Death = 'death',
     Heal = 'heal',
     Init = "init",
     GameOver = 'game_over',
+
 }
 
 export interface BattleEvent<T = any> {
     type: BattleEventType;
-    timestamp: number;       // 事件時間戳
     payload: T;              // 具體資料
 }
 

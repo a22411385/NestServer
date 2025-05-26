@@ -109,7 +109,7 @@ export abstract class BasicUnit {
 
         const attackEvt: BattleEvent<AttackPayload> = {
             type: BattleEventType.Attack,
-            timestamp: Date.now(),
+            //   timestamp: Date.now(),
             payload: { attackerId: this.UniqueID, targetId: this.target.UniqueID, skillId: 'basic' }
         };
         //通知client
@@ -135,7 +135,7 @@ export abstract class BasicUnit {
 
         const damageEvt: BattleEvent<DamagePayload> = {
             type: BattleEventType.Damage,
-            timestamp: Date.now(),
+            //  timestamp: Date.now(),
             payload: { targetId: this.UniqueID, amount: amount, damageType: damageType }
         };
         this.SendBattle(damageEvt);
@@ -148,7 +148,7 @@ export abstract class BasicUnit {
             if (this.isDead) {
                 const deathEvt: BattleEvent<DeathPayload> = {
                     type: BattleEventType.Death,
-                    timestamp: Date.now(),
+                    //     timestamp: Date.now(),
                     payload: { targetId: this.UniqueID, lv: this.Lv, type: 'normal' }
                 };
                 this.event.emit('battleEvent', deathEvt);
@@ -178,7 +178,8 @@ export abstract class BasicUnit {
             maxHp: this.MaxHp,
             maxMp: this.MaxMp,
             lv: this.Lv,
-
+            x: this.x,
+            y: this.y,
         };
     }
 }

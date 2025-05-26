@@ -8,7 +8,7 @@ import { ModuleRef } from '@nestjs/core';
 import { OnEvent } from '@nestjs/event-emitter';
 
 import { GamePlayer } from 'src/Game/GamePlayer';
-import { GameService } from 'src/Service/game.service';
+import { FrameInput, GameService } from 'src/Service/game.service';
 import { HttpRespone } from 'src/Shared/struct';
 import { MessageID } from 'src/Shared/MessageID';
 import { ErrorCode } from 'src/Shared/ErrorCode';
@@ -39,12 +39,12 @@ export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect, On
     async onModuleInit() {
         console.log('✅ GameGateway 已啟動');
 
-        await this.itemService.InitData(this.googleSheetService);
-        this.googleSheetService.InitData([
-            { tableName: "ExperienceTable", classType: ExperienceData }
-        ])
-        let exp = await this.googleSheetService.getSheetData<ExperienceData>('ExperienceTable');
-        LevelUtils.load(exp);
+        //    await this.itemService.InitData(this.googleSheetService);
+        //   this.googleSheetService.InitData([
+        //      { tableName: "ExperienceTable", classType: ExperienceData }
+        //  ])
+        // let exp = await this.googleSheetService.getSheetData<ExperienceData>('ExperienceTable');
+        //LevelUtils.load(exp);
     }
 
     async handleConnection(client: Socket) {
@@ -67,6 +67,11 @@ export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect, On
             player.socket = client;
             client.data.user = payload;
             client.emit('init', player.ToJson());
+
+            if (player.roomId != '') {
+                this.JoinRoom(player.roomId, player);
+            }
+
 
             console.log(`Client connected: ${client.id}`);
         } catch (err) {
@@ -144,6 +149,8 @@ export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect, On
     private JoinRoom(roomId: string, player: GamePlayer): ErrorCode {
         const room = this.getRoomOrThrow(roomId);
         room.JoinPlayer(player);
+
+        player.socket?.join(roomId);
         return ErrorCode.SUCCESS;
     }
 
@@ -163,10 +170,11 @@ export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect, On
         this.roomMap.delete(param.roomId);
     }
 
-    @OnEvent('game.battleEvent')
-    private BattleEvent(param: { roomId: string, data: BattleEvent }) {
+    @OnEvent('game.tick')
+    private BattleEvent(param: { roomId: string, data: FrameInput[] }) {
         //  const room = this.getRoomOrThrow(param.roomId);
-        this.server.to(param.roomId).emit(MessageID.BATTLE_EVENT, param.data);
+
+        this.server.to(param.roomId).emit(MessageID.TICK, param.data);
     }
 
     // --- 以下是共用小工具 ---

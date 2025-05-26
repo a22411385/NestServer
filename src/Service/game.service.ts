@@ -1,8 +1,6 @@
 import { GamePlayer } from "../Game/GamePlayer";
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Injectable, OnModuleDestroy, Scope } from "@nestjs/common";
-import { Hero, Monster } from "src/Game/UnitSetting";
-import { BasicUnit } from "src/Game/Combat/UnitBasic";
 import { AttackPayload, BattleEvent, BattleEventType, MonsterKind, PlayerGameState } from "src/Shared/Enum";
 import { randomUUID } from 'crypto';
 import { ItemFactoryService } from "./ItemFactory.service";
@@ -13,11 +11,25 @@ import { LevelUtils } from "src/Util/Utils";
 import { MessageID } from "src/Shared/MessageID";
 
 import { SurviveGame } from "src/Game/SurviveGame";
+import { Snapshot } from "src/Shared/struct";
+export interface FrameInput {
+    frame: number;
+    input: any;
+}
+
 
 @Injectable({ scope: Scope.TRANSIENT })
 export class GameService implements OnModuleDestroy {
     private gameMain: SurviveGame;
     private _uniqueID: string;
+
+    private lastSnapshot: Snapshot | null;
+
+    private frame: number = 0;
+    private inputs: FrameInput[] = [];
+    private timer: NodeJS.Timeout | null = null;
+
+
     public get UniqueID(): string {
         return this._uniqueID;
     }
@@ -41,24 +53,26 @@ export class GameService implements OnModuleDestroy {
         private readonly Itemfactory: ItemFactoryService) {
 
         this._uniqueID = randomUUID();
-        this.registerUnitEvents();
+
+        this.eventEmitter.on('battleEvent', event => this.SendBattleEvent(event));
         this.gameMain = new SurviveGame(this.eventEmitter);
     }
-    //註冊事件
-    private registerUnitEvents() {
-        // this.eventEmitter.on(
-        //     UnitEvent.AutoSelect,
-        //     (unit: BasicUnit) => this.自動尋敵(unit),
-        // );
-        // this.eventEmitter.on(
-        //     UnitEvent.KillTarget,
-        //     (unit: BasicUnit, target: BasicUnit) => this.擊殺目標(unit, target),
-        // );
-        this.eventEmitter.on('battleEvent', event => {
-            this.eventEmitter.emit('game.battleEvent', { roomId: this._uniqueID, data: event });
-        });
-    }
 
+
+
+    Update() {
+        // 處理該幀所有輸入
+        const currentInputs = this.inputs.filter(i => i.frame === this.frame);
+
+        this.eventEmitter.emit('game.tick', { roomId: this._uniqueID, data: { frame: this.frame, inputs: currentInputs } });
+        this.frame++;
+
+        //每200幀快照一次
+        if (this.frame % 200 == 0) {
+            this.lastSnapshot = this.gameMain.快照同步(this.frame);
+
+        }
+    }
 
     //#region 玩家進入/準備/離開
 
@@ -67,6 +81,10 @@ export class GameService implements OnModuleDestroy {
 
         if (this._players.has(player.id)) {
             console.error(`${player.id}玩家已經在房間裡`)
+
+            //這個可能是重連回來的  給他同步進度
+            this.快照同步(player)
+
             return false;
         }
         console.log(`${player.id} 玩家加入房間 : ${this.UniqueID}`)
@@ -86,7 +104,7 @@ export class GameService implements OnModuleDestroy {
         this._players.forEach(pp => { if (pp.state != 'ready') allReady = false });
 
         if (allReady) {
-            this.gameMain.戰鬥開始();
+            this.Start();
         }
 
     }
@@ -95,11 +113,19 @@ export class GameService implements OnModuleDestroy {
 
         this._players.delete(player.id);
     }
+
+    快照同步(player: GamePlayer) {
+
+        player.socket?.emit(MessageID.快照同步, this.lastSnapshot);
+
+    }
+
     //#endregion
 
 
-    async Init() {
-
+    async Start() {
+        this.timer = setInterval(() => this.Update(), 100);
+        this.gameMain.戰鬥開始();
         // this._players.forEach(pp => {
         //     //這裡要把所有玩家實體化
         //     let findP = Profession.find(item => item.ID == pp.char.type);
@@ -170,21 +196,20 @@ export class GameService implements OnModuleDestroy {
         this.eventEmitter.emit('room.close', { roomId: this._uniqueID });
     }
 
-    private SendBattleEvent<T>(type: BattleEventType, data: T) {
+    private SendBattleEvent<T>(event: BattleEvent<T>) {
+        this.inputs.push({
+            input: event,
+            frame: this.frame
+        });
 
-        let event: BattleEvent<T> = {
-            type: type,
-            payload: data,
-            timestamp: Date.now()
-        }
-
-        this.eventEmitter.emit('game.battleEvent', { roomId: this._uniqueID, data: event });
     }
 
 
     onModuleDestroy() {
         console.log(`[房間 ${this._uniqueID}] GameService 被銷毀，清理資源`);
         this.gameMain.Destroy();
+        if (this.timer) clearInterval(this.timer);
+        this.timer = null;
     }
 
 }

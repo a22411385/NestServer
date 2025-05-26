@@ -2,21 +2,27 @@ import { EventEmitter2 } from "@nestjs/event-emitter";
 import { BasicUnit } from "./Combat/UnitBasic";
 import { Hero, Monster } from "./UnitSetting";
 import { BattleEvent, BattleEventType } from "src/Shared/Enum";
+import { FrameInput } from "src/Service/game.service";
+import { Snapshot } from "src/Shared/struct";
+const MAX_UNIT_COUNT: number = 200;
+
 
 export enum SurviveGameEvent {
 
-    BattleEvent = 'battleEvent',
+
     Attack = 'survive.attack',
+    MonsterSpawn = 'survive.MonsterSpawn',
 }
 //生存遊戲初始化
 export class SurviveGame {
     private monsterCount: number = 0;
     private monsterMap: Map<string, BasicUnit> = new Map();
-    private lastUpdateTime: number;
+    private lastUpdateTime: number = 0;
     private updateInterval: NodeJS.Timeout | null = null;
 
     private PlayerTeam: Hero[] = [];
     private Enemys: Monster[] = [];
+
 
     constructor(private eventEmitter: EventEmitter2) {
 
@@ -45,28 +51,28 @@ export class SurviveGame {
     }
     攻擊目標(unit: BasicUnit, target: BasicUnit) {
 
-        const attackEvt: BattleEvent<AttackPayload> = {
-            type: BattleEventType.Attack,
-            timestamp: Date.now(),
-            payload: { attackerId: this.UniqueID, targetId: target.UniqueID, skillId: 'normal' }
-        };
-        //通知client
-        this.發送戰鬥事件();
+        // const attackEvt: BattleEvent<AttackPayload> = {
+        //     type: BattleEventType.Attack,
+        //     timestamp: Date.now(),
+        //     payload: { attackerId: this.UniqueID, targetId: target.UniqueID, skillId: 'normal' }
+        // };
+        // //通知client
+        // this.發送戰鬥事件();
     }
     擊殺目標(unit: BasicUnit, target: BasicUnit) {
 
-        let pp = this.Players.get(unit.PlayerId);
-        //找到單位擁有玩家
-        if (pp) {
-            pp.killList.push({
+        // let pp = this.Players.get(unit.PlayerId);
+        // //找到單位擁有玩家
+        // if (pp) {
+        //     pp.killList.push({
 
-                lv: target.Lv,
-                type: target.type,
-                uniqueID: target.UniqueID
+        //         lv: target.Lv,
+        //         type: target.type,
+        //         uniqueID: target.UniqueID
 
-            });
+        //     });
 
-        }
+        // }
     }
 
     public 自動尋敵(unit: BasicUnit) {
@@ -81,26 +87,34 @@ export class SurviveGame {
             unit.setTarget(target);
         }
     }
+    快照同步(frame: number): Snapshot {
+        return {
 
+            frameId: frame,
+            players: [],
+
+
+        };
+    }
 
 
     async 戰鬥開始() {
-
+        console.log('戰鬥開始');
         for (var i in this.PlayerTeam) {
             let fisrtEenmy = this.Enemys.find((item) => !item.isDead);
             if (fisrtEenmy)
                 this.PlayerTeam[i].setTarget(fisrtEenmy);
         }
-
+        this.lastUpdateTime = Date.now();
         this.updateInterval = setInterval(this.Update.bind(this), 100);
 
     }
 
     public Update() {
         const now = Date.now();
-        if (now - (this.lastUpdateTime || 0) < 1000 / 60) {
+        if (now - this.lastUpdateTime > 1000) {
             this.lastUpdateTime = now;
-
+            this.createMonster();
         }
 
         this.AllUnitMove();
@@ -113,6 +127,8 @@ export class SurviveGame {
         });
     }
     createMonster() {
+        if (this.monsterMap.size >= MAX_UNIT_COUNT)
+            return;
         const pos = this.spawnMonsterOutsideRadius();
         let m = new Monster(1, {
             HP: 100,
@@ -127,7 +143,8 @@ export class SurviveGame {
         m.y = pos.y;
 
         this.monsterMap.set(m.UniqueID, m);
-
+        console.log("創建敵人:", m.Name);
+        this.發送戰鬥事件(BattleEventType.MonsterSpawn, m.toJSON());
     }
     spawnMonsterOutsideRadius(minRadius = 10, maxRadius = 50): { x: number; y: number } {
         // 隨機角度（弧度制）
@@ -142,10 +159,21 @@ export class SurviveGame {
 
         return { x, y };
     }
-    發送戰鬥事件() {
 
-
+    /**
+     * 往上拋給GameService
+     * @param event 
+     * @param data 
+     */
+    發送戰鬥事件(event: BattleEventType, data: any) {
+        let e: BattleEvent = {
+            payload: data,
+            type: event,
+        }
+        this.eventEmitter.emit('battleEvent', e);
     }
+
+
 
     Destroy() {
 
