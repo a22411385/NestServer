@@ -1,6 +1,6 @@
 import { EventEmitter2 } from "@nestjs/event-emitter";
 import { BasicUnit } from "./Combat/UnitBasic";
-import { Hero, Monster } from "./UnitSetting";
+import { AABB, Hero, Monster } from "./UnitSetting";
 import { BattleEvent, BattleEventType } from "src/Shared/Enum";
 import { FrameInput } from "src/Service/game.service";
 import { Snapshot } from "src/Shared/struct";
@@ -87,14 +87,15 @@ export class SurviveGame {
             unit.setTarget(target);
         }
     }
-    快照同步(frame: number): Snapshot {
-        return {
+    快照同步(frame: number): Snapshot | null {
+        return null;
+        // return {
 
-            frameId: frame,
-            players: [],
+        //     frameId: frame,
+        //     //  players: [],
 
 
-        };
+        // };
     }
 
 
@@ -127,9 +128,15 @@ export class SurviveGame {
         });
     }
     createMonster() {
-        if (this.monsterMap.size >= MAX_UNIT_COUNT)
+        if (this.monsterMap.size >= MAX_UNIT_COUNT) {
+            this.GameOver();
             return;
-        const pos = this.spawnMonsterOutsideRadius();
+        }
+
+        let pos: { x: number, y: number };
+        pos = this.spawnMonsterOutsideRadius();
+
+
         let m = new Monster(1, {
             HP: 100,
             MP: 0,
@@ -146,7 +153,32 @@ export class SurviveGame {
         console.log("創建敵人:", m.Name);
         this.發送戰鬥事件(BattleEventType.MonsterSpawn, m.toJSON());
     }
-    spawnMonsterOutsideRadius(minRadius = 10, maxRadius = 50): { x: number; y: number } {
+
+
+    /**
+     * 檢查位置是否被佔用
+     * @param x 中心點x
+     * @param y 中心點y
+     * @param w 寬度
+     * @param h 高度
+     * @param units 當前單位列表
+     */
+    isPositionOccupied(x: number, y: number, w: number, h: number, units: BasicUnit[]): boolean {
+        const newBox = new AABB(x, y, w, h);
+        for (const unit of units) {
+            const box = unit.getBounds();
+            if (newBox.isCollide(box)) return true;
+        }
+        return false;
+    }
+
+    /**
+     * 在指定半徑外隨機生成一個怪物位置
+     * @param minRadius 最小半徑
+     * @param maxRadius 最大半徑
+     * @returns { x: number; y: number } 隨機位置
+     */
+    spawnMonsterOutsideRadius(minRadius = 300, maxRadius = 500): { x: number; y: number } {
         // 隨機角度（弧度制）
         const angle = Math.random() * Math.PI * 2;
 
@@ -174,7 +206,10 @@ export class SurviveGame {
     }
 
 
-
+    GameOver() {
+        this.clearTimer();
+        this.eventEmitter.emit('battleClose');
+    }
     Destroy() {
 
         this.clearTimer();

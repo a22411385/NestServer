@@ -3,6 +3,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { 攻擊結果 } from './CombatInterface';
 import { AttackPayload, BattleEvent, BattleEventType, DamagePayload, DeathPayload, MonsterKind, 傷害類型 } from "src/Shared/Enum";
 import { randomUUID } from 'crypto';
+import { AABB } from '../UnitSetting';
 // combat-component.ts
 export interface UnitState {
     id: string;
@@ -28,11 +29,6 @@ export abstract class BasicUnit {
         return this._name;
     }
 
-    // protected _isNpc: boolean;
-    // public get IsNpc(): boolean {
-    //     return this._isNpc;
-    // }
-
     protected _playerId: string;
     public get PlayerId(): string {
         return this._playerId;
@@ -42,8 +38,14 @@ export abstract class BasicUnit {
     type: MonsterKind = 'normal';
     team: string;
     attackRange: number;
+
+
     x: number;
     y: number;
+    width: number = 50; // 寬度
+    height: number = 100; // 高度
+    speed: number = 10;
+
     //動態使用
     protected Hp: number;
     protected MaxHp: number;
@@ -100,20 +102,13 @@ export abstract class BasicUnit {
 
         return distance <= attacker.attackRange;
     }
-
+    //嘗試攻擊
     performBasicAttack() {
         if (!this.target) return;
 
         const damage = this.Atk; // 暫定每次打10點傷害
         console.log(`[${this._name}] attacks [${this.target._name}] for ${damage} damage!`);
 
-        const attackEvt: BattleEvent<AttackPayload> = {
-            type: BattleEventType.Attack,
-            //   timestamp: Date.now(),
-            payload: { attackerId: this.UniqueID, targetId: this.target.UniqueID, skillId: 'basic' }
-        };
-        //通知client
-        this.SendBattle(attackEvt);
 
 
         //實際造成傷害
@@ -135,7 +130,7 @@ export abstract class BasicUnit {
 
         const damageEvt: BattleEvent<DamagePayload> = {
             type: BattleEventType.Damage,
-            //  timestamp: Date.now(),
+
             payload: { targetId: this.UniqueID, amount: amount, damageType: damageType }
         };
         this.SendBattle(damageEvt);
@@ -148,7 +143,7 @@ export abstract class BasicUnit {
             if (this.isDead) {
                 const deathEvt: BattleEvent<DeathPayload> = {
                     type: BattleEventType.Death,
-                    //     timestamp: Date.now(),
+
                     payload: { targetId: this.UniqueID, lv: this.Lv, type: 'normal' }
                 };
                 this.event.emit('battleEvent', deathEvt);
@@ -163,7 +158,13 @@ export abstract class BasicUnit {
         this.target = target;
     }
 
+    getBounds(): AABB {
+        return new AABB(this.x, this.y, this.width, this.height);
+    }
 
+    isCollideWith(other: BasicUnit): boolean {
+        return this.getBounds().isCollide(other.getBounds());
+    }
 
     //幫忙轉送
     SendBattle<T>(evnt: BattleEvent<T>) {
@@ -180,6 +181,7 @@ export abstract class BasicUnit {
             lv: this.Lv,
             x: this.x,
             y: this.y,
+            speed: this.speed
         };
     }
 }

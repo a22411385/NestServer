@@ -57,3 +57,19 @@ export class Hero extends BasicUnit {
 
 
 }
+
+export class AABB {
+    constructor(
+        public x: number, // 中心 x
+        public y: number, // 中心 y
+        public width: number,
+        public height: number
+    ) { }
+
+    isCollide(other: AABB): boolean {
+        return (
+            Math.abs(this.x - other.x) * 2 < this.width + other.width &&
+            Math.abs(this.y - other.y) * 2 < this.height + other.height
+        );
+    }
+}

@@ -55,6 +55,7 @@ export class GameService implements OnModuleDestroy {
         this._uniqueID = randomUUID();
 
         this.eventEmitter.on('battleEvent', event => this.SendBattleEvent(event));
+        this.eventEmitter.on('battleClose', event => this.遊戲結束());
         this.gameMain = new SurviveGame(this.eventEmitter);
     }
 
