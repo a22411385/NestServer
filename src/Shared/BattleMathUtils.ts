@@ -5,7 +5,7 @@ import seedrandom from 'seedrandom';
 export type Int = number & { __int__: void };
 export interface Vector2 { x: Int, y: Int }
 export function toInt(n: number): Int {
-    return Number((n).toFixed(4)) as Int;
+    return Number((n).toFixed(2)) as Int;
 }
 
 export namespace BattleMathUtils {

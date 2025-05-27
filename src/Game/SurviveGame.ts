@@ -67,7 +67,18 @@ export class SurviveGame {
     }
     快照同步(frame: number): Snapshot | null {
         //待製作
-        return null;
+        return {
+            frameId: frame,
+            monsters: [...this.monsterMap.values()].map(m => ({
+                x: m.x,
+                y: m.y,
+                id: m.UniqueID,
+                state: m.AI.state,
+                hp: m.Hp,
+                name: m.Name,
+                speed: m.speed
+            })),
+        };
     }
 
 

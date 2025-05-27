@@ -7,7 +7,7 @@ import { ItemFactoryService } from "./ItemFactory.service";
 import { CharacterORM } from "src/ORM/charater.entity";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
-import { LevelUtils } from "src/Util/Utils";
+import { delay, LevelUtils } from "src/Util/Utils";
 import { MessageID } from "src/Shared/MessageID";
 
 import { SurviveGame } from "src/Game/SurviveGame";
@@ -75,16 +75,11 @@ export class GameService implements OnModuleDestroy {
         }
     }
 
-    //#region 玩家進入/準備/離開
-
     //玩家進入
     public JoinPlayer(player: GamePlayer): boolean {
 
         if (this._players.has(player.id)) {
-            console.error(`${player.id}玩家已經在房間裡`)
-
-            //這個可能是重連回來的  給他同步進度
-            this.快照同步(player)
+            console.warn(`${player.id}玩家已經在房間裡`)
 
             return false;
         }
@@ -115,14 +110,10 @@ export class GameService implements OnModuleDestroy {
         this._players.delete(player.id);
     }
 
-    快照同步(player: GamePlayer) {
-
-        player.socket?.emit(MessageID.快照同步, this.lastSnapshot);
+    快照同步() {
+        return this.gameMain.快照同步(this.frame);
 
     }
-
-    //#endregion
-
 
     async Start() {
         this.timer = setInterval(() => this.Update(), 100);

@@ -10,7 +10,7 @@ export interface ZombieDecision {
 
 export class ZombieAI {
     private rng: seedrandom.PRNG;
-    private state: ZombieState = 'Idle';
+    state: ZombieState = 'Idle';
     private stateUntil = 0;
 
     isNewState: boolean = false; // 是否是新狀態

@@ -17,7 +17,7 @@ import { ResponeError, ResponeSuccess } from 'src/Util/respone.util';
 import { BattleEvent } from 'src/Shared/Enum';
 import { ItemFactoryService } from 'src/Service/ItemFactory.service';
 import { ExperienceData } from 'src/Game/Combat/UnitData';
-import { LevelUtils } from 'src/Util/Utils';
+import { delay, LevelUtils } from 'src/Util/Utils';
 
 @WebSocketGateway({ cors: true })
 export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect, OnModuleInit {
@@ -134,6 +134,22 @@ export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect, On
         });
     }
 
+
+    @SubscribeMessage(MessageID.快照同步)
+    async 同步資料(@ConnectedSocket() client: Socket): Promise<HttpRespone> {
+        return this.safeExecute(async () => {
+            const payload = client.data.user as JWTPayload;
+            const player = this.getPlayerOrThrow(payload.openId);
+
+            if (player.roomId === '') {
+                return ResponeError(ErrorCode.房間不存在);
+            }
+            const room = this.getRoomOrThrow(player.roomId);
+
+            return ResponeSuccess(room.快照同步());
+        });
+    }
+
     private async CreateRoom(roomName: string, areaID: number): Promise<ErrorCode | string> {
         const r = await this.moduleRef.resolve(GameService);
         this.roomMap.set(r.UniqueID, r);
@@ -146,11 +162,12 @@ export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect, On
         return ErrorCode.SUCCESS;
     }
 
-    private JoinRoom(roomId: string, player: GamePlayer): ErrorCode {
+    private async JoinRoom(roomId: string, player: GamePlayer): Promise<ErrorCode> {
         const room = this.getRoomOrThrow(roomId);
+        await player.socket?.join(roomId);
         room.JoinPlayer(player);
 
-        player.socket?.join(roomId);
+
         return ErrorCode.SUCCESS;
     }
 

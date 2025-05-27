@@ -52,7 +52,7 @@ export abstract class BasicUnit {
     speed: number = 1;
 
     //動態使用
-    protected Hp: number;
+    Hp: number;
     protected MaxHp: number;
 
     protected Mp: number;
@@ -191,7 +191,8 @@ export abstract class BasicUnit {
             lv: this.Lv,
             x: this.x,
             y: this.y,
-            speed: this.speed
+            speed: this.speed,
+
         };
     }
 }
