@@ -4,6 +4,8 @@ import { AABB, Hero, Monster } from "./UnitSetting";
 import { BattleEvent, BattleEventType } from "src/Shared/Enum";
 import { FrameInput } from "src/Service/game.service";
 import { Snapshot } from "src/Shared/struct";
+import { toInt } from "src/Shared/BattleMathUtils";
+import { TimeScheduler } from "src/Util/Utils";
 const MAX_UNIT_COUNT: number = 200;
 
 
@@ -16,114 +18,98 @@ export enum SurviveGameEvent {
 //生存遊戲初始化
 export class SurviveGame {
     private monsterCount: number = 0;
-    private monsterMap: Map<string, BasicUnit> = new Map();
+    private monsterMap: Map<string, Monster> = new Map();
     private lastUpdateTime: number = 0;
     private updateInterval: NodeJS.Timeout | null = null;
 
-    private PlayerTeam: Hero[] = [];
-    private Enemys: Monster[] = [];
+    //private PlayerTeam: Hero[] = [];
+    // private Enemys: Monster[] = [];
 
-
+    private scheduler = new TimeScheduler();
     constructor(private eventEmitter: EventEmitter2) {
+        this.scheduler.addTask('createMonster', 1000, () => {
 
+            //   this.createMonster();
+        });
 
-        // this.event.on('')
-        this.registerUnitEvents();
-
+        this.scheduler.addTask('syncUnitPosition', 10000, () => {
+            this.同步所有單位座標();
+        });
     }
+    同步所有單位座標() {
 
-    //註冊事件
-    private registerUnitEvents() {
-        // this.eventEmitter.on(
-        //     UnitEvent.AutoSelect,
-        //     (unit: BasicUnit) => this.自動尋敵(unit),
-        // );
-        // this.eventEmitter.on(
-        //     UnitEvent.KillTarget,
-        //     (unit: BasicUnit, target: BasicUnit) => this.擊殺目標(unit, target),
-        // );
-        // this.eventEmitter.on(UnitEvent.Battle, event => {
-        //     this.eventEmitter.emit('game.battleEvent', { roomId: this._uniqueID, data: event });
-        // });
+        let posData = [...this.monsterMap.values()].map(z => ({
+            id: z.UniqueID,
+            x: z.x,
+            y: z.y
+        }));
+        this.發送戰鬥事件(BattleEventType.同步位置, posData);
     }
     檢查所有單位目標() {
 
     }
     攻擊目標(unit: BasicUnit, target: BasicUnit) {
-
-        // const attackEvt: BattleEvent<AttackPayload> = {
-        //     type: BattleEventType.Attack,
-        //     timestamp: Date.now(),
-        //     payload: { attackerId: this.UniqueID, targetId: target.UniqueID, skillId: 'normal' }
-        // };
-        // //通知client
-        // this.發送戰鬥事件();
     }
     擊殺目標(unit: BasicUnit, target: BasicUnit) {
-
-        // let pp = this.Players.get(unit.PlayerId);
-        // //找到單位擁有玩家
-        // if (pp) {
-        //     pp.killList.push({
-
-        //         lv: target.Lv,
-        //         type: target.type,
-        //         uniqueID: target.UniqueID
-
-        //     });
-
-        // }
     }
 
     public 自動尋敵(unit: BasicUnit) {
-        let target: BasicUnit | undefined;
-        if (unit.team != "player") {
-            target = this.PlayerTeam.find((item) => !item.isDead);
-        } else {
-            target = this.Enemys.find((item) => !item.isDead);
-        }
-        if (target) {
-            console.log(`[${unit.Name}] 重新鎖定目標: [${target.Name}]`)
-            unit.setTarget(target);
-        }
+        // let target: BasicUnit | undefined;
+        // if (unit.team != "player") {
+        //     target = this.PlayerTeam.find((item) => !item.isDead);
+        // } else {
+        //     target = this.Enemys.find((item) => !item.isDead);
+        // }
+        // if (target) {
+        //     console.log(`[${unit.Name}] 重新鎖定目標: [${target.Name}]`)
+        //     unit.setTarget(target);
+        // }
     }
     快照同步(frame: number): Snapshot | null {
+        //待製作
         return null;
-        // return {
-
-        //     frameId: frame,
-        //     //  players: [],
-
-
-        // };
     }
 
 
     async 戰鬥開始() {
         console.log('戰鬥開始');
-        for (var i in this.PlayerTeam) {
-            let fisrtEenmy = this.Enemys.find((item) => !item.isDead);
-            if (fisrtEenmy)
-                this.PlayerTeam[i].setTarget(fisrtEenmy);
-        }
+        // for (var i in this.PlayerTeam) {
+        //     let fisrtEenmy = this.Enemys.find((item) => !item.isDead);
+        //     if (fisrtEenmy)
+        //         this.PlayerTeam[i].setTarget(fisrtEenmy);
+        // }
         this.lastUpdateTime = Date.now();
         this.updateInterval = setInterval(this.Update.bind(this), 100);
+        this.createMonster();
 
     }
 
     public Update() {
         const now = Date.now();
-        if (now - this.lastUpdateTime > 1000) {
-            this.lastUpdateTime = now;
-            this.createMonster();
-        }
+        this.scheduler.update(now);
 
-        this.AllUnitMove();
+        this.allUnitMove(now);
     }
 
-    AllUnitMove() {
+    private allUnitMove(currentTime: number) {
 
         this.monsterMap.forEach((monster, id) => {
+            const decision = monster.AI.update(currentTime, monster.Pos);
+
+            if (monster.lastDecision != decision.state) {
+
+                monster.lastDecision = decision.state;
+                this.發送戰鬥事件(BattleEventType.UnitMove, {
+                    id: id,
+                    cmd: decision
+                })
+
+            }
+
+            if (decision.state === 'Wander' && decision.targetPos) {
+                let pos = monster.move(decision.targetPos);
+                console.log(`移動 (${pos.x},${pos.y})`)
+            }
 
         });
     }
@@ -146,8 +132,8 @@ export class SurviveGame {
             Name: "Zombie",
 
         }, this.eventEmitter);
-        m.x = pos.x;
-        m.y = pos.y;
+        m.x = toInt(pos.x);
+        m.y = toInt(pos.y);
 
         this.monsterMap.set(m.UniqueID, m);
         console.log("創建敵人:", m.Name);

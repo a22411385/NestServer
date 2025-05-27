@@ -26,6 +26,7 @@ export enum PlayerGameState {
 
 }
 export enum BattleEventType {
+    同步位置 = 'sync.allUnitPos',
     同步快照 = 'sync.snapshot',
     MonsterSpawn = 'MonsterSpawn',
     UnitMove = 'UnitMove',

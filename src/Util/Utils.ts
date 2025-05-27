@@ -16,4 +16,29 @@ export class LevelUtils {
     }
     return lv;
   }
+
+
+}
+type Task = {
+  key: string;
+  interval: number;
+  lastExec: number;
+  action: () => void;
+};
+
+export class TimeScheduler {
+  private tasks: Task[] = [];
+
+  addTask(key: string, interval: number, action: () => void) {
+    this.tasks.push({ key, interval, lastExec: 0, action });
+  }
+
+  update(now: number) {
+    for (const task of this.tasks) {
+      if (now - task.lastExec >= task.interval) {
+        task.lastExec = now;
+        task.action();
+      }
+    }
+  }
 }

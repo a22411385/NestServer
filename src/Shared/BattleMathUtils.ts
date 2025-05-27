@@ -2,6 +2,12 @@
 
 import seedrandom from 'seedrandom';
 
+export type Int = number & { __int__: void };
+export interface Vector2 { x: Int, y: Int }
+export function toInt(n: number): Int {
+    return Number((n).toFixed(4)) as Int;
+}
+
 export namespace BattleMathUtils {
 
     let rng: seedrandom.PRNG = seedrandom();
@@ -73,4 +79,20 @@ export namespace BattleMathUtils {
         return list[Math.floor(rng() * list.length)];
     }
 
+    //取得半徑內任何一個點
+    export function getRandomPointInCircle(cx: number, cy: number, radius: number, seed: string): Vector2 {
+        const rng = seedrandom(seed);
+
+        // 隨機角度（0 到 2π）
+        const angle = rng() * Math.PI * 2;
+
+        // 隨機半徑，需做平方根來保證均勻分布
+        const r = Math.sqrt(rng()) * radius;
+
+        const x = cx + Math.cos(angle) * r;
+        const y = cy + Math.sin(angle) * r;
+
+        return { x: toInt(x), y: toInt(y) };
+
+    }
 }

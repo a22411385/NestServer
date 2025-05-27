@@ -2,9 +2,11 @@ import { EventEmitter2 } from "@nestjs/event-emitter";
 import { 傷害類型 } from "../Shared/Enum";
 import { BasicUnit } from "./Combat/UnitBasic";
 import { MonsterData, ProfessionData } from "./Combat/UnitData";
+import { ZombieAI, ZombieState } from "src/Shared/ZombieAI";
 
 export class Monster extends BasicUnit {
-
+    lastDecision: ZombieState = 'Idle';
+    AI: ZombieAI;
     constructor(Lv: number, data: MonsterData, eventEmitter: EventEmitter2) {
 
         super({
@@ -18,9 +20,11 @@ export class Monster extends BasicUnit {
             Def: 0
         }, eventEmitter);
         this._playerId = 'npc';
-
+        this.AI = new ZombieAI(data.ID)
 
     }
+
+
 
 }
 

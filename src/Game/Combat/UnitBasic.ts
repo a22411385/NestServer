@@ -1,9 +1,10 @@
 
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { 攻擊結果 } from './CombatInterface';
-import { AttackPayload, BattleEvent, BattleEventType, DamagePayload, DeathPayload, MonsterKind, 傷害類型 } from "src/Shared/Enum";
+import { BattleEvent, BattleEventType, DamagePayload, DeathPayload, MonsterKind, 傷害類型 } from "src/Shared/Enum";
 import { randomUUID } from 'crypto';
 import { AABB } from '../UnitSetting';
+import { Int, toInt, Vector2 } from '../../Shared/BattleMathUtils';
 // combat-component.ts
 export interface UnitState {
     id: string;
@@ -33,6 +34,10 @@ export abstract class BasicUnit {
     public get PlayerId(): string {
         return this._playerId;
     }
+
+    public get Pos(): Vector2 {
+        return { x: this.x, y: this.y };
+    }
     // state: UnitState;
     target: BasicUnit | null = null;
     type: MonsterKind = 'normal';
@@ -40,11 +45,11 @@ export abstract class BasicUnit {
     attackRange: number;
 
 
-    x: number;
-    y: number;
+    x: Int;
+    y: Int;
     width: number = 50; // 寬度
     height: number = 100; // 高度
-    speed: number = 10;
+    speed: number = 1;
 
     //動態使用
     protected Hp: number;
@@ -152,7 +157,12 @@ export abstract class BasicUnit {
         }
         return 攻擊結果.命中
     }
+    move(targetPos: { x: number, y: number }): { x: number, y: number } {
 
+        this.x = toInt(this.x + this.speed * targetPos.x);
+        this.y = toInt(this.y + this.speed * targetPos.y);
+        return { x: this.x, y: this.y };
+    }
 
     setTarget(target: BasicUnit) {
         this.target = target;
