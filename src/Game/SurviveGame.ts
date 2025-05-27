@@ -29,7 +29,7 @@ export class SurviveGame {
     constructor(private eventEmitter: EventEmitter2) {
         this.scheduler.addTask('createMonster', 1000, () => {
 
-            //   this.createMonster();
+            this.createMonster();
         });
 
         this.scheduler.addTask('syncUnitPosition', 10000, () => {
@@ -96,19 +96,19 @@ export class SurviveGame {
         this.monsterMap.forEach((monster, id) => {
             const decision = monster.AI.update(currentTime, monster.Pos);
 
-            if (monster.lastDecision != decision.state) {
+            if (monster.AI.isNewState) {
 
-                monster.lastDecision = decision.state;
+                monster.AI.isNewState = false;
+
                 this.發送戰鬥事件(BattleEventType.UnitMove, {
                     id: id,
                     cmd: decision
                 })
-
             }
 
             if (decision.state === 'Wander' && decision.targetPos) {
                 let pos = monster.move(decision.targetPos);
-                console.log(`移動 (${pos.x},${pos.y})`)
+                // console.log(`移動 (${pos.x},${pos.y})|位移量: (${decision.targetPos.x},${decision.targetPos.y})`)
             }
 
         });

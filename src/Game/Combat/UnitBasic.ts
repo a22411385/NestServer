@@ -157,7 +157,7 @@ export abstract class BasicUnit {
         }
         return 攻擊結果.命中
     }
-    move(targetPos: { x: number, y: number }): { x: number, y: number } {
+    move(targetPos: { x: number, y: number }, smooth: boolean = false): { x: number, y: number } {
 
         this.x = toInt(this.x + this.speed * targetPos.x);
         this.y = toInt(this.y + this.speed * targetPos.y);

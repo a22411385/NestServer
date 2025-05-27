@@ -5,7 +5,8 @@ import { MonsterData, ProfessionData } from "./Combat/UnitData";
 import { ZombieAI, ZombieState } from "src/Shared/ZombieAI";
 
 export class Monster extends BasicUnit {
-    lastDecision: ZombieState = 'Idle';
+
+
     AI: ZombieAI;
     constructor(Lv: number, data: MonsterData, eventEmitter: EventEmitter2) {
 
