@@ -6,6 +6,8 @@ import { FrameInput } from "src/Service/game.service";
 import { Snapshot } from "src/Shared/struct";
 import { toInt } from "src/Shared/BattleMathUtils";
 import { TimeScheduler } from "src/Util/Utils";
+import { GamePlayer } from "./GamePlayer";
+import { ProfessionData } from "./Combat/UnitData";
 const MAX_UNIT_COUNT: number = 200;
 
 
@@ -19,6 +21,7 @@ export enum SurviveGameEvent {
 export class SurviveGame {
     private monsterCount: number = 0;
     private monsterMap: Map<string, Monster> = new Map();
+    private playerMap: Map<string, Hero> = new Map();
     private lastUpdateTime: number = 0;
     private updateInterval: NodeJS.Timeout | null = null;
 
@@ -82,13 +85,25 @@ export class SurviveGame {
     }
 
 
-    async 戰鬥開始() {
+    async 戰鬥開始(players: GamePlayer[]) {
         console.log('戰鬥開始');
-        // for (var i in this.PlayerTeam) {
-        //     let fisrtEenmy = this.Enemys.find((item) => !item.isDead);
-        //     if (fisrtEenmy)
-        //         this.PlayerTeam[i].setTarget(fisrtEenmy);
-        // }
+        //初始化玩家
+        for (let i in players) {
+
+            //先暫時過渡
+            let unitData = new ProfessionData();
+            unitData.ID = "平民";
+            unitData.Name = players[i].userName;
+            unitData.HP = 100;
+            unitData.ATK = 5;
+            unitData.MP = 0;
+            unitData.ASpeed = 1;
+
+            let hero = new Hero(1, players[i].id, unitData, this.eventEmitter);
+            this.playerMap.set(players[i].id, hero);
+        }
+
+        this.發送戰鬥事件(BattleEventType.Init, { players: this.playerMap });
         this.lastUpdateTime = Date.now();
         this.updateInterval = setInterval(this.Update.bind(this), 100);
         this.createMonster();

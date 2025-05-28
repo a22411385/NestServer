@@ -117,7 +117,7 @@ export class GameService implements OnModuleDestroy {
 
     async Start() {
         this.timer = setInterval(() => this.Update(), 100);
-        this.gameMain.戰鬥開始();
+        this.gameMain.戰鬥開始([...this.Players.values()]);
         // this._players.forEach(pp => {
         //     //這裡要把所有玩家實體化
         //     let findP = Profession.find(item => item.ID == pp.char.type);
