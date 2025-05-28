@@ -1,3 +1,4 @@
+
 export interface HttpRespone {
     content: unknown;
     errorCode: number;
@@ -6,14 +7,15 @@ export interface HttpRespone {
 
 export interface Snapshot {
     frameId: number;
-
-    // players: Record<string, {
-    //     x: number;
-    //     y: number;
-    //     hp: number;
-    //     animation: string;
-    //     status: string[]; // e.g. ['stunned', 'burning']
-    // }>;
+    players: {
+        Lv: number,
+        Mp: number,
+        Hp: number,
+        Atk: number,
+        AtkSpeed: number,
+        Name: string,
+        id: string
+    }[];
 
     // projectiles: {
     //     id: string;

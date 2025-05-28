@@ -72,6 +72,7 @@ export class SurviveGame {
         //待製作
         return {
             frameId: frame,
+            players: [...this.playerMap.values()].map(p => p.toJSON()),
             monsters: [...this.monsterMap.values()].map(m => ({
                 x: m.x,
                 y: m.y,
