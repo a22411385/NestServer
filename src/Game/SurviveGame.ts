@@ -5,7 +5,7 @@ import { BattleEvent, BattleEventType } from "src/Shared/Enum";
 import { FrameInput } from "src/Service/game.service";
 import { Snapshot } from "src/Shared/struct";
 import { toInt } from "src/Shared/BattleMathUtils";
-import { TimeScheduler } from "src/Util/Utils";
+import { delay, TimeScheduler } from "src/Util/Utils";
 import { GamePlayer } from "./GamePlayer";
 import { ProfessionData } from "./Combat/UnitData";
 const MAX_UNIT_COUNT: number = 200;
@@ -105,10 +105,11 @@ export class SurviveGame {
         }
 
         this.發送戰鬥事件(BattleEventType.Init, { players: this.playerMap });
+
+        this.createMonster();
+        await delay(0.5);
         this.lastUpdateTime = Date.now();
         this.updateInterval = setInterval(this.Update.bind(this), 100);
-        this.createMonster();
-
     }
 
     public Update() {
@@ -191,7 +192,7 @@ export class SurviveGame {
      * @param maxRadius 最大半徑
      * @returns { x: number; y: number } 隨機位置
      */
-    spawnMonsterOutsideRadius(minRadius = 300, maxRadius = 500): { x: number; y: number } {
+    spawnMonsterOutsideRadius(minRadius = 600, maxRadius = 1000): { x: number; y: number } {
         // 隨機角度（弧度制）
         const angle = Math.random() * Math.PI * 2;
 
