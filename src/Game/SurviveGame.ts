@@ -32,7 +32,7 @@ export class SurviveGame {
     constructor(private eventEmitter: EventEmitter2) {
         this.scheduler.addTask('createMonster', 1000, () => {
 
-            this.createMonster();
+            //   this.createMonster();
         });
 
         this.scheduler.addTask('syncUnitPosition', 10000, () => {
@@ -106,10 +106,11 @@ export class SurviveGame {
 
         this.發送戰鬥事件(BattleEventType.Init, { players: this.playerMap });
 
-        this.createMonster();
+
         await delay(0.5);
         this.lastUpdateTime = Date.now();
         this.updateInterval = setInterval(this.Update.bind(this), 100);
+        //  this.createMonster();
     }
 
     public Update() {
@@ -192,7 +193,7 @@ export class SurviveGame {
      * @param maxRadius 最大半徑
      * @returns { x: number; y: number } 隨機位置
      */
-    spawnMonsterOutsideRadius(minRadius = 600, maxRadius = 1000): { x: number; y: number } {
+    spawnMonsterOutsideRadius(minRadius = 400, maxRadius = 600): { x: number; y: number } {
         // 隨機角度（弧度制）
         const angle = Math.random() * Math.PI * 2;
 

@@ -9,7 +9,7 @@ export interface Character {
 
 }
 
-export interface GameInit {
+export interface PlayerState {
 
     id: number;
     roomId: string;

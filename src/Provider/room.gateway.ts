@@ -66,7 +66,7 @@ export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect, On
             }
             player.socket = client;
             client.data.user = payload;
-            client.emit('init', player.ToJson());
+            client.emit('connected', player.ToJson());
 
             if (player.roomId != '') {
                 this.JoinRoom(player.roomId, player);
@@ -88,7 +88,7 @@ export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect, On
     public async startBattleTest(openId: string) {
         let p = this.players.get(openId);
         if (p && p.socket) {
-            await this.startBattle({}, p.socket);
+            await this.HostRoom({}, p.socket);
             this.Ready(p.roomId, p);
         }
         else {
@@ -97,13 +97,13 @@ export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect, On
     }
 
     @SubscribeMessage(MessageID.HOSTBATTLE)
-    async startBattle(@MessageBody() data: any, @ConnectedSocket() client: Socket): Promise<HttpRespone> {
+    async HostRoom(@MessageBody() data: any, @ConnectedSocket() client: Socket): Promise<HttpRespone> {
         return this.safeExecute(async () => {
             const payload = client.data.user as JWTPayload;
             const player = this.getPlayerOrThrow(payload.openId);
 
             if (player.roomId !== '') {
-                return ResponeError(ErrorCode.正在戰鬥中);
+                return ResponeError(ErrorCode.已經在房間中);
             }
 
             const res = await this.CreateRoom('single', -1);
@@ -136,7 +136,7 @@ export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 
 
     @SubscribeMessage(MessageID.快照同步)
-    async 同步資料(@ConnectedSocket() client: Socket): Promise<HttpRespone> {
+    async 客戶端請求同步(@ConnectedSocket() client: Socket): Promise<HttpRespone> {
         return this.safeExecute(async () => {
             const payload = client.data.user as JWTPayload;
             const player = this.getPlayerOrThrow(payload.openId);

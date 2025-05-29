@@ -25,7 +25,7 @@ export class GameService implements OnModuleDestroy {
 
     private lastSnapshot: Snapshot | null;
 
-    private frame: number = 0;
+    private frame: number = 1;
     private inputs: FrameInput[] = [];
     private timer: NodeJS.Timeout | null = null;
 
@@ -60,20 +60,6 @@ export class GameService implements OnModuleDestroy {
     }
 
 
-
-    Update() {
-        // 處理該幀所有輸入
-        const currentInputs = this.inputs.filter(i => i.frame === this.frame);
-
-        this.eventEmitter.emit('game.tick', { roomId: this._uniqueID, data: { frame: this.frame, inputs: currentInputs } });
-        this.frame++;
-
-        //每200幀快照一次
-        if (this.frame % 200 == 0) {
-            this.lastSnapshot = this.gameMain.快照同步(this.frame);
-
-        }
-    }
 
     //玩家進入
     public JoinPlayer(player: GamePlayer): boolean {
@@ -116,8 +102,9 @@ export class GameService implements OnModuleDestroy {
     }
 
     async Start() {
+
+        await this.gameMain.戰鬥開始([...this.Players.values()]);
         this.timer = setInterval(() => this.Update(), 100);
-        this.gameMain.戰鬥開始([...this.Players.values()]);
         // this._players.forEach(pp => {
         //     //這裡要把所有玩家實體化
         //     let findP = Profession.find(item => item.ID == pp.char.type);
@@ -136,53 +123,68 @@ export class GameService implements OnModuleDestroy {
         // });
 
     }
-    //
 
-    private 給經驗(playerLv: number, monsterLv: number, expToNext: number, type: MonsterKind): number {
 
-        const diff = monsterLv - playerLv;
-        const levelBias = Math.max(0.1, 1 + 0.05 * diff); // 高等怪補正
-        const typeFactor = type === 'boss' ? 5 : type === 'elite' ? 2 : 1;
-        return Math.floor(expToNext * 0.1 * typeFactor * levelBias);
+    Update() {
+        // 處理該幀所有輸入
+        const currentInputs = this.inputs.filter(i => i.frame === this.frame);
 
-    }
+        this.eventEmitter.emit('game.tick', { roomId: this._uniqueID, data: { frame: this.frame, inputs: currentInputs } });
+        this.frame++;
 
-    private async 結算() {
-
-        console.log("開始結算");
-        for (const [key, pp] of this.Players) {
-
-            if (pp)
-                for (let ii = 0; ii < pp.killList.length; ii++) {
-
-                    let target = pp.killList[ii]
-                    let exp = this.給經驗(pp.char.Lv, target.lv, LevelUtils.expTable[pp.char.Lv].Exp, target.type)
-                    console.log(`[${pp.char.name}] 獲得經驗: ${exp}`);
-
-                    let items = this.Itemfactory.generateDrops({ level: target.lv, kind: target.type });
-                    console.log(`[${pp.char.name}] 獲得道具:`, items);
-                    await this.Itemfactory.saveItems(items, pp.char.id);
-
-                    pp.char.exp += exp;
-                    await this.characterRepo.save(pp.char);
-
-                    pp.socket?.emit(MessageID.BATTLE_EVENT, {
-                        type: BattleEventType.GameOver,
-                        timestamp: Date.now(),
-                        payload: {
-                            exp: exp,
-                            items: items
-                        }
-                    } as BattleEvent);
-                }
+        //每200幀快照一次
+        if (this.frame % 200 == 0) {
+            this.lastSnapshot = this.gameMain.快照同步(this.frame);
 
         }
     }
+    //
+
+    // private 給經驗(playerLv: number, monsterLv: number, expToNext: number, type: MonsterKind): number {
+
+    //     const diff = monsterLv - playerLv;
+    //     const levelBias = Math.max(0.1, 1 + 0.05 * diff); // 高等怪補正
+    //     const typeFactor = type === 'boss' ? 5 : type === 'elite' ? 2 : 1;
+    //     return Math.floor(expToNext * 0.1 * typeFactor * levelBias);
+
+    // }
+
+    // private async 結算() {
+
+    //     console.log("開始結算");
+    //     for (const [key, pp] of this.Players) {
+
+    //         if (pp)
+    //             for (let ii = 0; ii < pp.killList.length; ii++) {
+
+    //                 let target = pp.killList[ii]
+    //                 let exp = this.給經驗(pp.char.Lv, target.lv, LevelUtils.expTable[pp.char.Lv].Exp, target.type)
+    //                 console.log(`[${pp.char.name}] 獲得經驗: ${exp}`);
+
+    //                 let items = this.Itemfactory.generateDrops({ level: target.lv, kind: target.type });
+    //                 console.log(`[${pp.char.name}] 獲得道具:`, items);
+    //                 await this.Itemfactory.saveItems(items, pp.char.id);
+
+    //                 pp.char.exp += exp;
+    //                 await this.characterRepo.save(pp.char);
+
+    //                 pp.socket?.emit(MessageID.BATTLE_EVENT, {
+    //                     type: BattleEventType.GameOver,
+    //                     timestamp: Date.now(),
+    //                     payload: {
+    //                         exp: exp,
+    //                         items: items
+    //                     }
+    //                 } as BattleEvent);
+    //             }
+
+    //     }
+    // }
 
     private async 遊戲結束() {
 
         console.log("遊戲結束");
-        await this.結算();
+        // await this.結算();
         console.log(`[房間 ${this._uniqueID}] 遊戲結束`);
 
         this.eventEmitter.emit('room.close', { roomId: this._uniqueID });
