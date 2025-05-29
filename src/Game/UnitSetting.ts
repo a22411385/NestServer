@@ -3,7 +3,9 @@ import { 傷害類型 } from "../Shared/Enum";
 import { BasicUnit } from "./Combat/UnitBasic";
 import { MonsterData, ProfessionData } from "./Combat/UnitData";
 import { ZombieAI, ZombieState } from "src/Shared/ZombieAI";
+import { AutoExport } from "src/Util/ExportUtils";
 
+@AutoExport()
 export class Monster extends BasicUnit {
 
 
@@ -29,6 +31,7 @@ export class Monster extends BasicUnit {
 
 }
 
+@AutoExport()
 //英雄單位/玩家單位有主要屬性
 export class Hero extends BasicUnit {
 
@@ -53,11 +56,6 @@ export class Hero extends BasicUnit {
         }, eventEmitter);
         this._playerId = playerId;
 
-    }
-    public toJSON() {
-        let json = super.toJSON() as any;
-        json['userName'] = this.userName;
-        return json;
     }
 
 

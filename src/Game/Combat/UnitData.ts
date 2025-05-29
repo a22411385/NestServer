@@ -25,3 +25,7 @@ export class ProfessionData extends UnitBasicData {
 
 
 }
+
+function AutoExport(): (target: typeof MonsterData) => void | typeof MonsterData {
+    throw new Error("Function not implemented.");
+}

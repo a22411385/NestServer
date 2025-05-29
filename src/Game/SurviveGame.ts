@@ -72,7 +72,7 @@ export class SurviveGame {
         //待製作
         return {
             frameId: frame,
-            players: [...this.playerMap.values()].map(p => p.toJSON()),
+            players: [...this.playerMap.values()],
             monsters: [...this.monsterMap.values()].map(m => ({
                 x: m.x,
                 y: m.y,
@@ -104,7 +104,7 @@ export class SurviveGame {
             this.playerMap.set(players[i].id, hero);
         }
 
-        this.發送戰鬥事件(BattleEventType.Init, { players: this.playerMap });
+        this.發送戰鬥事件(BattleEventType.Init, { players: [...this.playerMap.values()] });
 
 
         await delay(0.5);
@@ -166,7 +166,7 @@ export class SurviveGame {
 
         this.monsterMap.set(m.UniqueID, m);
         console.log("創建敵人:", m.Name);
-        this.發送戰鬥事件(BattleEventType.MonsterSpawn, m.toJSON());
+        this.發送戰鬥事件(BattleEventType.MonsterSpawn, m);
     }
 
 

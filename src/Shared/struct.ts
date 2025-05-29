@@ -1,3 +1,4 @@
+import { Hero } from "src/Game/UnitSetting";
 
 export interface HttpRespone {
     content: unknown;
@@ -7,15 +8,7 @@ export interface HttpRespone {
 
 export interface Snapshot {
     frameId: number;
-    players: {
-        Lv: number,
-        Mp: number,
-        Hp: number,
-        Atk: number,
-        AtkSpeed: number,
-        Name: string,
-        id: string
-    }[];
+    players: Hero[];
 
     // projectiles: {
     //     id: string;

@@ -5,6 +5,7 @@ import { BattleEvent, BattleEventType, DamagePayload, DeathPayload, MonsterKind,
 import { randomUUID } from 'crypto';
 import { AABB } from '../UnitSetting';
 import { Int, toInt, Vector2 } from '../../Shared/BattleMathUtils';
+import { Hide } from 'src/Util/ExportUtils';
 // combat-component.ts
 export interface UnitState {
     id: string;
@@ -39,21 +40,27 @@ export abstract class BasicUnit {
         return { x: this.x, y: this.y };
     }
     // state: UnitState;
-    target: BasicUnit | null = null;
+
+    @Hide()
+    _target: BasicUnit | null = null;
+
     type: MonsterKind = 'normal';
     team: string;
+    @Hide()
     attackRange: number;
 
-
+    @Hide()
     x: Int;
+    @Hide()
     y: Int;
+
     width: number = 50; // 寬度
     height: number = 100; // 高度
     speed: number = 1;
 
     //動態使用
     Hp: number;
-    protected MaxHp: number;
+    public MaxHp: number;
 
     protected Mp: number;
     protected MaxMp: number;
@@ -65,19 +72,20 @@ export abstract class BasicUnit {
     public get Lv(): number {
         return this._lv;
     }
-    attackInterval: number; // 秒
-    lastAttackTime: number = 0; // 秒
+
+    private _attackInterval: number; // 秒
+    private _lastAttackTime: number = 0; // 秒
     isDead: boolean;
-    private event: EventEmitter2;
-    protected isNPC: boolean;
+    private _event: EventEmitter2;
+    protected _isNPC: boolean;
     constructor(initData: UnitState, event: EventEmitter2) {
         this._uniqueID = randomUUID();
-        this.event = event;
+        this._event = event;
         this.isDead = false;
         this.Hp = this.MaxHp = initData.Hp;
         this.Mp = this.MaxMp = initData.Mp;
         this.Atk = initData.Atk;
-        this.attackInterval = initData.AtkSpeed;
+        this._attackInterval = initData.AtkSpeed;
         this._name = initData.Name;
         this._lv = initData.Lv;
 
@@ -86,16 +94,16 @@ export abstract class BasicUnit {
     update(currentTime: number) {
         if (this.isDead) return;
 
-        if (this.target == null && this.isNPC) {
-            this.event.emit('unit.autoSelectTarget', this);
+        if (this._target == null && this._isNPC) {
+            this._event.emit('unit.autoSelectTarget', this);
             return;
         }
-        if (!this.target || this.target.isDead) return;
+        if (!this._target || this._target.isDead) return;
 
-        if (currentTime - this.lastAttackTime >= this.attackInterval && this.checkAttackRange(this, this.target)) {
+        if (currentTime - this._lastAttackTime >= this._attackInterval && this.checkAttackRange(this, this._target)) {
 
             this.performBasicAttack();
-            this.lastAttackTime = currentTime;
+            this._lastAttackTime = currentTime;
         }
     }
 
@@ -109,20 +117,20 @@ export abstract class BasicUnit {
     }
     //嘗試攻擊
     performBasicAttack() {
-        if (!this.target) return;
+        if (!this._target) return;
 
         const damage = this.Atk; // 暫定每次打10點傷害
-        console.log(`[${this._name}] attacks [${this.target._name}] for ${damage} damage!`);
+        console.log(`[${this._name}] attacks [${this._target._name}] for ${damage} damage!`);
 
 
 
         //實際造成傷害
-        let attRes = this.target.receiveDamage(damage, 傷害類型.物理);
+        let attRes = this._target.receiveDamage(damage, 傷害類型.物理);
 
         if (attRes == 攻擊結果.目標被擊殺) {
-            console.log(`[${this._name}] 擊殺 [${this.target._name}]!`);
-            this.event.emit('unit.autoSelectTarget', this);
-            this.event.emit('unit.killTarget', this, this.target);
+            console.log(`[${this._name}] 擊殺 [${this._target._name}]!`);
+            this._event.emit('unit.autoSelectTarget', this);
+            this._event.emit('unit.killTarget', this, this._target);
         }
     }
 
@@ -151,7 +159,7 @@ export abstract class BasicUnit {
 
                     payload: { targetId: this.UniqueID, lv: this.Lv, type: 'normal' }
                 };
-                this.event.emit('battleEvent', deathEvt);
+                this._event.emit('battleEvent', deathEvt);
             }
             return 攻擊結果.目標被擊殺
         }
@@ -165,7 +173,7 @@ export abstract class BasicUnit {
     }
 
     setTarget(target: BasicUnit) {
-        this.target = target;
+        this._target = target;
     }
 
     getBounds(): AABB {
@@ -178,21 +186,7 @@ export abstract class BasicUnit {
 
     //幫忙轉送
     SendBattle<T>(evnt: BattleEvent<T>) {
-        this.event.emit('battleEvent', evnt);
+        this._event.emit('battleEvent', evnt);
     }
-    public toJSON() {
-        return {
-            id: this._uniqueID,
-            name: this.Name,
-            hp: this.Hp,
-            mp: this.Mp,
-            maxHp: this.MaxHp,
-            maxMp: this.MaxMp,
-            lv: this.Lv,
-            x: this.x,
-            y: this.y,
-            speed: this.speed,
 
-        };
-    }
 }
