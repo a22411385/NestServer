@@ -7,6 +7,13 @@ export interface Vector2 { x: Int, y: Int }
 export function toInt(n: number): Int {
     return Number((n).toFixed(2)) as Int;
 }
+export function* mergeMaps<K, V>(...maps: Map<K, V>[]): Generator<[K, V]> {
+    for (const map of maps) {
+        for (const [key, value] of map) {
+            yield [key, value];
+        }
+    }
+}
 
 export namespace BattleMathUtils {
 

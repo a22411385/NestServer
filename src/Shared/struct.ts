@@ -1,5 +1,10 @@
-import { Hero } from "src/Game/UnitSetting";
+export interface Hero {
+    id: string;
+    name: string;
+    x: number;
+    y: number;
 
+}
 export interface HttpRespone {
     content: unknown;
     errorCode: number;
