@@ -38,6 +38,11 @@ export enum BattleEventType {
     GameOver = 'game_over',
 
 }
+export enum ClientCommandType {
+    MovePlayer = 'move_player',
+}
+
+
 
 export interface BattleEvent<T = any> {
     type: BattleEventType;

@@ -150,6 +150,22 @@ export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect, On
         });
     }
 
+    @SubscribeMessage(MessageID.BATTLE_COMMAND)
+    async 客戶端指令(@MessageBody() data: any, @ConnectedSocket() client: Socket): Promise<HttpRespone> {
+        return this.safeExecute(async () => {
+            const payload = client.data.user as JWTPayload;
+            const player = this.getPlayerOrThrow(payload.openId);
+
+            if (player.roomId === '') {
+                return ResponeError(ErrorCode.房間不存在);
+            }
+            const room = this.getRoomOrThrow(player.roomId);
+
+            return ResponeSuccess(room.gameMain.客戶端指令(data, player.id));
+        });
+    }
+
+
     private async CreateRoom(roomName: string, areaID: number): Promise<ErrorCode | string> {
         const r = await this.moduleRef.resolve(GameService);
         this.roomMap.set(r.UniqueID, r);
@@ -189,8 +205,6 @@ export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 
     @OnEvent('game.tick')
     private BattleEvent(param: { roomId: string, data: FrameInput[] }) {
-        //  const room = this.getRoomOrThrow(param.roomId);
-
         this.server.to(param.roomId).emit(MessageID.TICK, param.data);
     }
 

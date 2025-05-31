@@ -1,7 +1,7 @@
 import { GamePlayer } from "../Game/GamePlayer";
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Injectable, OnModuleDestroy, Scope } from "@nestjs/common";
-import { AttackPayload, BattleEvent, BattleEventType, MonsterKind, PlayerGameState } from "src/Shared/Enum";
+import { AttackPayload, BattleEvent, BattleEventType, ClientCommandType, MonsterKind, PlayerGameState } from "src/Shared/Enum";
 import { randomUUID } from 'crypto';
 import { ItemFactoryService } from "./ItemFactory.service";
 import { CharacterORM } from "src/ORM/charater.entity";
@@ -20,7 +20,7 @@ export interface FrameInput {
 
 @Injectable({ scope: Scope.TRANSIENT })
 export class GameService implements OnModuleDestroy {
-    private gameMain: SurviveGame;
+    public gameMain: SurviveGame;
     private _uniqueID: string;
 
     private lastSnapshot: Snapshot | null;

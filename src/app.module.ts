@@ -17,7 +17,7 @@ import { HttpService, HttpModule } from '@nestjs/axios';
       host: 'localhost',
       port: 3306,     // 或 postgres 是 5432
       username: 'root',
-      password: 'root',
+      password: '',
       database: 'game',
       autoLoadEntities: true,
       synchronize: true, // 開發環境可以設 true，自動建立表格

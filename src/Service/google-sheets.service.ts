@@ -1,6 +1,6 @@
 // google-sheets.service.ts
 import { Injectable } from '@nestjs/common';
-import { google } from 'googleapis';
+import { google, sheets_v4 } from 'googleapis';
 import path from 'path';
 
 export interface TableMappingEntry<T> {
@@ -13,7 +13,7 @@ const SHEETS_ID = "1YwsRUfno9-Y7pEYvzV24G1EPSvcvCicvJ9yN3t58Reo";
 
 @Injectable()
 export class GoogleSheetsService {
-    private sheets;
+    private sheets: sheets_v4.Sheets;
     private cache = new Map<string, any[]>();
     private mappings: TableMappingEntry<any>[] = [];
     constructor() {

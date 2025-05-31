@@ -1,13 +1,16 @@
+//SurviveGame.ts
+
 import { EventEmitter2 } from "@nestjs/event-emitter";
 import { BasicUnit } from "./Combat/UnitBasic";
 import { AABB, Hero, Monster } from "./UnitSetting";
-import { BattleEvent, BattleEventType } from "src/Shared/Enum";
+import { BattleEvent, BattleEventType, ClientCommandType } from "src/Shared/Enum";
 import { FrameInput } from "src/Service/game.service";
 import { Snapshot } from "src/Shared/struct";
 import { toInt } from "src/Shared/BattleMathUtils";
 import { delay, TimeScheduler } from "src/Util/Utils";
 import { GamePlayer } from "./GamePlayer";
 import { ProfessionData } from "./Combat/UnitData";
+import { OnCommand, registerCommandHandlers } from "src/Util/OnCommand";
 const MAX_UNIT_COUNT: number = 200;
 
 
@@ -27,12 +30,15 @@ export class SurviveGame {
 
     //private PlayerTeam: Hero[] = [];
     // private Enemys: Monster[] = [];
+    private commandHandlers = new Map<ClientCommandType, (payload: any, playerId: string) => void>();
 
     private scheduler = new TimeScheduler();
     constructor(private eventEmitter: EventEmitter2) {
+
+        registerCommandHandlers(this.commandHandlers, this); // 綁定 this
         this.scheduler.addTask('createMonster', 1000, () => {
 
-            //   this.createMonster();
+            this.createMonster();
         });
 
         this.scheduler.addTask('syncUnitPosition', 10000, () => {
@@ -56,6 +62,30 @@ export class SurviveGame {
     擊殺目標(unit: BasicUnit, target: BasicUnit) {
     }
 
+
+    客戶端指令(command: { type: ClientCommandType, payload: unknown }, playerId: string) {
+        console.log(`收到客戶端指令: ${command.type}`, command.payload);
+        const handler = this.commandHandlers.get(command.type);
+        if (handler) {
+            handler(command.payload, playerId); // 傳 payload 和 playerId
+        } else {
+            console.warn('未處理的指令類型:', command.type);
+        }
+    }
+
+    @OnCommand(ClientCommandType.MovePlayer)
+    handleMovePlayer(payload: any, playerId: string) {
+        const { x, y } = payload;
+        console.log('處理玩家移動:', playerId, payload);
+        // 處理移動邏輯，例如:
+        const player = this.playerMap.get(playerId);
+        if (player) {
+
+            player.move(payload); // 自己補
+
+            this.發送戰鬥事件(BattleEventType.UnitMove, { state: 'Wander', targetPos: { x, y }, id: playerId });
+        }
+    }
     public 自動尋敵(unit: BasicUnit) {
         // let target: BasicUnit | undefined;
         // if (unit.team != "player") {
@@ -101,6 +131,9 @@ export class SurviveGame {
             unitData.ASpeed = 1;
 
             let hero = new Hero(1, players[i].id, unitData, this.eventEmitter);
+            hero.speed = 1;
+            hero.x = toInt(0);
+            hero.y = toInt(0);
             this.playerMap.set(players[i].id, hero);
         }
 
