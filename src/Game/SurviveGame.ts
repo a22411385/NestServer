@@ -11,6 +11,8 @@ import { delay, TimeScheduler } from "src/Util/Utils";
 import { GamePlayer } from "./GamePlayer";
 import { ProfessionData } from "./Combat/UnitData";
 import { OnCommand, registerCommandHandlers } from "src/Util/OnCommand";
+import { MessageUnitMove } from "src/Shared/SendToClientMessage.interface";
+
 const MAX_UNIT_COUNT: number = 200;
 
 
@@ -38,7 +40,7 @@ export class SurviveGame {
         registerCommandHandlers(this.commandHandlers, this); // 綁定 this
         this.scheduler.addTask('createMonster', 1000, () => {
 
-            this.createMonster();
+            //this.createMonster();
         });
 
         this.scheduler.addTask('syncUnitPosition', 10000, () => {
@@ -83,7 +85,7 @@ export class SurviveGame {
 
             player.move(payload); // 自己補
 
-            this.發送戰鬥事件(BattleEventType.UnitMove, { state: 'Wander', targetPos: { x, y }, id: playerId });
+            this.發送戰鬥事件(BattleEventType.UnitMove, { state: 'Wander', targetPos: { x, y }, UniqueID: playerId } as MessageUnitMove);
         }
     }
     public 自動尋敵(unit: BasicUnit) {
@@ -105,7 +107,8 @@ export class SurviveGame {
             players: [...this.playerMap.values()].map(m => ({
                 x: m.x,
                 y: m.y,
-                id: m.UniqueID,
+                UniqueID: m.UniqueID,
+                id: '0',
                 state: 'Idle',
                 hp: m.Hp,
                 name: m.Name,
@@ -151,7 +154,7 @@ export class SurviveGame {
         await delay(0.5);
         this.lastUpdateTime = Date.now();
         this.updateInterval = setInterval(this.Update.bind(this), 100);
-        //  this.createMonster();
+        this.createMonster();
     }
 
     public Update() {

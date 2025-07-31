@@ -3,7 +3,7 @@ export interface Hero {
     name: string;
     x: number;
     y: number;
-
+    UniqueID: string;
 }
 export interface HttpRespone {
     content: unknown;

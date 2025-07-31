@@ -1,3 +1,4 @@
+import type { Vector2 } from "./BattleMathUtils";
 import type { PlayerGameState, 職業種類 } from "./Enum";
 
 export interface Character {
@@ -10,9 +11,8 @@ export interface Character {
 }
 
 export interface PlayerState {
-
     id: number;
     roomId: string;
     state: PlayerGameState
-
 }
+

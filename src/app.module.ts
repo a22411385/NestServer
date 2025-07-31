@@ -4,6 +4,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { AuthModule } from './Module/AuthModule';
 import { GameModule } from './Module/GameModule';
 import { DataModule } from './Module/DataModule';
+import { ColyseusModule } from './Module/ColyseusModule';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { CacheModule } from '@nestjs/cache-manager';
@@ -17,7 +18,7 @@ import { HttpService, HttpModule } from '@nestjs/axios';
       host: 'localhost',
       port: 3306,     // 或 postgres 是 5432
       username: 'root',
-      password: '',
+      password: 'root',
       database: 'game',
       autoLoadEntities: true,
       synchronize: true, // 開發環境可以設 true，自動建立表格
@@ -30,6 +31,7 @@ import { HttpService, HttpModule } from '@nestjs/axios';
     DataModule,
     AuthModule,
     GameModule,
+    ColyseusModule,
     TestModule,
     HttpModule,
 

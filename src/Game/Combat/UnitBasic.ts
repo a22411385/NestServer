@@ -39,19 +39,15 @@ export abstract class BasicUnit {
     public get Pos(): Vector2 {
         return { x: this.x, y: this.y };
     }
-    // state: UnitState;
 
-    @Hide()
     _target: BasicUnit | null = null;
 
     type: MonsterKind = 'normal';
     team: string;
-    @Hide()
+
     attackRange: number;
 
-    @Hide()
     x: Int;
-    @Hide()
     y: Int;
 
     width: number = 50; // 寬度

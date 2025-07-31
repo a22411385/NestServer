@@ -36,19 +36,20 @@ export function toPublicJSON(obj: any): any {
             }
         }
     }
-
-    const proto = Object.getPrototypeOf(obj);
-    const descriptors = Object.getOwnPropertyDescriptors(proto);
-    for (const [key, descriptor] of Object.entries(descriptors)) {
-        if (shouldIncludeKey(obj, key) && typeof descriptor.get === 'function') {
-            try {
-                const val = obj[key];
-                result[key] = toPublicJSON(val);
-            } catch { }
+    let proto = Object.getPrototypeOf(obj);
+    while (proto && proto !== Object.prototype) {
+        const descriptors = Object.getOwnPropertyDescriptors(proto);
+        for (const [key, descriptor] of Object.entries(descriptors)) {
+            if (shouldIncludeKey(obj, key) && typeof descriptor.get === 'function' && !(key in result)) {
+                try {
+                    const val = obj[key];
+                    result[key] = toPublicJSON(val);
+                } catch { }
+            }
         }
+        proto = Object.getPrototypeOf(proto);
+        return result;
     }
-
-    return result;
 }
 
 export function AutoExport() {
