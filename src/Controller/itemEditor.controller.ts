@@ -6,16 +6,8 @@ import { ItemFactoryService } from 'src/Service/ItemFactory.service';
 import { MonsterKind } from 'src/Shared/Enum';
 
 
-class CreateItemParam {
-
-
-    lv: number;
-
-}
 @Controller()
 export class ItemEditorController {
-
-    // //開啟一場單人戰鬥
 
     constructor(private readonly factory: ItemFactoryService) { }
 

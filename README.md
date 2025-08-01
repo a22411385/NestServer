@@ -1,98 +1,61 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# RPG Multiplayer Game - Survivors
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+這是一個使用 Vue + NestJS 建構的多人連線 RPG 遊戲。前端透過 Vite 建構，後端使用 WebSocket 處理即時戰鬥同步。
+前端與server共用部分類型與常數 , 減少重複的程式碼結構宣告。
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## 遊戲簡介
 
-## Description
+這是一個最 1 - 6 人同場的2D RPG遊戲，遊戲機制類似《Vampire Survivors》。
+玩家只需要移動一隻角色,角色會間隔做出攻擊,
+敵人會不斷生成並且從四面八方接近。
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## 架構
 
-## Project setup
+- 後端 (NestJS + Colyseus)
+    NestJS 遊戲外業務API,例如:登入、創建角色等
+    Colyseus 處理房間與遊戲邏輯
+- 前端
+    Vite + Vue3 + Pinia + Phaser
 
-```bash
-$ npm install
-```
+- 資料庫: MYSQL/TypeORM
+- 通訊：WebSocket + REST API
+- 語言: typescript
 
-## Compile and run the project
+## 遊戲網路同步策略
 
-```bash
-# development
-$ npm run start
+- 採用 Colyseus 作為房間同步框架，使用狀態同步 (State Sync)
+- 會有大量敵方單位移動, 效能考量小兵單位只同步單位開始移動事件, 由前端自行推演單位移動, 每隔時間5秒再做一次伺服器同步
+- 玩家位置、攻擊事件、召喚物由 Server 驅動與同步
+- 支援斷線重連，遊戲結束前玩家都能回到遊戲
 
-# watch mode
-$ npm run start:dev
+## 專案目錄說明
 
-# production mode
-$ npm run start:prod
-```
+- `ViteRPG/` 前端程式碼
+- `NestServer/` NestJS 後端程式碼
+- `ViteRPG/shared` 軟連結至 `NestServer/shared/` 此資料夾與client共用
 
-## Run tests
+## 遊戲系統
 
-```bash
-# unit tests
-$ npm run test
+- 帳號登入 (JWT)
+- 創建角色
+- 創建/加入房間
+- 重連 (到遊戲結束都能重新連線,由Colyseus處理)
+- 角色升級系統
+- 裝備/裝備強化系統
+- 基礎的2D碰撞
+- 玩家可能會持有召喚物
+- NPC基礎AI
 
-# e2e tests
-$ npm run test:e2e
+## 遊戲核心玩法
 
-# test coverage
-$ npm run test:cov
-```
+怪物擊殺獲得金幣/經驗,可能掉落寶箱,
+玩家本身沒有任何技能升級,透過掉落的裝備獲得不同類型的被動技能,
+透過升級裝備來提升被動技能
 
-## Deployment
+## 安裝與運行
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+### 環境需求
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
-
-```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
-```
-
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
-
-## Resources
-
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+- Node.js 18.x 或更高版本
+- MySQL 8.0 或更高版本
+- npm 或 yarn
