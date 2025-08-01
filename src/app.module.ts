@@ -4,6 +4,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { AuthModule } from './Module/AuthModule';
 import { GameModule } from './Module/GameModule';
 import { DataModule } from './Module/DataModule';
+import { ColyseusModule } from './Module/ColyseusModule';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { CacheModule } from '@nestjs/cache-manager';
@@ -30,6 +31,7 @@ import { HttpService, HttpModule } from '@nestjs/axios';
     DataModule,
     AuthModule,
     GameModule,
+    ColyseusModule,
 
     TestModule,
     HttpModule,

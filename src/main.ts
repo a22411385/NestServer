@@ -6,6 +6,7 @@ import { ErrorCode } from './Shared/ErrorCode';
 import { HttpRespone } from './Shared/struct';
 import { SetMetadata } from '@nestjs/common';
 import { TestSimulatorService } from './Test/test-simulator.service';
+import { ColyseusServer } from './Colyseus/ColyseusServer';
 
 export const IS_PUBLIC_KEY = 'isPublic';
 export const IsPublic = () => SetMetadata(IS_PUBLIC_KEY, true);
@@ -40,6 +41,12 @@ async function bootstrap() {
 
   await app.listen(process.env.PORT ?? 8000, 'localhost');
 
+  // 啟動 Colyseus 伺服器
+  const colyseusServer = new ColyseusServer();
+  await colyseusServer.listen(3001);
+
+  console.log(`🚀 NestJS server running on: http://localhost:${process.env.PORT ?? 8000}`);
+  console.log(`🎮 Colyseus server running on: http://localhost:3001`);
 
   //const testSimulator = app.get(TestSimulatorService);
   //await testSimulator.run();
