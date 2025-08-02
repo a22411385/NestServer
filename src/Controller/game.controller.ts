@@ -1,7 +1,8 @@
-import { Controller, Get, Post, Body, Param, HttpException, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, HttpException, HttpStatus, Req } from '@nestjs/common';
 import { ColyseusService } from '../Service/colyseus.service';
-import { IsPublic } from '../main';
-
+import { HttpRespone } from 'src/Shared/struct';
+import { ErrorCode } from 'src/Shared/ErrorCode';
+import { monitor } from "@colyseus/monitor";
 export interface CreateRoomDto {
     roomName: string;
     maxPlayers: number;
@@ -21,12 +22,17 @@ export interface JoinRoomDto {
 export class GameController {
     constructor(private readonly colyseusService: ColyseusService) { }
 
+
     // 獲取房間列表
     @Get('rooms')
-    async getRoomList() {
+    async getRoomList(@Req() req: any): Promise<HttpRespone> {
+        console.log('GameController: getRoomList called');
         try {
+            const startTime = Date.now();
             const rooms = await this.colyseusService.getAllRooms();
-            return {
+            console.log(`GameController: getAllRooms completed in ${Date.now() - startTime}ms`);
+
+            const response = {
                 success: true,
                 data: {
                     total: rooms.length,
@@ -41,7 +47,14 @@ export class GameController {
                     }))
                 }
             };
+
+            console.log('GameController: Response prepared, returning:', response);
+            return {
+                content: response,
+                errorCode: ErrorCode.SUCCESS,
+            };
         } catch (error) {
+            console.error('GameController: Error in getRoomList:', error);
             throw new HttpException(
                 'Failed to get room list',
                 HttpStatus.INTERNAL_SERVER_ERROR
@@ -85,14 +98,24 @@ export class GameController {
     @Post('rooms/create')
     async createRoom(@Body() createRoomDto: CreateRoomDto) {
         try {
-            const reservation = await this.colyseusService.createRoom('game_room', {
-                roomName: createRoomDto.roomName,
-                maxPlayers: createRoomDto.maxPlayers,
-                hostId: createRoomDto.hostId,
-                hostName: createRoomDto.hostName,
-                hostCharacterId: createRoomDto.hostCharacterId,
-                isPrivate: createRoomDto.isPrivate || false,
-            });
+            // 驗證必要參數
+            if (!createRoomDto.roomName || !createRoomDto.hostId || !createRoomDto.hostName) {
+                throw new HttpException('Missing required parameters', HttpStatus.BAD_REQUEST);
+            }
+
+            // 確保參數類型正確
+            const options = {
+                roomName: String(createRoomDto.roomName),
+                maxPlayers: Number(createRoomDto.maxPlayers) || 6,
+                hostId: String(createRoomDto.hostId),
+                hostName: String(createRoomDto.hostName),
+                hostCharacterId: Number(createRoomDto.hostCharacterId) || 1,
+                isPrivate: Boolean(createRoomDto.isPrivate) || false,
+            };
+
+            console.log('Creating room with options:', options);
+
+            const reservation = await this.colyseusService.createRoom('game_room', options);
 
             return {
                 success: true,

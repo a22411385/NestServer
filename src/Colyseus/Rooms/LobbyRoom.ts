@@ -1,14 +1,38 @@
 import { Room, Client } from "colyseus";
-import { LobbyState, LobbyPlayer, RoomInfo, LobbyRoomInfo } from "../Schema/LobbyState";
+import { LobbyState, RoomInfo } from "../Schema/LobbyState";
 import { matchMaker } from "colyseus";
 
-export class LobbyRoom extends Room<LobbyState> {
+export class LobbyRoom extends Room {
     maxClients = 100; // 大廳可以容納很多玩家
     autoDispose = false; // 大廳不自動銷毀
 
+    // 使用簡單的 Map 來存儲玩家資料，避免 Schema 序列化問題
+    private players = new Map<string, {
+        id: string;
+        name: string;
+        characterId: number;
+        level: number;
+        status: string;
+    }>();
+
+    // 使用簡單的 Map 來存儲房間資料，避免 Schema 序列化問題
+    private rooms = new Map<string, {
+        roomId: string;
+        roomName: string;
+        hostName: string;
+        currentPlayers: number;
+        maxPlayers: number;
+        isStarted: boolean;
+        isPrivate: boolean;
+    }>();
+
+    private totalRooms = 0;
+    private totalPlayers = 0;
+
     onCreate() {
         console.log("Lobby room created");
-        this.setState(new LobbyState());
+        // 不再使用 LobbyState Schema，避免序列化問題
+        // this.state = new LobbyState();
         this.setupMessageHandlers();
 
         // 監聽其他房間的變化
@@ -19,43 +43,65 @@ export class LobbyRoom extends Room<LobbyState> {
 
     onJoin(client: Client, options: any) {
         console.log(`Player ${client.sessionId} joined lobby`);
+        const sessionId = client.sessionId;
 
-        // 添加玩家到大廳
-        const player = this.state.addPlayer(
-            client.sessionId,
-            options.playerName || `Player${client.sessionId.substring(0, 6)}`,
-            options.characterId || 1
-        );
+        try {
+            // 確保參數有效
+            const playerName = options.playerName || `Player${sessionId.substring(0, 6)}`;
+            const characterId = options.characterId || 1;
 
-        // 發送當前大廳狀態
-        client.send("lobbyState", {
-            rooms: Array.from(this.state.rooms.values()).map(room => ({
-                roomId: room.roomId,
-                roomName: room.roomName,
-                hostName: room.hostName,
-                currentPlayers: room.currentPlayers,
-                maxPlayers: room.maxPlayers,
-                isStarted: room.isStarted,
-                isPrivate: room.isPrivate,
-            })),
-            totalPlayers: this.state.totalPlayers,
-            totalRooms: this.state.totalRooms,
-        });
+            console.log(`Adding player to lobby: ${playerName}, characterId: ${characterId}`);
 
-        // 通知其他玩家有新玩家加入大廳
-        this.broadcast("playerJoinedLobby", {
-            playerId: client.sessionId,
-            playerName: player.name,
-            characterId: player.characterId,
-        }, { except: client });
+            // 使用簡單的對象存儲，避免 Schema 序列化問題
+            const playerData = {
+                id: sessionId,
+                name: playerName,
+                characterId: characterId,
+                level: 1,
+                status: "idle"
+            };
+
+            this.players.set(sessionId, playerData);
+            this.totalPlayers = this.players.size;
+            console.log(`Player ${sessionId} successfully added to lobby state`);
+
+            // 立即發送當前大廳狀態
+            client.send("lobbyState", {
+                rooms: Array.from(this.rooms.values()).map(room => ({
+                    roomId: room.roomId,
+                    roomName: room.roomName,
+                    hostName: room.hostName,
+                    currentPlayers: room.currentPlayers,
+                    maxPlayers: room.maxPlayers,
+                    isStarted: room.isStarted,
+                    isPrivate: room.isPrivate,
+                })),
+                totalPlayers: this.totalPlayers,
+                totalRooms: this.totalRooms,
+            });
+
+            //通知其他玩家有新玩家加入大廳
+            this.broadcast("playerJoinedLobby", {
+                playerId: sessionId,
+                playerName: playerName,
+                characterId: characterId,
+            }, { except: client });
+
+        } catch (error) {
+            console.error(`Error in onJoin for player ${sessionId}:`, error);
+            console.error('Error stack:', error.stack);
+            client.send("error", { message: "Failed to join lobby" });
+            client.leave();
+        }
     }
 
     onLeave(client: Client, consented: boolean) {
         console.log(`Player ${client.sessionId} left lobby`);
 
-        const player = this.state.players.get(client.sessionId);
+        const player = this.players.get(client.sessionId);
         if (player) {
-            this.state.removePlayer(client.sessionId);
+            this.players.delete(client.sessionId);
+            this.totalPlayers = this.players.size;
 
             // 通知其他玩家
             this.broadcast("playerLeftLobby", {
@@ -69,7 +115,7 @@ export class LobbyRoom extends Room<LobbyState> {
         // 創建房間
         this.onMessage("createRoom", async (client, message) => {
             try {
-                const player = this.state.players.get(client.sessionId);
+                const player = this.players.get(client.sessionId);
                 if (!player) {
                     client.send("error", { message: "Player not found in lobby" });
                     return;
@@ -84,8 +130,8 @@ export class LobbyRoom extends Room<LobbyState> {
                     hostCharacterId: player.characterId,
                 });
 
-                // 添加房間到大廳狀態
-                const roomInfo: RoomInfo = {
+                // 添加房間到大廳狀態（使用本地 Map 避免 Schema 序列化問題）
+                const roomData = {
                     roomId: room.room.roomId,
                     roomName: message.roomName,
                     hostName: player.name,
@@ -95,7 +141,8 @@ export class LobbyRoom extends Room<LobbyState> {
                     isPrivate: message.isPrivate || false,
                 };
 
-                this.state.addRoom(roomInfo);
+                this.rooms.set(room.room.roomId, roomData);
+                this.totalRooms++;
                 player.status = "inRoom";
 
                 // 通知所有大廳玩家新房間已創建
@@ -123,7 +170,7 @@ export class LobbyRoom extends Room<LobbyState> {
         // 加入房間
         this.onMessage("joinRoom", async (client, message) => {
             try {
-                const player = this.state.players.get(client.sessionId);
+                const player = this.players.get(client.sessionId);
                 if (!player) {
                     client.send("error", { message: "Player not found in lobby" });
                     return;
@@ -155,7 +202,7 @@ export class LobbyRoom extends Room<LobbyState> {
         // 快速加入房間
         this.onMessage("quickJoin", async (client, message) => {
             try {
-                const player = this.state.players.get(client.sessionId);
+                const player = this.players.get(client.sessionId);
                 if (!player) {
                     client.send("error", { message: "Player not found in lobby" });
                     return;
@@ -212,15 +259,16 @@ export class LobbyRoom extends Room<LobbyState> {
 
     private async sendRoomList(client: Client) {
         try {
+
             // 獲取所有遊戲房間
             const rooms = await matchMaker.query({ name: "game_room" });
 
-            // 更新大廳狀態中的房間列表
-            this.state.rooms.clear();
-            this.state.totalRooms = 0;
+            // 更新大廳狀態中的房間列表（使用本地 Map 避免 Schema 序列化問題）
+            this.rooms.clear();
+            this.totalRooms = 0;
 
             rooms.forEach(room => {
-                const roomInfo: RoomInfo = {
+                const roomData = {
                     roomId: room.roomId,
                     roomName: room.metadata?.roomName || "Unknown Room",
                     hostName: room.metadata?.hostName || "Unknown Host",
@@ -229,11 +277,12 @@ export class LobbyRoom extends Room<LobbyState> {
                     isStarted: room.metadata?.isStarted || false,
                     isPrivate: room.metadata?.isPrivate || false,
                 };
-                this.state.addRoom(roomInfo);
+                this.rooms.set(room.roomId, roomData);
+                this.totalRooms++;
             });
 
             client.send("roomList", {
-                rooms: Array.from(this.state.rooms.values()).map(room => ({
+                rooms: Array.from(this.rooms.values()).map(room => ({
                     roomId: room.roomId,
                     roomName: room.roomName,
                     hostName: room.hostName,
@@ -257,7 +306,11 @@ export class LobbyRoom extends Room<LobbyState> {
             });
 
             if (rooms.length > 0) {
-                this.state.updateRoomPlayerCount(roomId, rooms[0].clients);
+                // 更新本地房間數據
+                const roomData = this.rooms.get(roomId);
+                if (roomData) {
+                    roomData.currentPlayers = rooms[0].clients;
+                }
 
                 // 廣播房間更新
                 this.broadcast("roomUpdated", {

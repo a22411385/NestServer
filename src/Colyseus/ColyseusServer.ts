@@ -1,5 +1,5 @@
-import { Server, matchMaker } from "colyseus";
-import { createServer } from "http";
+import { Server } from "colyseus";
+import { WebSocketTransport } from "@colyseus/ws-transport";
 import express from "express";
 import { monitor } from "@colyseus/monitor";
 import { GameRoom } from "./Rooms/GameRoom";
@@ -8,13 +8,11 @@ import { LobbyRoom } from "./Rooms/LobbyRoom";
 export class ColyseusServer {
     private server: Server;
     private app: express.Application;
-    private httpServer: any;
 
     constructor() {
         this.app = express();
-        this.httpServer = createServer(this.app);
         this.server = new Server({
-            server: this.httpServer,
+            transport: new WebSocketTransport()
         });
 
         this.setupRooms();
@@ -44,17 +42,13 @@ export class ColyseusServer {
                 next();
             }
         });
-
-        // 只在開發模式保留監控面板
-        if (process.env.NODE_ENV !== 'production') {
-            this.app.use("/colyseus", monitor());
-        }
+        this.app.use("/colyseus", monitor());
     }
 
     public listen(port: number = 3001): Promise<void> {
         return new Promise((resolve) => {
-            this.httpServer.listen(port, () => {
-                console.log(`🎮 Colyseus Server listening on port ${port}`);
+            this.server.listen(port).then(() => {
+                console.log(`🎮 Colyseus Server listening on port ${port} (uWebSockets)`);
                 if (process.env.NODE_ENV !== 'production') {
                     console.log(`📊 Monitor panel: http://localhost:${port}/colyseus`);
                 }
@@ -74,6 +68,5 @@ export class ColyseusServer {
     public async shutdown(): Promise<void> {
         console.log("Shutting down Colyseus server...");
         await this.server.gracefullyShutdown();
-        this.httpServer.close();
     }
 }

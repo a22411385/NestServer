@@ -23,11 +23,13 @@ export class Player extends Schema {
 
     constructor(playerInfo: PlayerInfo) {
         super();
-        this.id = playerInfo.id;
-        this.name = playerInfo.name;
-        this.characterId = playerInfo.characterId;
-        this.isReady = playerInfo.isReady;
-        this.isHost = playerInfo.isHost;
+
+        // 驗證並設置屬性，確保類型正確
+        this.id = String(playerInfo.id || '');
+        this.name = String(playerInfo.name || '');
+        this.characterId = Number(playerInfo.characterId) || 1;
+        this.isReady = Boolean(playerInfo.isReady);
+        this.isHost = Boolean(playerInfo.isHost);
     }
 }
 
@@ -35,7 +37,7 @@ export class GameState extends Schema {
     @type({ map: Player }) players = new MapSchema<Player>();
     @type("string") roomName: string = "";
     @type("number") maxPlayers: number = 6;
-    @type("string") gameState: "waiting" | "preparing" | "playing" | "finished" = "waiting";
+    @type("string") gameState: string = "waiting";
     @type("number") gameTime: number = 0;
     @type("boolean") isStarted: boolean = false;
 
@@ -46,13 +48,30 @@ export class GameState extends Schema {
 
     constructor() {
         super();
+        console.log('GameState: Constructor called');
     }
 
+    // 註解掉以避免 Symbol.metadata 序列化錯誤
+    // 現在使用簡單的 Map 存儲而非 Schema
+    /*
     addPlayer(playerInfo: PlayerInfo): Player {
-        const player = new Player(playerInfo);
-        this.players.set(playerInfo.id, player);
-        return player;
+        try {
+            // 驗證輸入參數
+            if (!playerInfo || !playerInfo.id) {
+                throw new Error('Invalid playerInfo: missing id');
+            }
+
+            console.log(`GameState: Adding player ${playerInfo.id}`);
+            const player = new Player(playerInfo);
+            this.players.set(playerInfo.id, player);
+            console.log(`GameState: Player ${playerInfo.id} added successfully`);
+            return player;
+        } catch (error) {
+            console.error('GameState: Error adding player:', error);
+            throw error;
+        }
     }
+    */
 
     removePlayer(playerId: string): void {
         this.players.delete(playerId);

@@ -18,98 +18,131 @@ export class GameRoom extends Room<GameState> {
     private readonly GAME_LOOP_INTERVAL = 1000 / 60; // 60 FPS
     private lastUpdateTime = Date.now();
 
+    // 使用簡單的 Map 來存儲玩家資料，避免 Schema 序列化問題
+    private players = new Map<string, {
+        id: string;
+        name: string;
+        characterId: number;
+        isReady: boolean;
+        isHost: boolean;
+        x: number;
+        y: number;
+        hp: number;
+        maxHp: number;
+        level: number;
+        exp: number;
+    }>();
+
     onCreate(options: GameRoomOptions) {
         console.log(`GameRoom created: ${options.roomName} by ${options.hostName}`);
 
-        this.setState(new GameState());
-        this.maxClients = options.maxPlayers;
+        try {
 
-        // 設置房間資訊
-        this.state.roomName = options.roomName;
-        this.state.maxPlayers = options.maxPlayers;
-        this.state.gameState = "waiting";
 
-        // 設置消息處理器
-        this.setupMessageHandlers();
+            this.state = new GameState();
+            this.maxClients = options.maxPlayers;
 
-        // 設置房間元數據
-        this.setMetadata({
-            roomName: options.roomName,
-            hostName: options.hostName,
-            currentPlayers: 0,
-            maxPlayers: options.maxPlayers,
-            isStarted: false,
-        });
+            // 設置房間資訊
+            this.state.roomName = options.roomName;
+            this.state.maxPlayers = options.maxPlayers;
+            this.state.gameState = "waiting";
 
-        // 添加主機玩家
-        const hostInfo: PlayerInfo = {
-            id: options.hostId,
-            name: options.hostName,
-            characterId: options.hostCharacterId,
-            isReady: false,
-            isHost: true,
-        };
+            // 設置房間元數據
+            this.setMetadata({
+                roomName: options.roomName,
+                hostName: options.hostName,
+                currentPlayers: 0,
+                maxPlayers: options.maxPlayers,
+                isStarted: false,
+            });
+
+            // 設置消息處理器
+            this.setupMessageHandlers();
+            console.log(`GameRoom ${this.roomId} created successfully`);
+        } catch (error) {
+            console.error('Error creating GameRoom:', error);
+            throw error;
+        }
     }
 
     onJoin(client: Client, options: any, auth: any) {
         console.log(`Player ${client.sessionId} joined room ${this.roomId}`);
 
-        // 創建玩家
-        const playerInfo: PlayerInfo = {
-            id: client.sessionId,
-            name: options.playerName || `Player${client.sessionId.substring(0, 6)}`,
-            characterId: options.characterId || 1,
-            isReady: false,
-            isHost: this.state.players.size === 0, // 第一個加入的是主機
-        };
+        try {
+            // 驗證輸入參數
+            const playerName = options.playerName || `Player${client.sessionId.substring(0, 6)}`;
+            const characterId = Number(options.characterId) || 1;
 
-        const player = this.state.addPlayer(playerInfo);
+            // 使用簡單的對象存儲，避免 Schema 序列化問題
+            const playerData = {
+                id: client.sessionId,
+                name: playerName,
+                characterId: characterId,
+                isReady: false,
+                isHost: this.players.size === 0, // 第一個加入的是主機
+                x: 0,
+                y: 0,
+                hp: 100,
+                maxHp: 100,
+                level: 1,
+                exp: 0
+            };
 
-        // 更新房間元數據
-        this.setMetadata({
-            ...this.metadata,
-            currentPlayers: this.state.players.size,
-        });
+            this.players.set(client.sessionId, playerData);
+            console.log(`Player ${client.sessionId} successfully added to local storage`);
 
-        // 通知其他玩家有新玩家加入
-        this.broadcast("playerJoined", {
-            playerId: client.sessionId,
-            playerName: player.name,
-            characterId: player.characterId,
-        }, { except: client });
+            // 更新房間元數據
+            this.setMetadata({
+                ...this.metadata,
+                currentPlayers: this.players.size,
+            });
 
-        // 發送當前房間狀態給新加入的玩家
-        client.send("roomState", {
-            roomName: this.state.roomName,
-            players: Array.from(this.state.players.values()).map(p => ({
-                id: p.id,
-                name: p.name,
-                characterId: p.characterId,
-                isReady: p.isReady,
-                isHost: p.isHost,
-            })),
-            gameState: this.state.gameState,
-            isStarted: this.state.isStarted,
-        });
+            // 通知其他玩家有新玩家加入
+            this.broadcast("playerJoined", {
+                playerId: client.sessionId,
+                playerName: playerData.name,
+                characterId: playerData.characterId,
+            }, { except: client });
+
+            // 發送當前房間狀態給新加入的玩家
+            client.send("roomState", {
+                roomName: this.state.roomName,
+                players: Array.from(this.players.values()).map(p => ({
+                    id: p.id,
+                    name: p.name,
+                    characterId: p.characterId,
+                    isReady: p.isReady,
+                    isHost: p.isHost,
+                })),
+                gameState: this.state.gameState,
+                isStarted: this.state.isStarted,
+            });
+
+            console.log(`Player ${client.sessionId} successfully joined room ${this.roomId}`);
+        } catch (error) {
+            console.error('Error in onJoin:', error);
+            client.send("error", { message: "Failed to join room" });
+            throw error;
+        }
     }
 
     onLeave(client: Client, consented: boolean) {
         console.log(`Player ${client.sessionId} left room ${this.roomId}`);
 
-        const player = this.state.getPlayer(client.sessionId);
+        const player = this.players.get(client.sessionId);
         if (player) {
             // 如果離開的是主機，指定新主機
-            if (player.isHost && this.state.players.size > 1) {
+            if (player.isHost && this.players.size > 1) {
                 this.assignNewHost(client.sessionId);
             }
 
             // 移除玩家
-            this.state.removePlayer(client.sessionId);
+            this.players.delete(client.sessionId);
 
             // 更新房間元數據
             this.setMetadata({
                 ...this.metadata,
-                currentPlayers: this.state.players.size,
+                currentPlayers: this.players.size,
             });
 
             // 通知其他玩家
@@ -120,7 +153,7 @@ export class GameRoom extends Room<GameState> {
         }
 
         // 如果房間空了，停止遊戲循環
-        if (this.state.players.size === 0) {
+        if (this.players.size === 0) {
             this.stopGameLoop();
         }
     }
@@ -133,7 +166,7 @@ export class GameRoom extends Room<GameState> {
     private setupMessageHandlers() {
         // 玩家準備/取消準備
         this.onMessage("toggleReady", (client, message) => {
-            const player = this.state.getPlayer(client.sessionId);
+            const player = this.players.get(client.sessionId);
             if (player) {
                 player.isReady = !player.isReady;
 
@@ -143,7 +176,7 @@ export class GameRoom extends Room<GameState> {
                 });
 
                 // 檢查是否所有玩家都準備好了
-                if (this.state.getAllReady() && this.state.players.size >= 1) {
+                if (this.getAllPlayersReady() && this.players.size >= 1) {
                     this.broadcast("allPlayersReady", {});
                 }
             }
@@ -151,9 +184,9 @@ export class GameRoom extends Room<GameState> {
 
         // 開始遊戲（只有主機可以）
         this.onMessage("startGame", (client, message) => {
-            const player = this.state.getPlayer(client.sessionId);
+            const player = this.players.get(client.sessionId);
             if (player && player.isHost) {
-                if (this.state.getAllReady() && this.state.players.size >= 1) {
+                if (this.getAllPlayersReady() && this.players.size >= 1) {
                     this.startGame();
                 } else {
                     client.send("error", { message: "Not all players are ready" });
@@ -165,7 +198,7 @@ export class GameRoom extends Room<GameState> {
 
         // 玩家移動
         this.onMessage("playerMove", (client, message) => {
-            const player = this.state.getPlayer(client.sessionId);
+            const player = this.players.get(client.sessionId);
             if (player && this.state.isStarted) {
                 player.x = message.x;
                 player.y = message.y;
@@ -181,7 +214,7 @@ export class GameRoom extends Room<GameState> {
 
         // 玩家攻擊
         this.onMessage("playerAttack", (client, message) => {
-            const player = this.state.getPlayer(client.sessionId);
+            const player = this.players.get(client.sessionId);
             if (player && this.state.isStarted) {
                 // 廣播攻擊事件
                 this.broadcast("playerAttacked", {
@@ -194,8 +227,18 @@ export class GameRoom extends Room<GameState> {
         });
     }
 
+    // 輔助方法
+    private getAllPlayersReady(): boolean {
+        if (this.players.size === 0) return false;
+
+        for (const [_, player] of this.players) {
+            if (!player.isReady) return false;
+        }
+        return true;
+    }
+
     private assignNewHost(leavingPlayerId: string) {
-        for (const [playerId, player] of this.state.players) {
+        for (const [playerId, player] of this.players) {
             if (playerId !== leavingPlayerId) {
                 player.isHost = true;
                 this.broadcast("newHost", { newHostId: playerId });
@@ -218,7 +261,7 @@ export class GameRoom extends Room<GameState> {
         // 通知所有玩家遊戲開始
         this.broadcast("gameStarted", {
             gameTime: this.state.gameTime,
-            players: Array.from(this.state.players.values()).map(p => ({
+            players: Array.from(this.players.values()).map(p => ({
                 id: p.id,
                 name: p.name,
                 x: p.x,

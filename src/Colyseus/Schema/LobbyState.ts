@@ -1,4 +1,4 @@
-import { Schema, type, MapSchema, ArraySchema } from "@colyseus/schema";
+import { Schema, type, MapSchema } from "@colyseus/schema";
 
 export interface RoomInfo {
     roomId: string;
@@ -36,13 +36,17 @@ export class LobbyPlayer extends Schema {
     @type("string") name: string;
     @type("number") characterId: number;
     @type("number") level: number = 1;
-    @type("string") status: "idle" | "inRoom" | "playing" = "idle";
+    @type("string") status: string = "idle";
 
     constructor(id: string, name: string, characterId: number) {
         super();
         this.id = id;
         this.name = name;
         this.characterId = characterId;
+        this.level = 1;
+        this.status = "idle";
+
+        console.log(`LobbyPlayer created: ${id}, ${name}, ${characterId}`);
     }
 }
 
@@ -69,10 +73,24 @@ export class LobbyState extends Schema {
     }
 
     addPlayer(id: string, name: string, characterId: number): LobbyPlayer {
-        const player = new LobbyPlayer(id, name, characterId);
-        this.players.set(id, player);
-        this.totalPlayers++;
-        return player;
+        try {
+            console.log(`LobbyState: Creating player with id=${id}, name=${name}, characterId=${characterId}`);
+
+            // 確保參數有效
+            if (!id || !name || typeof characterId !== 'number') {
+                throw new Error(`Invalid player parameters: id=${id}, name=${name}, characterId=${characterId}`);
+            }
+
+            const player = new LobbyPlayer(id, name, characterId);
+            this.players.set(id, player);
+            this.totalPlayers++;
+
+            console.log(`LobbyState: Player ${id} added successfully. Total players: ${this.totalPlayers}`);
+            return player;
+        } catch (error) {
+            console.error('LobbyState: Error creating player:', error);
+            throw error;
+        }
     }
 
     removePlayer(playerId: string): void {

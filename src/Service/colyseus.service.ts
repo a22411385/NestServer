@@ -11,12 +11,20 @@ interface RoomListingData {
 @Injectable()
 export class ColyseusService {
 
+    constructor() {
+        console.log('ColyseusService: Initializing...');
+    }
+
     // 獲取所有房間
     async getAllRooms(): Promise<RoomListingData[]> {
         try {
-            return await matchMaker.query({});
+            console.log('ColyseusService: Starting getAllRooms query...');
+            const rooms = await matchMaker.query({});
+            return Array.isArray(rooms) ? rooms as RoomListingData[] : [];
+
         } catch (error) {
-            console.error('Error getting all rooms:', error);
+            console.error('ColyseusService: Error getting all rooms:', error);
+            console.error('ColyseusService: Error stack:', error.stack);
             return [];
         }
     }
