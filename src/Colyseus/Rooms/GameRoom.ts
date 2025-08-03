@@ -46,7 +46,7 @@ export class GameRoom extends Room<GameState> {
             });
 
             // 設置消息處理器
-            // this.setupMessageHandlers();
+            this.setupMessageHandlers();
             console.log(`GameRoom ${this.roomId} created successfully`);
         } catch (error) {
             console.error('Error creating GameRoom:', error);
@@ -94,7 +94,7 @@ export class GameRoom extends Room<GameState> {
         if (player) {
             // 如果離開的是主機，指定新主機
             if (player.isHost && this.state.players.size > 1) {
-                //  this.assignNewHost(client.sessionId);
+                this.assignNewHost(client.sessionId);
             }
 
             // 移除玩家
@@ -115,156 +115,156 @@ export class GameRoom extends Room<GameState> {
 
         // 如果房間空了，停止遊戲循環
         if (this.state.players.size === 0) {
-            //   this.stopGameLoop();
+            this.stopGameLoop();
         }
     }
 
     onDispose() {
         console.log(`GameRoom ${this.roomId} disposed`);
-        //  this.stopGameLoop();
+        this.stopGameLoop();
     }
 
-    // private setupMessageHandlers() {
-    //     // 玩家準備/取消準備
-    //     this.onMessage("toggleReady", (client, message) => {
-    //         const player = this.state.players.get(client.sessionId);
-    //         if (player) {
-    //             player.isReady = !player.isReady;
+    private setupMessageHandlers() {
+        //     // 玩家準備/取消準備
+        this.onMessage("toggleReady", (client, message) => {
+            const player = this.state.players.get(client.sessionId);
+            if (player) {
+                player.isReady = !player.isReady;
 
-    //             this.broadcast("playerReadyChanged", {
-    //                 playerId: client.sessionId,
-    //                 isReady: player.isReady,
-    //             });
+                this.broadcast("playerReadyChanged", {
+                    playerId: client.sessionId,
+                    isReady: player.isReady,
+                });
 
-    //             // 檢查是否所有玩家都準備好了
-    //             if (this.getAllPlayersReady() && this.state.players.size >= 1) {
-    //                 this.broadcast("allPlayersReady", {});
-    //             }
-    //         }
-    //     });
+                // 檢查是否所有玩家都準備好了
+                if (this.getAllPlayersReady() && this.state.players.size >= 1) {
+                    this.broadcast("allPlayersReady", {});
+                }
+            }
+        });
 
-    //     // 開始遊戲（只有主機可以）
-    //     this.onMessage("startGame", (client, message) => {
-    //         const player = this.state.players.get(client.sessionId);
-    //         if (player && player.isHost) {
-    //             if (this.getAllPlayersReady() && this.state.players.size >= 1) {
-    //                 this.startGame();
-    //             } else {
-    //                 client.send("error", { message: "Not all players are ready" });
-    //             }
-    //         } else {
-    //             client.send("error", { message: "Only host can start the game" });
-    //         }
-    //     });
+        // 開始遊戲（只有主機可以）
+        this.onMessage("startGame", (client, message) => {
+            const player = this.state.players.get(client.sessionId);
+            if (player && player.isHost) {
+                if (this.getAllPlayersReady() && this.state.players.size >= 1) {
+                    this.startGame();
+                } else {
+                    client.send("error", { message: "Not all players are ready" });
+                }
+            } else {
+                client.send("error", { message: "Only host can start the game" });
+            }
+        });
 
-    //     // 玩家移動
-    //     this.onMessage("playerMove", (client, message) => {
-    //         const player = this.state.players.get(client.sessionId);
-    //         if (player && this.state.isStarted) {
-    //             player.x = message.x;
-    //             player.y = message.y;
+        //     // 玩家移動
+        //     this.onMessage("playerMove", (client, message) => {
+        //         const player = this.state.players.get(client.sessionId);
+        //         if (player && this.state.isStarted) {
+        //             player.x = message.x;
+        //             player.y = message.y;
 
-    //             // 廣播給其他玩家
-    //             this.broadcast("playerMoved", {
-    //                 playerId: client.sessionId,
-    //                 x: message.x,
-    //                 y: message.y,
-    //             }, { except: client });
-    //         }
-    //     });
+        //             // 廣播給其他玩家
+        //             this.broadcast("playerMoved", {
+        //                 playerId: client.sessionId,
+        //                 x: message.x,
+        //                 y: message.y,
+        //             }, { except: client });
+        //         }
+        //     });
 
-    //     // 玩家攻擊
-    //     this.onMessage("playerAttack", (client, message) => {
-    //         const player = this.state.players.get(client.sessionId);
-    //         if (player && this.state.isStarted) {
-    //             // 廣播攻擊事件
-    //             this.broadcast("playerAttacked", {
-    //                 playerId: client.sessionId,
-    //                 targetX: message.targetX,
-    //                 targetY: message.targetY,
-    //                 damage: message.damage || 10,
-    //             });
-    //         }
-    //     });
-    // }
+        //     // 玩家攻擊
+        //     this.onMessage("playerAttack", (client, message) => {
+        //         const player = this.state.players.get(client.sessionId);
+        //         if (player && this.state.isStarted) {
+        //             // 廣播攻擊事件
+        //             this.broadcast("playerAttacked", {
+        //                 playerId: client.sessionId,
+        //                 targetX: message.targetX,
+        //                 targetY: message.targetY,
+        //                 damage: message.damage || 10,
+        //             });
+        //         }
+        //     });
+    }
 
-    // // 輔助方法
-    // private getAllPlayersReady(): boolean {
-    //     if (this.state.players.size === 0) return false;
+    // 輔助方法
+    private getAllPlayersReady(): boolean {
+        if (this.state.players.size === 0) return false;
 
-    //     for (const [_, player] of this.state.players) {
-    //         if (!player.isReady) return false;
-    //     }
-    //     return true;
-    // }
+        for (const [_, player] of this.state.players) {
+            if (!player.isReady) return false;
+        }
+        return true;
+    }
 
-    // private assignNewHost(leavingPlayerId: string) {
-    //     for (const [playerId, player] of this.state.players) {
-    //         if (playerId !== leavingPlayerId) {
-    //             player.isHost = true;
-    //             this.broadcast("newHost", { newHostId: playerId });
-    //             break;
-    //         }
-    //     }
-    // }
+    private assignNewHost(leavingPlayerId: string) {
+        for (const [playerId, player] of this.state.players) {
+            if (playerId !== leavingPlayerId) {
+                player.isHost = true;
+                this.broadcast("newHost", { newHostId: playerId });
+                break;
+            }
+        }
+    }
 
-    // private startGame() {
-    //     console.log(`Game started in room ${this.roomId}`);
+    private startGame() {
+        console.log(`Game started in room ${this.roomId}`);
 
-    //     this.state.startGame();
+        // this.state.startGame();
 
-    //     // 更新房間元數據
-    //     this.setMetadata({
-    //         ...this.metadata,
-    //         isStarted: true,
-    //     });
+        // 更新房間元數據
+        // this.setMetadata({
+        //     ...this.metadata,
+        //     isStarted: true,
+        // });
 
-    //     // 通知所有玩家遊戲開始
-    //     this.broadcast("gameStarted", {
-    //         gameTime: this.state.gameTime,
-    //         // 不再需要發送玩家數據，Schema 會自動同步
-    //     });
+        // 通知所有玩家遊戲開始
+        this.broadcast("gameStarted", {
+            gameTime: this.state.gameTime,
+            // 不再需要發送玩家數據，Schema 會自動同步
+        });
 
-    //     // 開始遊戲循環
-    //     this.startGameLoop();
-    // }
+        // 開始遊戲循環
+        this.startGameLoop();
+    }
 
-    // private startGameLoop() {
-    //     if (this.gameLoop) return;
+    private startGameLoop() {
+        if (this.gameLoop) return;
 
-    //     this.gameLoop = setInterval(() => {
-    //         const now = Date.now();
-    //         const deltaTime = now - this.lastUpdateTime;
-    //         this.lastUpdateTime = now;
+        this.gameLoop = setInterval(() => {
+            const now = Date.now();
+            const deltaTime = now - this.lastUpdateTime;
+            this.lastUpdateTime = now;
 
-    //         // 更新遊戲時間
-    //         this.state.updateGameTime(deltaTime);
+            // 更新遊戲時間
+            // this.state.updateGameTime(deltaTime);
 
-    //         // 每秒更新遊戲統計
-    //         if (Math.floor(this.state.gameTime / 1000) % 1 === 0) {
-    //             // 這裡可以添加波數邏輯
-    //             if (this.state.gameTime > 0 && this.state.gameTime % 30000 === 0) { // 每30秒一波
-    //                 this.state.waveNumber++;
-    //                 this.state.zombieCount = this.state.waveNumber * 5; // 每波殭屍數量
-    //                 this.state.totalZombies += this.state.zombieCount;
-    //             }
+            // 每秒更新遊戲統計
+            if (Math.floor(this.state.gameTime / 1000) % 1 === 0) {
+                // 這裡可以添加波數邏輯
+                if (this.state.gameTime > 0 && this.state.gameTime % 30000 === 0) { // 每30秒一波
+                    this.state.waveNumber++;
+                    this.state.zombieCount = this.state.waveNumber * 5; // 每波殭屍數量
+                    this.state.totalZombies += this.state.zombieCount;
+                }
 
-    //             // 廣播遊戲狀態更新
-    //             this.broadcast("gameStats", {
-    //                 gameTime: this.state.gameTime,
-    //                 waveNumber: this.state.waveNumber,
-    //                 zombieCount: this.state.zombieCount,
-    //                 totalZombies: this.state.totalZombies
-    //             });
-    //         }
+                // 廣播遊戲狀態更新
+                this.broadcast("gameStats", {
+                    gameTime: this.state.gameTime,
+                    waveNumber: this.state.waveNumber,
+                    zombieCount: this.state.zombieCount,
+                    totalZombies: this.state.totalZombies
+                });
+            }
 
-    //     }, this.GAME_LOOP_INTERVAL);
-    // }
+        }, this.GAME_LOOP_INTERVAL);
+    }
 
-    // private stopGameLoop() {
-    //     if (this.gameLoop) {
-    //         clearInterval(this.gameLoop);
-    //         this.gameLoop = null;
-    //     }
-    // }
+    private stopGameLoop() {
+        if (this.gameLoop) {
+            clearInterval(this.gameLoop);
+            this.gameLoop = null;
+        }
+    }
 }
