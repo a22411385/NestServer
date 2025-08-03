@@ -1,4 +1,4 @@
-import { Room, Client, ServerError } from "colyseus";
+import { Room, Client, ServerError, Presence } from "colyseus";
 import { GameState, Player, PlayerInfo } from "../../Shared/Schema/GameState";
 
 export interface GameRoomOptions {
@@ -99,13 +99,6 @@ export class GameRoom extends Room<GameState> {
 
             // 移除玩家
             this.state.players.delete(client.sessionId);
-
-            // 更新房間元數據
-            this.setMetadata({
-                ...this.metadata,
-                currentPlayers: this.state.players.size,
-            });
-
             // 通知其他玩家
             this.broadcast("playerLeft", {
                 playerId: client.sessionId,
@@ -158,20 +151,14 @@ export class GameRoom extends Room<GameState> {
         });
 
         //     // 玩家移動
-        //     this.onMessage("playerMove", (client, message) => {
-        //         const player = this.state.players.get(client.sessionId);
-        //         if (player && this.state.isStarted) {
-        //             player.x = message.x;
-        //             player.y = message.y;
+        this.onMessage("playerMove", (client, message) => {
+            const player = this.state.players.get(client.sessionId);
+            if (player && this.state.isStarted) {
+                player.x = message.x;
+                player.y = message.y;
 
-        //             // 廣播給其他玩家
-        //             this.broadcast("playerMoved", {
-        //                 playerId: client.sessionId,
-        //                 x: message.x,
-        //                 y: message.y,
-        //             }, { except: client });
-        //         }
-        //     });
+            }
+        });
 
         //     // 玩家攻擊
         //     this.onMessage("playerAttack", (client, message) => {
@@ -210,20 +197,7 @@ export class GameRoom extends Room<GameState> {
 
     private startGame() {
         console.log(`Game started in room ${this.roomId}`);
-
-        // this.state.startGame();
-
-        // 更新房間元數據
-        // this.setMetadata({
-        //     ...this.metadata,
-        //     isStarted: true,
-        // });
-
-        // 通知所有玩家遊戲開始
-        this.broadcast("gameStarted", {
-            gameTime: this.state.gameTime,
-            // 不再需要發送玩家數據，Schema 會自動同步
-        });
+        this.state.gameState = "playing";
 
         // 開始遊戲循環
         this.startGameLoop();
@@ -232,35 +206,25 @@ export class GameRoom extends Room<GameState> {
     private startGameLoop() {
         if (this.gameLoop) return;
 
-        this.gameLoop = setInterval(() => {
-            const now = Date.now();
-            const deltaTime = now - this.lastUpdateTime;
-            this.lastUpdateTime = now;
-
-            // 更新遊戲時間
-            // this.state.updateGameTime(deltaTime);
-
-            // 每秒更新遊戲統計
-            if (Math.floor(this.state.gameTime / 1000) % 1 === 0) {
-                // 這裡可以添加波數邏輯
-                if (this.state.gameTime > 0 && this.state.gameTime % 30000 === 0) { // 每30秒一波
-                    this.state.waveNumber++;
-                    this.state.zombieCount = this.state.waveNumber * 5; // 每波殭屍數量
-                    this.state.totalZombies += this.state.zombieCount;
-                }
-
-                // 廣播遊戲狀態更新
-                this.broadcast("gameStats", {
-                    gameTime: this.state.gameTime,
-                    waveNumber: this.state.waveNumber,
-                    zombieCount: this.state.zombieCount,
-                    totalZombies: this.state.totalZombies
-                });
-            }
-
-        }, this.GAME_LOOP_INTERVAL);
+        this.gameLoop = setInterval(this.Loop.bind(this), this.GAME_LOOP_INTERVAL);
     }
+    private Loop() {
+        const now = Date.now();
+        const deltaTime = now - this.lastUpdateTime;
+        this.lastUpdateTime = now;
 
+        // 更新遊戲時間
+        this.state.gameTime += deltaTime;
+        // 每秒更新遊戲統計
+        if (Math.floor(this.state.gameTime / 1000) % 1 === 0) {
+            // 這裡可以添加波數邏輯
+            if (this.state.gameTime > 0 && this.state.gameTime % 30000 === 0) { // 每30秒一波
+                this.state.waveNumber++;
+                this.state.zombieCount = this.state.waveNumber * 5; // 每波殭屍數量
+                this.state.totalZombies += this.state.zombieCount;
+            }
+        }
+    }
     private stopGameLoop() {
         if (this.gameLoop) {
             clearInterval(this.gameLoop);
