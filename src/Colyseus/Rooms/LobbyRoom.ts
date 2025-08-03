@@ -2,7 +2,6 @@ import { Room, Client } from "colyseus";
 import { LobbyPlayer, LobbyRoomInfo, LobbyState } from "../../Shared/Schema/LobbyState";
 import { matchMaker } from "colyseus";
 import { MapSchema } from "@colyseus/schema";
-
 export class LobbyRoom extends Room<LobbyState> {
     maxClients = 100; // 大廳可以容納很多玩家
     autoDispose = false; // 大廳不自動銷毀
@@ -34,23 +33,22 @@ export class LobbyRoom extends Room<LobbyState> {
 
             console.log(`Adding player to lobby: ${playerName}, characterId: ${characterId}`);
 
-            // let player = new LobbyPlayer();
-            // player.id = sessionId;
-            // player.name = playerName;
-            // player.characterId = characterId;
+            let player = new LobbyPlayer();
+            player.id = sessionId;
+            player.name = playerName;
+            player.characterId = characterId;
 
-            // this.state.players.set(sessionId, player);
+            this.state.players.set(sessionId, player);
 
             console.log(`Player ${sessionId} successfully added to lobby state`);
-
-            // 立即發送當前大廳狀態
-            this.setMetadata(this.metadata);
             //通知其他玩家有新玩家加入大廳
             this.broadcast("playerJoinedLobby", {
                 playerId: sessionId,
                 playerName: playerName,
                 characterId: characterId,
             }, { except: client });
+
+
 
         } catch (error) {
             console.error(`Error in onJoin for player ${sessionId}:`, error);

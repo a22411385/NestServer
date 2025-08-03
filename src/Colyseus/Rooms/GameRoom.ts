@@ -62,35 +62,21 @@ export class GameRoom extends Room<GameState> {
             const playerName = options.playerName || `Player${client.sessionId.substring(0, 6)}`;
             const characterId = Number(options.characterId) || 1;
 
-            // 使用 Schema 存儲玩家數據
-            const playerInfo = {
-                id: client.sessionId,
-                name: playerName,
-                characterId: characterId,
-                isReady: false,
-                isHost: this.state.players.size === 0, // 第一個加入的是主機
-            };
 
             const player = new Player();
-            player.id = String(playerInfo.id || '');
-            player.name = String(playerInfo.name || '');
-            player.characterId = Number(playerInfo.characterId) || 1;
-            player.isReady = Boolean(playerInfo.isReady);
-            player.isHost = Boolean(playerInfo.isHost);
+            player.id = String(client.sessionId);
+            player.name = String(playerName);
+            player.characterId = Number(characterId);
+            player.isReady = false;
+            player.isHost = this.state.players.size === 0; // 第一個加入的是主機
             this.state.players.set(client.sessionId, player);
             console.log(`Player ${client.sessionId} successfully added to Schema`);
-
-            // // 更新房間元數據
-            // this.setMetadata({
-            //     ...this.metadata,
-            //     currentPlayers: this.state.players.size,
-            // });
 
             // 通知其他玩家有新玩家加入
             this.broadcast("playerJoined", {
                 playerId: client.sessionId,
-                playerName: playerInfo.name,
-                characterId: playerInfo.characterId,
+                playerName: player.name,
+                characterId: player.characterId,
             }, { except: client });
 
             console.log(`Player ${client.sessionId} successfully joined room ${this.roomId}`);
