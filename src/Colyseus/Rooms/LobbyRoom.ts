@@ -1,7 +1,8 @@
 import { Room, Client } from "colyseus";
-import { LobbyState, LobbyPlayer, LobbyRoomInfo, RoomInfo } from "../Schema/LobbyState";
+
 import { matchMaker } from "colyseus";
 import { MapSchema } from "@colyseus/schema";
+import { LobbyPlayer, LobbyRoomInfo, LobbyState } from "src/Shared/Schema/LobbyState";
 
 export class LobbyRoom extends Room<LobbyState> {
     maxClients = 100; // 大廳可以容納很多玩家
@@ -47,9 +48,7 @@ export class LobbyRoom extends Room<LobbyState> {
             // 發送歡迎訊息給新玩家
             client.send("lobbyWelcome", {
                 playerId: client.sessionId,
-                playerName: playerData.name,
-                totalPlayers: this.state.totalPlayers,
-                totalRooms: this.state.totalRooms
+
             });
 
             // 通知其他玩家
@@ -120,7 +119,7 @@ export class LobbyRoom extends Room<LobbyState> {
     /**
      * 業務邏輯：添加房間到大廳列表
      */
-    private addRoomToLobby(roomInfo: RoomInfo) {
+    private addRoomToLobby(roomInfo: LobbyRoomInfo) {
         const lobbyRoomInfo = new LobbyRoomInfo();
         lobbyRoomInfo.roomId = roomInfo.roomId;
         lobbyRoomInfo.roomName = roomInfo.roomName;
@@ -153,7 +152,7 @@ export class LobbyRoom extends Room<LobbyState> {
     /**
      * 業務邏輯：更新房間資訊
      */
-    private updateRoomInLobby(roomId: string, updates: Partial<RoomInfo>) {
+    private updateRoomInLobby(roomId: string, updates: Partial<LobbyRoomInfo>) {
         const room = this.state.rooms.get(roomId);
         if (room) {
             if (updates.currentPlayers !== undefined) room.currentPlayers = updates.currentPlayers;
@@ -193,7 +192,7 @@ export class LobbyRoom extends Room<LobbyState> {
 
             // 更新現有房間資訊
             rooms.forEach(room => {
-                const roomInfo: RoomInfo = {
+                const roomInfo = {
                     roomId: room.roomId,
                     roomName: room.metadata?.roomName || "Unknown Room",
                     hostName: room.metadata?.hostName || "Unknown Host",
@@ -201,7 +200,7 @@ export class LobbyRoom extends Room<LobbyState> {
                     maxPlayers: room.maxClients,
                     isStarted: room.metadata?.isStarted || false,
                     isPrivate: room.metadata?.isPrivate || false
-                };
+                } as LobbyRoomInfo;
 
                 if (this.state.rooms.has(room.roomId)) {
                     this.updateRoomInLobby(room.roomId, roomInfo);
@@ -291,7 +290,7 @@ export class LobbyRoom extends Room<LobbyState> {
                 maxPlayers: maxPlayers,
                 isStarted: false,
                 isPrivate: message.isPrivate || false,
-            });
+            } as LobbyRoomInfo);
 
             // 回傳成功訊息給創建者
             client.send("roomCreated", {

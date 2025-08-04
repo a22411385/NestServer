@@ -1,5 +1,5 @@
 import { Room, Client, ServerError, Presence } from "colyseus";
-import { GameState, Player, PlayerInfo } from "../../Shared/Schema/GameState";
+import { GameRoomState as GameRoomState, GamePlayer, PlayerInfo, GameCoreState } from "../../Shared/Schema/GameState";
 
 export interface GameRoomOptions {
     roomName: string;
@@ -9,7 +9,7 @@ export interface GameRoomOptions {
     hostCharacterId: number;
 }
 
-export class GameRoom extends Room<GameState> {
+export class GameRoom extends Room<GameRoomState> {
     maxClients = 6;
     autoDispose = true;
 
@@ -17,33 +17,24 @@ export class GameRoom extends Room<GameState> {
     private readonly GAME_LOOP_INTERVAL = 1000 / 60; // 60 FPS
     private lastUpdateTime = Date.now();
 
+    get IsPlaying(): boolean {
+        return this.state.state == 'playing';
+    }
     onCreate(options: GameRoomOptions) {
         console.log(`GameRoom created: ${options.roomName} by ${options.hostName}`);
 
         try {
-            this.state = new GameState();
+            this.state = new GameRoomState();
             this.maxClients = options.maxPlayers;
 
             // 設置房間資訊
             this.state.roomName = options.roomName;
             this.state.maxPlayers = options.maxPlayers;
-            this.state.gameState = "waiting";
-            this.state.isStarted = false;
+            this.state.state = "waiting";
+
 
             // 初始化遊戲數據，避免 undefined
-            this.state.gameTime = 0;
-            this.state.waveNumber = 1;
-            this.state.zombieCount = 0;
-            this.state.totalZombies = 0;
-
-            // 設置房間元數據
-            this.setMetadata({
-                roomName: options.roomName,
-                hostName: options.hostName,
-                currentPlayers: 0,
-                maxPlayers: options.maxPlayers,
-                isStarted: false,
-            });
+            this.state.gameCore = new GameCoreState;
 
             // 設置消息處理器
             this.setupMessageHandlers();
@@ -63,14 +54,18 @@ export class GameRoom extends Room<GameState> {
             const characterId = Number(options.characterId) || 1;
 
 
-            const player = new Player();
-            player.id = String(client.sessionId);
+            const player = new GamePlayer();
+            player.id = client.sessionId;
             player.name = String(playerName);
             player.characterId = Number(characterId);
             player.isReady = false;
             player.isHost = this.state.players.size === 0; // 第一個加入的是主機
             this.state.players.set(client.sessionId, player);
             console.log(`Player ${client.sessionId} successfully added to Schema`);
+            client.send("gameWelcome", {
+                playerId: client.sessionId,
+
+            });
 
             // 通知其他玩家有新玩家加入
             this.broadcast("playerJoined", {
@@ -120,15 +115,20 @@ export class GameRoom extends Room<GameState> {
     private setupMessageHandlers() {
         //     // 玩家準備/取消準備
         this.onMessage("toggleReady", (client, message) => {
+
+            if (this.IsPlaying) return;
+
             const player = this.state.players.get(client.sessionId);
             if (player) {
+                console.log(`Player ${player.name} toggleReady`);
+
                 player.isReady = !player.isReady;
 
                 this.broadcast("playerReadyChanged", {
                     playerId: client.sessionId,
                     isReady: player.isReady,
                 });
-
+                this.state.players.set(client.sessionId, player);
                 // 檢查是否所有玩家都準備好了
                 if (this.getAllPlayersReady() && this.state.players.size >= 1) {
                     this.broadcast("allPlayersReady", {});
@@ -153,7 +153,7 @@ export class GameRoom extends Room<GameState> {
         //     // 玩家移動
         this.onMessage("playerMove", (client, message) => {
             const player = this.state.players.get(client.sessionId);
-            if (player && this.state.isStarted) {
+            if (player && this.IsPlaying) {
                 player.x = message.x;
                 player.y = message.y;
 
@@ -197,7 +197,7 @@ export class GameRoom extends Room<GameState> {
 
     private startGame() {
         console.log(`Game started in room ${this.roomId}`);
-        this.state.gameState = "playing";
+        this.state.state = "playing"
 
         // 開始遊戲循環
         this.startGameLoop();
@@ -214,14 +214,14 @@ export class GameRoom extends Room<GameState> {
         this.lastUpdateTime = now;
 
         // 更新遊戲時間
-        this.state.gameTime += deltaTime;
+        this.state.gameCore.gameTime += deltaTime;
         // 每秒更新遊戲統計
-        if (Math.floor(this.state.gameTime / 1000) % 1 === 0) {
+        if (Math.floor(this.state.gameCore.gameTime / 1000) % 1 === 0) {
             // 這裡可以添加波數邏輯
-            if (this.state.gameTime > 0 && this.state.gameTime % 30000 === 0) { // 每30秒一波
-                this.state.waveNumber++;
-                this.state.zombieCount = this.state.waveNumber * 5; // 每波殭屍數量
-                this.state.totalZombies += this.state.zombieCount;
+            if (this.state.gameCore.gameTime > 0 && this.state.gameCore.gameTime % 30000 === 0) { // 每30秒一波
+                this.state.gameCore.waveNumber++;
+                this.state.gameCore.zombieCount = this.state.gameCore.waveNumber * 5; // 每波殭屍數量
+                this.state.gameCore.totalZombies += this.state.gameCore.zombieCount;
             }
         }
     }
