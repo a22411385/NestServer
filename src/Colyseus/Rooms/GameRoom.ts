@@ -1,5 +1,5 @@
-import { Room, Client, ServerError, Presence } from "colyseus";
-import { GameRoomState as GameRoomState, GamePlayer, PlayerInfo, GameCoreState } from "../../Shared/Schema/GameState";
+import { Room, Client, ServerError, Presence, Delayed } from "colyseus";
+import { GameRoomState as GameRoomState, GamePlayer, PlayerInfo, GameCoreState, Enemy } from "../../Shared/Schema/GameState";
 
 export interface GameRoomOptions {
     roomName: string;
@@ -12,8 +12,8 @@ export interface GameRoomOptions {
 export class GameRoom extends Room<GameRoomState> {
     maxClients = 6;
     autoDispose = true;
+    private gameLoop!: Delayed;
 
-    private gameLoop: NodeJS.Timeout | null = null;
     private readonly GAME_LOOP_INTERVAL = 1000 / 60; // 60 FPS
     private lastUpdateTime = Date.now();
 
@@ -205,30 +205,56 @@ export class GameRoom extends Room<GameRoomState> {
 
     private startGameLoop() {
         if (this.gameLoop) return;
-
-        this.gameLoop = setInterval(this.Loop.bind(this), this.GAME_LOOP_INTERVAL);
+        this.clock.start();
+        this.gameLoop = this.clock.setInterval(this.Loop.bind(this), 1000);
+        // this.gameLoop = setInterval(this.Loop.bind(this), this.GAME_LOOP_INTERVAL);
     }
     private Loop() {
-        const now = Date.now();
-        const deltaTime = now - this.lastUpdateTime;
-        this.lastUpdateTime = now;
+        this.state.gameCore.gameTime += 1000;
+        // 每30秒一波
+        if (this.state.gameCore.gameTime % 30 == 0) {
+            this.state.gameCore.waveNumber++;
+            this.state.gameCore.zombieCount = this.state.gameCore.waveNumber * 5;
+            this.state.gameCore.totalZombies += this.state.gameCore.zombieCount;
 
-        // 更新遊戲時間
-        this.state.gameCore.gameTime += deltaTime;
-        // 每秒更新遊戲統計
-        if (Math.floor(this.state.gameCore.gameTime / 1000) % 1 === 0) {
-            // 這裡可以添加波數邏輯
-            if (this.state.gameCore.gameTime > 0 && this.state.gameCore.gameTime % 30000 === 0) { // 每30秒一波
-                this.state.gameCore.waveNumber++;
-                this.state.gameCore.zombieCount = this.state.gameCore.waveNumber * 5; // 每波殭屍數量
-                this.state.gameCore.totalZombies += this.state.gameCore.zombieCount;
+            // 生成殭屍
+            this.spawnZombies(this.state.gameCore.zombieCount);
+        }
+    }
+
+
+    // 生成殭屍到 enemies
+    private spawnZombies(count: number) {
+        const mapSize = 1000; // 假設地圖 1000x1000
+
+        for (let i = 0; i < count; i++) {
+            console.log("生成敵人");
+            const enemy = new Enemy;
+            enemy.id = `${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
+            // 隨機在地圖邊緣生成
+            const edge = Math.floor(Math.random() * 4);
+            switch (edge) {
+                case 0: // 上
+                    enemy.x = Math.random() * mapSize;
+                    enemy.y = 0;
+                    break;
+                case 1: // 下
+                    enemy.x = Math.random() * mapSize;
+                    enemy.y = mapSize;
+                    break;
+                case 2: // 左
+                    enemy.x = 0;
+                    enemy.y = Math.random() * mapSize;
+                    break;
+                case 3: // 右
+                    enemy.x = mapSize;
+                    enemy.y = Math.random() * mapSize;
+                    break;
             }
+            this.state.enemies.set(enemy.id, enemy);
         }
     }
     private stopGameLoop() {
-        if (this.gameLoop) {
-            clearInterval(this.gameLoop);
-            this.gameLoop = null;
-        }
+        this.gameLoop.clear();
     }
 }
