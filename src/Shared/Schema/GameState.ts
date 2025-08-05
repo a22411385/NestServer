@@ -107,6 +107,13 @@ export class Enemy extends GameUnit {
     @type("number") lastAttackTime: number = 0; // 上次攻擊時間
     @type("number") attackCooldown: number = 1000; // 攻擊冷卻 (ms)
 
+    // 效能優化屬性 (不需要同步)
+    private lastAIUpdateTime: number = 0; // 上次AI更新時間
+    private aiUpdateInterval: number = 200; // AI更新間隔 (ms) - 5 FPS
+    private lastMoveTime: number = 0; // 上次移動時間
+    private targetCache: Hero | null = null; // 快取目標
+    private targetCacheTime: number = 0; // 目標快取時間
+
     constructor() {
         super();
         this.hp = 20;
@@ -115,8 +122,17 @@ export class Enemy extends GameUnit {
         this.radius = 15;
     }
 
-    // 尋找最近的目標
+    // 尋找最近的目標 - 優化版本使用快取
     findNearestTarget(targets: MapSchema<Hero>): Hero | null {
+        const currentTime = Date.now();
+
+        // 如果快取的目標仍然有效且未過期，直接返回
+        if (this.targetCache &&
+            !this.targetCache.isDead &&
+            currentTime - this.targetCacheTime < 500) { // 0.5秒快取
+            return this.targetCache;
+        }
+
         let nearestTarget: Hero | null = null;
         let minDistance = Infinity;
 
@@ -130,6 +146,10 @@ export class Enemy extends GameUnit {
             }
         }
 
+        // 更新快取
+        this.targetCache = nearestTarget;
+        this.targetCacheTime = currentTime;
+
         return nearestTarget;
     }
 
@@ -140,9 +160,13 @@ export class Enemy extends GameUnit {
         return Math.hypot(dx, dy);
     }
 
-    // AI 更新邏輯
+    // AI 更新邏輯 - 優化版本
     updateAI(targets: MapSchema<Hero>, deltaTime: number, currentTime: number): void {
         if (this.isDead) return;
+
+        // 減少不必要的計算頻率
+        const shouldUpdateAI = currentTime - this.lastAIUpdateTime >= this.aiUpdateInterval;
+        if (!shouldUpdateAI && this.aiState !== "attack") return;
 
         const target = this.findNearestTarget(targets);
         if (!target) {
@@ -153,6 +177,9 @@ export class Enemy extends GameUnit {
         const distanceToTarget = this.getDistanceTo(target);
         const attackRange = this.radius + target.radius;
 
+        const oldX = this.x;
+        const oldY = this.y;
+
         // 如果在攻擊範圍內
         if (distanceToTarget <= attackRange) {
             this.aiState = "attack";
@@ -162,6 +189,13 @@ export class Enemy extends GameUnit {
             this.aiState = "chase";
             this.chaseTarget(target, deltaTime);
         }
+
+        // 只有位置改變時才標記需要同步
+        if (Math.abs(this.x - oldX) > 1 || Math.abs(this.y - oldY) > 1) {
+            this.lastMoveTime = currentTime;
+        }
+
+        this.lastAIUpdateTime = currentTime;
     }
 
     // 追蹤目標
