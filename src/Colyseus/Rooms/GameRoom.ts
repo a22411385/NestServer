@@ -1,5 +1,6 @@
 import { Room, Client, ServerError, Presence, Delayed } from "colyseus";
-import { GameRoomState as GameRoomState, GamePlayer, PlayerInfo, GameCoreState, Enemy } from "../../Shared/Schema/GameState";
+import { GameRoomState as GameRoomState, GamePlayer, PlayerInfo, GameCoreState, Enemy, Hero } from "../../Shared/Schema/GameState";
+import { delay } from "src/Util/Utils";
 
 export interface GameRoomOptions {
     roomName: string;
@@ -8,11 +9,15 @@ export interface GameRoomOptions {
     hostName: string;
     hostCharacterId: number;
 }
-
+const mapSize = 1000; // 假設地圖 1000x1000
+const maxZombies = 50; // 可依需求調整
+const invincibleDuration = 1000; // Hero 無敵持續時間 (ms)
+const enemyDamage = 10; // 遭敵人碰撞時扣血量
 export class GameRoom extends Room<GameRoomState> {
     maxClients = 6;
     autoDispose = true;
     private gameLoop!: Delayed;
+    private enemySpawnTimer!: Delayed;
 
     private readonly GAME_LOOP_INTERVAL = 1000 / 60; // 60 FPS
     private lastUpdateTime = Date.now();
@@ -152,11 +157,10 @@ export class GameRoom extends Room<GameRoomState> {
 
         //     // 玩家移動
         this.onMessage("playerMove", (client, message) => {
-            const player = this.state.players.get(client.sessionId);
-            if (player && this.IsPlaying) {
-                player.x = message.x;
-                player.y = message.y;
-
+            const hero = this.state.heroes.get(client.sessionId);
+            if (hero && this.IsPlaying) {
+                hero.x = message.x;
+                hero.y = message.y;
             }
         });
 
@@ -195,9 +199,26 @@ export class GameRoom extends Room<GameRoomState> {
         }
     }
 
+    // 初始化玩家 Hero 單位
+    private initHeroes() {
+        for (const [playerId, player] of this.state.players) {
+            const hero = new Hero();
+            hero.id = playerId;
+            hero.name = player.name;
+            hero.x = Math.random() * mapSize;
+            hero.y = Math.random() * mapSize;
+            hero.hp = hero.maxHp;
+            hero.invincibleRemaining = 0;
+            this.state.heroes.set(playerId, hero);
+        }
+    }
+
     private startGame() {
         console.log(`Game started in room ${this.roomId}`);
         this.state.state = "playing"
+
+        // 生成 Hero
+        this.initHeroes();
 
         // 開始遊戲循環
         this.startGameLoop();
@@ -206,29 +227,58 @@ export class GameRoom extends Room<GameRoomState> {
     private startGameLoop() {
         if (this.gameLoop) return;
         this.clock.start();
-        this.gameLoop = this.clock.setInterval(this.Loop.bind(this), 1000);
-        // this.gameLoop = setInterval(this.Loop.bind(this), this.GAME_LOOP_INTERVAL);
+
+        // 敵人與碰撞 AI
+        this.gameLoop = this.clock.setInterval(this.updateAI.bind(this), 100);
+
+        // Waves 流程
+        this.GameFlow();
     }
-    private Loop() {
-        this.state.gameCore.gameTime += 1000;
-        // 每30秒一波
-        if (this.state.gameCore.gameTime % 30 == 0) {
+
+    private async GameFlow() {
+
+        while (this.state.state == 'playing') {
+            //三秒後開始遊戲
+            this.state.gameCore.status = 'prepare';
+            await delay(3);
+            this.state.gameCore.status = 'battle';
+
+            //每秒生成一隻
+            this.enemySpawnTimer = this.clock.setInterval(this.spawnZombies.bind(this), 1000);
+
+            //每波30秒
+            await delay(30);
+            this.enemySpawnTimer.clear();
+            this.state.gameCore.status = 'rest';
+
+            // 清除場上所有敵人
+            this.state.enemies.clear();
+
+            //修整時間10秒
+            await delay(10);
+
             this.state.gameCore.waveNumber++;
-            this.state.gameCore.zombieCount = this.state.gameCore.waveNumber * 5;
-            this.state.gameCore.totalZombies += this.state.gameCore.zombieCount;
+            if (this.state.gameCore.waveNumber > 50) {
+                this.state.state = 'finished';
+                this.state.gameCore.status = 'settlement';
+            }
+            this.broadcast("gameOver", {
 
-            // 生成殭屍
-            this.spawnZombies(this.state.gameCore.zombieCount);
+            });
         }
+
     }
 
+    // 生成殭屍到 enemies，數量不超過最大上限
+    private spawnZombies() {
 
-    // 生成殭屍到 enemies
-    private spawnZombies(count: number) {
-        const mapSize = 1000; // 假設地圖 1000x1000
+        const currentCount = this.state.enemies.size;
+        const canSpawn = Math.max(0, maxZombies - currentCount);
+        const spawnCount = Math.min(1, canSpawn);
+        if (spawnCount <= 0) return;
 
-        for (let i = 0; i < count; i++) {
-            console.log("生成敵人");
+        for (let i = 0; i < spawnCount; i++) {
+            // ...existing code...
             const enemy = new Enemy;
             enemy.id = `${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
             // 隨機在地圖邊緣生成
@@ -252,9 +302,64 @@ export class GameRoom extends Room<GameRoomState> {
                     break;
             }
             this.state.enemies.set(enemy.id, enemy);
+
         }
     }
+
+    // 敵人自動移動、碰撞與 Hero 無敵邏輯
+    private updateAI() {
+        const dt = 100; // ms per tick
+
+        // 更新無敵倒數
+        for (const [, hero] of this.state.heroes) {
+            if (hero.invincibleRemaining > 0) {
+                hero.invincibleRemaining = Math.max(0, hero.invincibleRemaining - dt);
+            }
+        }
+
+        // 敵人追蹤與碰撞
+        for (const [, enemy] of this.state.enemies) {
+            // 找最近 Hero
+            let target: Hero | null = null;
+            let minDist = Infinity;
+
+            for (const [, hero] of this.state.heroes) {
+                const dx = hero.x - enemy.x;
+                const dy = hero.y - enemy.y;
+                const dist = Math.hypot(dx, dy);
+                if (dist < minDist) {
+                    minDist = dist;
+                    target = hero;
+                }
+            }
+
+            if (!target) continue;
+
+            // 移動至 Hero
+            const step = enemy.speed * (dt / 1000);
+            if (minDist > 0) {
+                enemy.x += ((target.x - enemy.x) / minDist) * step;
+                enemy.y += ((target.y - enemy.y) / minDist) * step;
+            }
+
+            // 碰撞檢測
+            if (minDist <= target.radius + enemy.radius) {
+                if (target.invincibleRemaining <= 0) {
+                    target.hp = Math.max(0, target.hp - enemyDamage);
+                    target.invincibleRemaining = invincibleDuration;
+
+                    // Hero 死亡處理
+                    if (target.hp <= 0) {
+                        this.broadcast("heroDied", { heroId: target.id });
+                    }
+                }
+            }
+        }
+    }
+
     private stopGameLoop() {
-        this.gameLoop.clear();
+        // 停止 AI 與生產
+        if (this.enemySpawnTimer) this.enemySpawnTimer.clear();
+        if (this.gameLoop) this.gameLoop.clear();
     }
 }
