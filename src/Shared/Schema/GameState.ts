@@ -3,13 +3,6 @@
 import { Schema, type, MapSchema } from "@colyseus/schema";
 export type gameStateTag = "waiting" | 'playing' | 'finished' | 'pedding';
 export type gameFlowStatus = "prepare" | 'battle' | 'rest' | 'settlement';
-export interface PlayerInfo {
-    id: string;
-    name: string;
-    characterId: number;
-    isReady: boolean;
-    isHost: boolean;
-}
 
 // 技能基底
 export class Skill extends Schema {
@@ -296,8 +289,6 @@ export class Hero extends GameUnit {
     }
 }
 
-
-
 export class GamePlayer extends Schema {
     @type("string") id: string = "";
     @type("string") name: string = "";
@@ -360,9 +351,11 @@ export class GameRoomState extends Schema {
     @type({ map: Hero }) heroes = new MapSchema<Hero>(); // 玩家操作單位
     @type({ map: Enemy }) enemies = new MapSchema<Enemy>();
     @type({ map: Item }) items = new MapSchema<Item>();
+
     @type("string") roomName: string = "";
     @type("number") maxPlayers: number = 6;
     @type("string") state: gameStateTag = "waiting"
+
     @type(GameCoreState) gameCore: GameCoreState = new GameCoreState;
 
     // 房間狀態管理方法

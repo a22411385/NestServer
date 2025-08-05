@@ -1,5 +1,5 @@
 import { Room, Client, ServerError, Presence, Delayed } from "colyseus";
-import { GameRoomState as GameRoomState, GamePlayer, PlayerInfo, GameCoreState, Enemy, Hero } from "../../Shared/Schema/GameState";
+import { GameRoomState as GameRoomState, GamePlayer, GameCoreState, Enemy, Hero } from "../../Shared/Schema/GameState";
 import { delay } from "src/Util/Utils";
 
 export interface GameRoomOptions {
