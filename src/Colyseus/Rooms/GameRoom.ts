@@ -518,7 +518,7 @@ export class GameRoom extends Room<GameRoomState> {
     // 結束遊戲
     private endGame(reason: "allPlayersDead" | "waveComplete") {
         console.log(`Game ended: ${reason}`);
-        this.state.state = 'finished';
+        this.state.state = 'waiting';
         this.state.gameCore.status = 'settlement';
 
         // 停止所有計時器
