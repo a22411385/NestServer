@@ -11,12 +11,13 @@ export interface GameRoomOptions {
 }
 const mapSize = 1000; // 假設地圖 1000x1000
 const maxZombies = 50; // 可依需求調整 - 從50開始測試效能
-const invincibleDuration = 1000; // Hero 無敵持續時間 (ms) - 已移至 Hero Schema
+
 export class GameRoom extends Room<GameRoomState> {
     maxClients = 6;
     autoDispose = true;
-    private gameLoop!: Delayed;
-    private enemySpawnTimer!: Delayed;
+    private gameLoop: Delayed;
+    private enemySpawnTimer: Delayed;
+    private enemySyncTimer: Delayed; // 新增：敵人同步計時器
     private performanceStats = {
         aiUpdatesPerSecond: 0,
         aiUpdateCounter: 0,
@@ -192,7 +193,18 @@ export class GameRoom extends Room<GameRoomState> {
             }
         });
 
-        //     // 玩家移動
+        // 玩家移動向量（新的基於速度的移動系統）
+        this.onMessage("playerMoveVector", (client, message) => {
+            const hero = this.state.heroes.get(client.sessionId);
+            if (hero && this.IsPlaying) {
+                // 設置移動向量
+                hero.vx = message.vx;
+                hero.vy = message.vy;
+                console.log(`🎯 Player ${hero.name} velocity: (${message.vx.toFixed(2)}, ${message.vy.toFixed(2)})`);
+            }
+        });
+
+        // 玩家移動（舊版本，保留向後兼容）
         this.onMessage("playerMove", (client, message) => {
             const hero = this.state.heroes.get(client.sessionId);
             if (hero && this.IsPlaying) {
@@ -214,7 +226,7 @@ export class GameRoom extends Room<GameRoomState> {
             let targetEnemy: Enemy | null = null;
             let closestDistance = hero.attackRange;
 
-            for (const [enemyId, enemy] of this.state.enemies) {
+            for (const [enemyId, enemy] of this.state.getAllEnemies()) {
                 if (enemy.isDead) continue;
 
                 const distance = Math.hypot(
@@ -245,7 +257,7 @@ export class GameRoom extends Room<GameRoomState> {
                     }
 
                     // 移除死亡的敵人
-                    this.state.enemies.delete(targetEnemy.id);
+                    this.state.removeEnemy(targetEnemy.id);
                 }
 
                 // 廣播攻擊視覺效果
@@ -311,6 +323,12 @@ export class GameRoom extends Room<GameRoomState> {
         console.log(`🎮 Game started in room ${this.roomId}`);
         this.state.state = "playing"
 
+        // 初始化遊戲核心狀態
+        this.state.gameCore.waveNumber = 1;
+        this.state.gameCore.gameTime = 0;
+        this.state.gameCore.status = 'prepare';
+        this.state.gameCore.aliveHeroes = this.state.players.size;
+
         // 發送遊戲開始戰報
         this.logEvent(`遊戲開始！共有 ${this.state.players.size} 名玩家參與戰鬥`);
 
@@ -325,15 +343,22 @@ export class GameRoom extends Room<GameRoomState> {
         // 開始遊戲循環
         this.startGameLoop();
 
-        console.log(`✅ Game loop started, current heroes count: ${this.state.heroes.size}`);
+        console.log(`✅ Game started - Wave: ${this.state.gameCore.waveNumber}, Heroes: ${this.state.heroes.size}`);
     }
 
     private startGameLoop() {
-        if (this.gameLoop) return;
+        this.clock.clear();
         this.clock.start();
 
         // 降低AI更新頻率以提升效能 - 從10FPS降至6FPS  
-        this.gameLoop = this.clock.setInterval(this.updateAI.bind(this), 166);
+        this.gameLoop = this.clock.setInterval(() => {
+            this.updateAI()
+        }, 166);
+
+        // 新增：定期同步敵人快照 (每3秒)
+        this.enemySyncTimer = this.clock.setInterval(() => {
+            this.state.updateAllEnemySnapshots();
+        }, 3000);
 
         // Waves 流程
         this.GameFlow();
@@ -369,11 +394,7 @@ export class GameRoom extends Room<GameRoomState> {
             this.state.gameCore.status = 'rest';
 
             // 清除場上所有敵人
-            const enemiesCleared = this.state.enemies.size;
-            this.state.enemies.clear();
-            if (enemiesCleared > 0) {
-                this.logEvent(`清理戰場，移除了 ${enemiesCleared} 個殭屍`);
-            }
+            this.state.removeAllEnemy();
 
             //修整時間10秒
             await delay(10);
@@ -389,16 +410,14 @@ export class GameRoom extends Room<GameRoomState> {
 
     // 生成殭屍到 enemies，數量不超過最大上限
     private spawnZombies() {
-
-        const currentCount = this.state.enemies.size;
+        const currentCount = this.state.getEnemyCount();
         const canSpawn = Math.max(0, maxZombies - currentCount);
         const spawnCount = Math.min(1, canSpawn);
         if (spawnCount <= 0) return;
 
         let spawnedCount = 0;
         for (let i = 0; i < spawnCount; i++) {
-            // ...existing code...
-            const enemy = new Enemy;
+            const enemy = new Enemy();
             enemy.id = `${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
 
             // 隨機決定殭屍類型
@@ -425,14 +444,10 @@ export class GameRoom extends Room<GameRoomState> {
                     enemy.y = Math.random() * mapSize;
                     break;
             }
-            this.state.enemies.set(enemy.id, enemy);
-            spawnedCount++;
-        }
 
-        // 每 5 秒報告一次殭屍生成情況（避免過於頻繁的戰報）
-        if (Date.now() % 5000 < 1000 && spawnedCount > 0) {
-            const totalEnemies = this.state.enemies.size;
-            this.logEvent(`殭屍持續湧現... 戰場上共有 ${totalEnemies} 個敵人`);
+            // 使用新的添加方法
+            this.state.addEnemy(enemy);
+            spawnedCount++;
         }
     }
 
@@ -440,6 +455,9 @@ export class GameRoom extends Room<GameRoomState> {
     private updateAI() {
         const dt = 166; // ms per tick (6 FPS)
         const currentTime = Date.now();
+        // console.log('updateAI')
+        // 更新遊戲時間
+        this.state.gameCore.gameTime += dt;
 
         // 效能統計
         this.performanceStats.aiUpdateCounter++;
@@ -451,7 +469,7 @@ export class GameRoom extends Room<GameRoomState> {
 
         // 使用 Enemy Schema 的專業 AI 邏輯
         let activeEnemies = 0;
-        for (const [enemyId, enemy] of this.state.enemies) {
+        for (const [enemyId, enemy] of this.state.getAllEnemies()) {
             if (!enemy.isDead) {
                 activeEnemies++;
 
@@ -507,20 +525,20 @@ export class GameRoom extends Room<GameRoomState> {
                 console.warn(`⚠️ High enemy count: ${activeEnemies}, consider optimization`);
             }
         }
-    }    // 檢查所有玩家是否死亡
+    }
+
+    // 檢查所有玩家是否死亡
     private checkAllPlayersDead(): boolean {
         for (const [, hero] of this.state.heroes) {
             if (!hero.isDead && hero.hp > 0) return false;
         }
         return this.state.heroes.size > 0; // 確保有玩家存在
-    }
-
-    // 結束遊戲
+    }    // 結束遊戲
     private endGame(reason: "allPlayersDead" | "waveComplete") {
         console.log(`Game ended: ${reason}`);
         this.state.state = 'waiting';
-        this.state.gameCore.status = 'settlement';
-
+        this.state.gameCore.status = 'prepare';
+        this.state.gameCore.waveNumber = 0;
         // 停止所有計時器
         this.stopGameLoop();
 
@@ -533,10 +551,13 @@ export class GameRoom extends Room<GameRoomState> {
     }
 
     private stopGameLoop() {
-        // 停止 AI 與生產
-        if (this.enemySpawnTimer) this.enemySpawnTimer.clear();
+        // 停止所有計時器
         if (this.gameLoop) this.gameLoop.clear();
+        if (this.enemySpawnTimer) this.enemySpawnTimer.clear();
+        if (this.enemySyncTimer) this.enemySyncTimer.clear();
 
+        this.clock.stop();
+        this.clock.clear();
         // 輸出效能報告
         this.logPerformanceReport();
     }

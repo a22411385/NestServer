@@ -31,6 +31,8 @@ export class GameUnit extends Schema {
     @type("number") maxHp: number = 10;
     @type("number") radius: number = 20; // 體積/碰撞半徑
     @type("number") speed: number = 1; // 移動速度
+    @type("number") vx: number = 0; // X 軸速度向量
+    @type("number") vy: number = 0; // Y 軸速度向量
     @type("boolean") isDead: boolean = false;
     @type({ map: Skill }) skills = new MapSchema<Skill>();
     @type({ map: StatusEffect }) statusEffects = new MapSchema<StatusEffect>();
@@ -50,21 +52,6 @@ export class GameUnit extends Schema {
             return true; // 返回是否死亡
         }
         return false;
-    }
-
-    // 移動方法
-    moveTo(targetX: number, targetY: number, deltaTime: number): void {
-        const dx = targetX - this.x;
-        const dy = targetY - this.y;
-        const distance = Math.hypot(dx, dy);
-
-        if (distance > 0) {
-            const step = this.speed * (deltaTime / 1000);
-            const moveDistance = Math.min(step, distance);
-
-            this.x += (dx / distance) * moveDistance;
-            this.y += (dy / distance) * moveDistance;
-        }
     }
 
     // 檢查是否在範圍內
@@ -98,19 +85,36 @@ export class GameUnit extends Schema {
     }
 }
 
-// 殭屍
+// 敵人快照 - 用於網路同步的簡化版本
+export class EnemySnapshot extends Schema {
+    @type("string") id: string = "";
+    @type("number") x: number = 0;
+    @type("number") y: number = 0;
+    @type("number") hp: number = 10;
+    @type("number") maxHp: number = 10;
+    @type("number") type: number = 1;
+    @type("number") vx: number = 0; // X 軸速度向量
+    @type("number") vy: number = 0; // Y 軸速度向量
+    @type("number") speed: number = 1; // 移動速度
+    @type("boolean") isDead: boolean = false;
+    @type("number") damage: number = 10;
+    @type("number") expReward: number = 1;
+}
+
+// 殭屍 - 伺服器端完整版本
 export class Enemy extends GameUnit {
     @type("number") type: number = 1; // 敵人類型
     @type("number") damage: number = 10; // 攻擊傷害
     @type("number") expReward: number = 1; // 擊殺獎勵經驗值
-    @type("string") aiState: string = "chase"; // AI 狀態: chase, attack, idle
-    @type("number") lastAttackTime: number = 0; // 上次攻擊時間
-    @type("number") attackCooldown: number = 1000; // 攻擊冷卻 (ms)
+
+    // AI 狀態 - 不同步，僅伺服器端使用
+    private aiState: string = "chase"; // AI 狀態: chase, attack, idle
+    private lastAttackTime: number = 0; // 上次攻擊時間
+    private attackCooldown: number = 1000; // 攻擊冷卻 (ms)
 
     // 效能優化屬性 (不需要同步)
     private lastAIUpdateTime: number = 0; // 上次AI更新時間
     private aiUpdateInterval: number = 200; // AI更新間隔 (ms) - 5 FPS
-    private lastMoveTime: number = 0; // 上次移動時間
     private targetCache: Hero | null = null; // 快取目標
     private targetCacheTime: number = 0; // 目標快取時間
 
@@ -190,17 +194,23 @@ export class Enemy extends GameUnit {
             this.chaseTarget(target, deltaTime);
         }
 
-        // 只有位置改變時才標記需要同步
-        if (Math.abs(this.x - oldX) > 1 || Math.abs(this.y - oldY) > 1) {
-            this.lastMoveTime = currentTime;
-        }
-
         this.lastAIUpdateTime = currentTime;
     }
 
     // 追蹤目標
     private chaseTarget(target: GameUnit, deltaTime: number): void {
-        this.moveTo(target.x, target.y, deltaTime);
+        // 移動邏輯由外部實現，這裡只設置方向向量
+        const dx = target.x - this.x;
+        const dy = target.y - this.y;
+        const distance = Math.hypot(dx, dy);
+
+        if (distance > 0) {
+            this.vx = dx / distance; // 正規化向量
+            this.vy = dy / distance;
+        } else {
+            this.vx = 0;
+            this.vy = 0;
+        }
     }
 
     // 嘗試攻擊
@@ -246,6 +256,49 @@ export class Enemy extends GameUnit {
                 this.attackCooldown = 1500;
                 break;
         }
+    }
+
+    // 創建用於同步的快照
+    createSnapshot(): EnemySnapshot {
+        const snapshot = new EnemySnapshot();
+        snapshot.id = this.id;
+        snapshot.x = Math.round(this.x); // 減少精度以節省頻寬
+        snapshot.y = Math.round(this.y);
+        snapshot.hp = this.hp;
+        snapshot.maxHp = this.maxHp;
+        snapshot.type = this.type;
+        snapshot.isDead = this.isDead;
+        snapshot.damage = this.damage;
+        snapshot.expReward = this.expReward;
+        return snapshot;
+    }
+
+    // 從快照更新（客戶端預測用）
+    updateFromSnapshot(snapshot: EnemySnapshot): void {
+        this.x = snapshot.x;
+        this.y = snapshot.y;
+        this.hp = snapshot.hp;
+        this.isDead = snapshot.isDead;
+    }
+
+    // 獲取AI狀態（供伺服器端調試用）
+    getAIState(): string {
+        return this.aiState;
+    }
+
+    // 設置AI狀態（供伺服器端使用）
+    setAIState(state: string): void {
+        this.aiState = state;
+    }
+
+    // 檢查是否可以攻擊
+    canAttack(currentTime: number): boolean {
+        return currentTime - this.lastAttackTime >= this.attackCooldown;
+    }
+
+    // 設置最後攻擊時間
+    setLastAttackTime(time: number): void {
+        this.lastAttackTime = time;
     }
 }
 
@@ -381,16 +434,99 @@ export class Item extends Schema {
 }
 
 export class GameRoomState extends Schema {
+    // === 核心狀態（高頻同步）===
     @type({ map: GamePlayer }) players = new MapSchema<GamePlayer>();
     @type({ map: Hero }) heroes = new MapSchema<Hero>(); // 玩家操作單位
-    @type({ map: Enemy }) enemies = new MapSchema<Enemy>();
+    @type(GameCoreState) gameCore: GameCoreState = new GameCoreState();
+
+    // === 重要實體（中頻同步）===
     @type({ map: Item }) items = new MapSchema<Item>();
 
+    // === 大量實體（低頻同步）===
+    @type({ map: EnemySnapshot }) enemySnapshots = new MapSchema<EnemySnapshot>();
+
+    // === 房間基本資訊 ===
     @type("string") roomName: string = "";
     @type("number") maxPlayers: number = 6;
-    @type("string") state: gameStateTag = "waiting"
+    @type("string") state: gameStateTag = "waiting";
 
-    @type(GameCoreState) gameCore: GameCoreState = new GameCoreState;
+    // 伺服器端維護的完整敵人資料（不同步）
+    private fullEnemies = new Map<string, Enemy>();
+
+    // 添加完整敵人的方法
+    addEnemy(enemy: Enemy): void {
+        this.fullEnemies.set(enemy.id, enemy);
+        // 同時更新快照
+        this.updateEnemySnapshot(enemy);
+    }
+
+    // 移除敵人
+    removeEnemy(enemyId: string): void {
+        this.fullEnemies.delete(enemyId);
+        this.enemySnapshots.delete(enemyId);
+    }
+    removeAllEnemy(): void {
+        this.fullEnemies.clear();
+        this.enemySnapshots.clear();
+    }
+
+    // 獲取完整敵人資料（伺服器端用）
+    getEnemy(enemyId: string): Enemy | undefined {
+        return this.fullEnemies.get(enemyId);
+    }
+
+    // 獲取所有敵人（伺服器端用）
+    getAllEnemies(): Map<string, Enemy> {
+        return this.fullEnemies;
+    }
+
+    // 更新單個敵人快照
+    updateEnemySnapshot(enemy: Enemy): void {
+        const snapshot = enemy.createSnapshot();
+        this.enemySnapshots.set(enemy.id, snapshot);
+    }
+
+    // 批量更新所有敵人快照
+    updateAllEnemySnapshots(): void {
+        for (const [id, enemy] of this.fullEnemies) {
+            if (!enemy.isDead) {
+                this.updateEnemySnapshot(enemy);
+            } else {
+                // 清理死亡敵人的快照
+                this.enemySnapshots.delete(id);
+            }
+        }
+    }
+
+    // 清理死亡的敵人
+    cleanupDeadEnemies(): { killedEnemies: string[], totalExp: number } {
+        const killedEnemies: string[] = [];
+        let totalExp = 0;
+
+        for (const [enemyId, enemy] of this.fullEnemies) {
+            if (enemy.isDead) {
+                killedEnemies.push(enemyId);
+                totalExp += enemy.expReward;
+                this.removeEnemy(enemyId);
+            }
+        }
+
+        return { killedEnemies, totalExp };
+    }
+
+    // 獲取敵人數量
+    getEnemyCount(): number {
+        return this.fullEnemies.size;
+    }
+
+    // 獲取存活敵人數量
+    getAliveEnemyCount(): number {
+        let count = 0;
+        for (const [, enemy] of this.fullEnemies) {
+            if (!enemy.isDead) count++;
+        }
+        return count;
+    }
 
     // 房間狀態管理方法
     isWaiting(): boolean {
@@ -432,25 +568,10 @@ export class GameRoomState extends Schema {
         return this.updateAliveHeroes() === 0;
     }
 
-    // 清理死亡的敵人並獲得經驗值
-    cleanupDeadEnemies(): { killedEnemies: string[], totalExp: number } {
-        const killedEnemies: string[] = [];
-        let totalExp = 0;
-
-        for (const [enemyId, enemy] of this.enemies) {
-            if (enemy.isDead) {
-                killedEnemies.push(enemyId);
-                totalExp += enemy.expReward;
-                this.enemies.delete(enemyId);
-            }
-        }
-
-        return { killedEnemies, totalExp };
-    }
-
     // 重置遊戲狀態
     resetGameState(): void {
-        this.enemies.clear();
+        this.fullEnemies.clear();
+        this.enemySnapshots.clear();
         this.items.clear();
         this.heroes.clear();
         this.gameCore.resetGame();
@@ -488,8 +609,13 @@ export class UnitFactory {
         enemy.id = `enemy_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
         enemy.x = x;
         enemy.y = y;
-        enemy.initializeByType(type); // 使用新的初始化方法
+        enemy.initializeByType(type);
         return enemy;
+    }
+
+    // 創建敵人快照（用於初始同步）
+    static createEnemySnapshot(enemy: Enemy): EnemySnapshot {
+        return enemy.createSnapshot();
     }
 
     static createStatusEffect(id: string, type: string, duration: number, value: number): StatusEffect {

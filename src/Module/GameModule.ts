@@ -5,8 +5,7 @@ import { GameController } from "src/Controller/game.controller";
 import { ItemFactoryService } from "src/Service/ItemFactory.service";
 import { AccountORM } from "src/ORM/account.entity";
 import { CharacterORM } from "src/ORM/charater.entity";
-import { CharacterService } from "src/Service/charater.serivce";
-import { GoogleSheetsService } from "src/Service/google-sheets.service";
+
 import { ItemEditorController } from "src/Controller/itemEditor.controller";
 import { PlayerItemORM } from "src/ORM/playeritem.entity";
 import { EquipmentDataORM } from "src/ORM/equipmentData.entity";
