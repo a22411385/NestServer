@@ -26,38 +26,14 @@ export class GameRoom extends Room<GameRoomState> {
         averagePlayersAlive: 0
     };
 
-    // 戰報系統
-    private sendBattleLog(message: string, category?: 'damage' | 'death' | 'kill' | 'heal' | 'event') {
-        console.log(`🎯 Sending battle log: [${category || 'event'}] ${message}`);
+    // 統一戰報系統
+    private sendBattleLog(message: string, category: 'damage' | 'death' | 'kill' | 'heal' | 'event' = 'event') {
+        console.log(`🎯 [${category}] ${message}`);
         this.broadcast("battleLog", {
             message,
             category,
             timestamp: Date.now()
         });
-        console.log(`[戰報] ${category || 'event'}: ${message}`);
-    }
-
-    private logDamage(attacker: string, target: string, damage: number) {
-        this.sendBattleLog(`${attacker} 對 ${target} 造成 ${damage} 點傷害`, 'damage');
-    }
-
-    private logDeath(victim: string, killer?: string) {
-        const message = killer
-            ? `${victim} 被 ${killer} 擊殺`
-            : `${victim} 死亡`;
-        this.sendBattleLog(message, 'death');
-    }
-
-    private logKill(killer: string, victim: string) {
-        this.sendBattleLog(`${killer} 擊殺了 ${victim}`, 'kill');
-    }
-
-    private logHeal(healer: string, target: string, amount: number) {
-        this.sendBattleLog(`${healer} 為 ${target} 恢復 ${amount} 點生命`, 'heal');
-    }
-
-    private logEvent(message: string) {
-        this.sendBattleLog(message, 'event');
     }
 
     get IsPlaying(): boolean {
@@ -246,14 +222,14 @@ export class GameRoom extends Room<GameRoomState> {
                 const killed = targetEnemy.takeDamage(damage);
 
                 // 發送戰報
-                this.logDamage(hero.name, `殭屍#${targetEnemy.id.slice(-4)}`, damage);
+                this.sendBattleLog(`${hero.name} 對 殭屍#${targetEnemy.id.slice(-4)} 造成 ${damage} 點傷害`, 'damage');
 
                 if (killed) {
-                    this.logKill(hero.name, `殭屍#${targetEnemy.id.slice(-4)}`);
+                    this.sendBattleLog(`${hero.name} 擊殺了 殭屍#${targetEnemy.id.slice(-4)}`, 'kill');
 
                     // 給予經驗值
                     if (hero.gainExp(targetEnemy.expReward)) {
-                        this.logEvent(`${hero.name} 升級至 Lv.${hero.level}！`);
+                        this.sendBattleLog(`${hero.name} 升級至 Lv.${hero.level}！`, 'event');
                     }
 
                     // 移除死亡的敵人
@@ -330,14 +306,14 @@ export class GameRoom extends Room<GameRoomState> {
         this.state.gameCore.aliveHeroes = this.state.players.size;
 
         // 發送遊戲開始戰報
-        this.logEvent(`遊戲開始！共有 ${this.state.players.size} 名玩家參與戰鬥`);
+        this.sendBattleLog(`遊戲開始！共有 ${this.state.players.size} 名玩家參與戰鬥`, 'event');
 
         // 生成 Hero
         this.initHeroes();
 
         // 發送玩家初始化戰報
         for (const [, hero] of this.state.heroes) {
-            this.logEvent(`${hero.name} 加入戰場 (Lv.${hero.level}, HP:${hero.hp}/${hero.maxHp})`);
+            this.sendBattleLog(`${hero.name} 加入戰場 (Lv.${hero.level}, HP:${hero.hp}/${hero.maxHp})`, 'event');
         }
 
         // 開始遊戲循環
@@ -374,12 +350,12 @@ export class GameRoom extends Room<GameRoomState> {
             }
 
             // 波次開始準備
-            this.logEvent(`第 ${this.state.gameCore.waveNumber} 波準備中...`);
+            this.sendBattleLog(`第 ${this.state.gameCore.waveNumber} 波準備中...`, 'event');
             this.state.gameCore.status = 'prepare';
             await delay(3);
 
             // 波次開始
-            this.logEvent(`第 ${this.state.gameCore.waveNumber} 波開始！殭屍來襲！`);
+            this.sendBattleLog(`第 ${this.state.gameCore.waveNumber} 波開始！殭屍來襲！`, 'event');
             this.state.gameCore.status = 'battle';
 
             //每秒生成一隻
@@ -390,7 +366,7 @@ export class GameRoom extends Room<GameRoomState> {
             this.enemySpawnTimer.clear();
 
             // 波次結束
-            this.logEvent(`第 ${this.state.gameCore.waveNumber} 波結束，進入休整時間`);
+            this.sendBattleLog(`第 ${this.state.gameCore.waveNumber} 波結束，進入休整時間`, 'event');
             this.state.gameCore.status = 'rest';
 
             // 清除場上所有敵人
@@ -401,7 +377,7 @@ export class GameRoom extends Room<GameRoomState> {
 
             this.state.gameCore.waveNumber++;
             if (this.state.gameCore.waveNumber > 50) {
-                this.logEvent("恭喜！您成功完成了所有 50 波挑戰！");
+                this.sendBattleLog("恭喜！您成功完成了所有 50 波挑戰！", 'event');
                 this.endGame("waveComplete");
                 return;
             }
@@ -489,7 +465,7 @@ export class GameRoom extends Room<GameRoomState> {
                     const previousHp = heroHealthBefore.get(heroId);
                     if (previousHp && hero.hp < previousHp) {
                         const damage = previousHp - hero.hp;
-                        this.logDamage(`殭屍#${enemy.id.slice(-4)}`, hero.name, damage);
+                        this.sendBattleLog(`殭屍#${enemy.id.slice(-4)} 對 ${hero.name} 造成 ${damage} 點傷害`, 'damage');
                     }
                 }
             }
@@ -499,7 +475,7 @@ export class GameRoom extends Room<GameRoomState> {
             for (const [, hero] of this.state.heroes) {
                 if (hero.hp <= 0 && !hero.isDead) {
                     hero.isDead = true;
-                    this.logDeath(hero.name, "殭屍群");
+                    this.sendBattleLog(`${hero.name} 被殭屍群殺死了！`, 'death');
                     this.broadcast("heroDied", { heroId: hero.id });
                     anyPlayerDied = true;
                 }
@@ -507,7 +483,7 @@ export class GameRoom extends Room<GameRoomState> {
 
             // 如果有玩家死亡，檢查是否所有玩家都死亡
             if (anyPlayerDied && this.checkAllPlayersDead()) {
-                this.logEvent("所有玩家陣亡，遊戲結束！");
+                this.sendBattleLog("所有玩家陣亡，遊戲結束！", 'event');
                 this.endGame("allPlayersDead");
                 return;
             }
