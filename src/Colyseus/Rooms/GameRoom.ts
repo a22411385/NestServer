@@ -13,6 +13,7 @@ export interface GameRoomOptions {
     hostId: string;
     hostName: string;
     hostCharacterId: number;
+    roomType?: "normal" | "test"; // 新增：房間類型
 }
 
 export class GameRoom extends Room<GameRoomState> {
@@ -30,7 +31,7 @@ export class GameRoom extends Room<GameRoomState> {
     }
 
     onCreate(options: GameRoomOptions) {
-        console.log(`GameRoom created: ${options.roomName} by ${options.hostName}`);
+        console.log(`GameRoom created: ${options.roomName} by ${options.hostName}, type: ${options.roomType || 'normal'}`);
 
         try {
             this.state = new GameRoomState();
@@ -40,6 +41,8 @@ export class GameRoom extends Room<GameRoomState> {
             this.state.roomName = options.roomName;
             this.state.maxPlayers = options.maxPlayers;
             this.state.state = "waiting";
+            this.state.roomType = options.roomType || "normal"; // 設置房間類型
+            this.state.isTestMode = options.roomType === "test"; // 設置測試模式
 
             // 初始化遊戲數據，避免 undefined
             this.state.gameCore = new GameCoreState;

@@ -67,9 +67,9 @@ export class GameManager {
         this.enemySyncTimer = this.room.clock.setInterval(() => {
             this.state.updateAllEnemySnapshots();
         }, 3000);
-
-        // Waves 流程
-        this.gameFlow();
+        if (!this.state.isTestMode)
+            // Waves 流程
+            this.gameFlow();
     }
 
     /**

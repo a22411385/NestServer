@@ -175,6 +175,26 @@ export class BattleSystem {
     }
 
     /**
+     * 測試房專用：生成單隻敵人到指定位置
+     */
+    spawnSingleEnemy(x: number, y: number, type: number = 1): string {
+        const enemy = new Enemy();
+        enemy.id = `test_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
+
+        // 設置敵人類型
+        enemy.initializeByType(type);
+
+        // 設置指定位置
+        enemy.x = Math.max(0, Math.min(1000, x));
+        enemy.y = Math.max(0, Math.min(800, y));
+
+        // 添加到遊戲狀態
+        this.state.addEnemy(enemy);
+
+        return enemy.id;
+    }
+
+    /**
      * 更新所有敵人的 AI - 效能優化版本
      */
     updateEnemyAI(deltaTime: number, currentTime: number): Map<string, { before: number; after: number; hero: Hero }> {

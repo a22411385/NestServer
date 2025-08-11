@@ -1,5 +1,8 @@
 import { Room, Client } from "colyseus";
 import { GameRoomState } from "../../Shared/Schema/GameState";
+import { PlayerManager } from "../Managers/PlayerManager";
+import { GameManager } from "../Managers/GameManager";
+import { BattleSystem } from "../Systems/BattleSystem";
 
 /**
  * 消息處理器 - 統一處理所有 Colyseus 客戶端消息和廣播
@@ -17,9 +20,9 @@ export class MessageHandler {
      * 設置所有消息處理器
      */
     setupMessageHandlers(
-        playerManager: any,
-        gameManager: any,
-        battleSystem: any
+        playerManager: PlayerManager,
+        gameManager: GameManager,
+        battleSystem: BattleSystem
     ): void {
         // 玩家準備/取消準備
         this.room.onMessage("toggleReady", (client, message) => {
@@ -35,6 +38,7 @@ export class MessageHandler {
 
         // 開始遊戲（只有主機可以）
         this.room.onMessage("startGame", (client, message) => {
+
             if (!playerManager.isPlayerHost(client)) {
                 client.send("error", { message: "Only host can start the game" });
                 return;
@@ -51,9 +55,9 @@ export class MessageHandler {
                 for (const [, hero] of this.state.heroes) {
                     this.sendBattleLog(`${hero.name} 加入戰場 (Lv.${hero.level}, HP:${hero.hp}/${hero.maxHp})`, 'event');
                 }
-
-                // 開始遊戲
                 gameManager.startGame();
+
+
             } else {
                 client.send("error", { message: "Not all players are ready" });
             }
@@ -73,8 +77,81 @@ export class MessageHandler {
 
         // 玩家攻擊
         this.room.onMessage("playerAttack", (client, message) => {
-            if (!gameManager.isPlaying) return;
+            if (!gameManager.isPlaying && !this.state.isTestMode) return;
             battleSystem.handlePlayerAttack(client, message.targetX, message.targetY);
+        });
+
+        // === 測試房專用指令 ===
+        this.setupTestRoomCommands(battleSystem, playerManager);
+    }
+
+    /**
+     * 設置測試房專用指令
+     */
+    private setupTestRoomCommands(battleSystem: any, playerManager: any): void {
+        // 只有測試房才啟用這些指令
+        if (!this.state.isTestMode) return;
+
+        // 生成單隻怪物
+        this.room.onMessage("testSpawnEnemy", (client, message) => {
+            if (!playerManager.isPlayerHost(client)) {
+                client.send("error", { message: "只有房主可以控制測試功能" });
+                return;
+            }
+
+            const spawnX = message.x || 500;
+            const spawnY = message.y || 400;
+            const enemyType = message.type || 1;
+
+            const enemyId = battleSystem.spawnSingleEnemy(spawnX, spawnY, enemyType);
+            this.sendBattleLog(`測試生成敵人 ${enemyId} 於 (${spawnX}, ${spawnY})`, 'event');
+        });
+
+        // 清除所有怪物
+        this.room.onMessage("testClearEnemies", (client, message) => {
+            if (!playerManager.isPlayerHost(client)) {
+                client.send("error", { message: "只有房主可以控制測試功能" });
+                return;
+            }
+
+            const clearedCount = this.state.enemySnapshots.size;
+            this.state.removeAllEnemy();
+            this.sendBattleLog(`清除了 ${clearedCount} 隻敵人`, 'event');
+        });
+
+        // 切換玩家無敵狀態
+        this.room.onMessage("testToggleInvincible", (client, message) => {
+            if (!playerManager.isPlayerHost(client)) {
+                client.send("error", { message: "只有房主可以控制測試功能" });
+                return;
+            }
+
+            this.state.playerInvincible = !this.state.playerInvincible;
+            this.sendBattleLog(`玩家無敵狀態: ${this.state.playerInvincible ? '開啟' : '關閉'}`, 'event');
+        });
+
+        // 重置所有狀態
+        this.room.onMessage("testResetAll", (client, message) => {
+            if (!playerManager.isPlayerHost(client)) {
+                client.send("error", { message: "只有房主可以控制測試功能" });
+                return;
+            }
+
+            // 重置敵人
+            this.state.removeAllEnemy();
+
+            // 重置玩家狀態
+            this.state.playerInvincible = false;
+
+            // 重置所有玩家Hero到初始狀態
+            this.state.heroes.forEach((hero, playerId) => {
+                hero.x = 100;
+                hero.y = 100;
+                hero.hp = hero.maxHp;
+                hero.invincibleRemaining = 0;
+            });
+
+            this.sendBattleLog("已重置所有測試狀態", 'event');
         });
     }
 

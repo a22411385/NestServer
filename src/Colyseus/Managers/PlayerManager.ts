@@ -151,8 +151,10 @@ export class PlayerManager {
             const hero = new Hero();
             hero.id = playerId;
             hero.name = player.name;
-            hero.x = Math.random() * mapSize;
-            hero.y = Math.random() * mapSize;
+
+            hero.x = 0;
+            hero.y = 0;
+
             hero.hp = hero.maxHp;
             hero.invincibleRemaining = 0;
             this.state.heroes.set(playerId, hero);

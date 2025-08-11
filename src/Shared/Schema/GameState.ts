@@ -1,8 +1,9 @@
 
 
 import { Schema, type, MapSchema } from "@colyseus/schema";
-export type gameStateTag = "waiting" | 'playing' | 'finished' | 'pedding';
-export type gameFlowStatus = "prepare" | 'battle' | 'rest' | 'settlement';
+export type gameStateTag = "waiting" | 'playing' | 'finished' | 'pedding' | 'testing';
+export type gameFlowStatus = "prepare" | 'battle' | 'rest' | 'settlement' | 'test_mode';
+export type roomType = "normal" | "test";
 
 // 技能基底
 export class Skill extends Schema {
@@ -449,6 +450,11 @@ export class GameRoomState extends Schema {
     @type("string") roomName: string = "";
     @type("number") maxPlayers: number = 6;
     @type("string") state: gameStateTag = "waiting";
+    @type("string") roomType: roomType = "normal"; // 新增：房間類型
+
+    // === 測試房模式相關 ===
+    @type("boolean") isTestMode: boolean = false; // 測試模式標記
+    @type("boolean") playerInvincible: boolean = false; // 玩家無敵狀態
 
     // 伺服器端維護的完整敵人資料（不同步）
     private fullEnemies = new Map<string, Enemy>();
