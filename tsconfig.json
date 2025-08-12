@@ -17,6 +17,12 @@
     "forceConsistentCasingInFileNames": true,
     "noImplicitAny": true,
     "strictBindCallApply": false,
-    "noFallthroughCasesInSwitch": true
+    "noFallthroughCasesInSwitch": true,
+    "paths": {
+      "@/*": ["src/*"],
+      "@util/*": ["src/Util/*"],
+      "@shared/*": ["src/Shared/*"],
+      "@game/*": ["src/Game/*"]
+    }
   }
 }
