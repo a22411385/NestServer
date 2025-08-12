@@ -91,6 +91,7 @@ export class GameRoom extends Room<GameRoomState> {
 
         // 設置管理器之間的引用
         this.gameManager.setBattleSystem(this.battleSystem);
+        this.battleSystem.setGameManager(this.gameManager);
     }
 
     /**

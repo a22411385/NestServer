@@ -70,10 +70,10 @@ export class MessageHandler {
         });
 
         // 玩家移動（舊版本，保留向後兼容）
-        this.room.onMessage("playerMove", (client, message) => {
-            if (!gameManager.isPlaying) return;
-            battleSystem.handlePlayerMove(client, message.x, message.y);
-        });
+        // this.room.onMessage("playerMove", (client, message) => {
+        //     if (!gameManager.isPlaying) return;
+        //     battleSystem.handlePlayerMove(client, message.x, message.y);
+        // });
 
         // 玩家攻擊
         this.room.onMessage("playerAttack", (client, message) => {

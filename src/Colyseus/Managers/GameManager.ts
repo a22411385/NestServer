@@ -1,6 +1,13 @@
 import { Room, Delayed } from "colyseus";
 import { GameRoomState } from "../../Shared/Schema/GameState";
 import { delay } from "../../Util/Utils";
+import { IdGenerator } from "../../Util/IdGenerator";
+
+// 移動向量介面
+interface MoveVector {
+    vx: number;
+    vy: number;
+}
 
 /**
  * 遊戲管理器 - 負責遊戲流程控制、波次管理和遊戲狀態
@@ -9,8 +16,15 @@ export class GameManager {
     private room: Room<GameRoomState>;
     private state: GameRoomState;
     private gameLoop: Delayed | null = null;
-    private enemySyncTimer: Delayed | null = null;
+    private allUnitSyncPos: Delayed | null = null;
+    private moveTick: Delayed | null = null;
+    private moveData: Record<string, MoveVector> = {};
     private battleSystem: any = null; // 會在初始化時設置
+
+    // 改進的同步系統屬性
+    private moveSequence: number = 0;
+    private lastSyncTime: number = 0;
+
     private performanceStats = {
         aiUpdatesPerSecond: 0,
         aiUpdateCounter: 0,
@@ -23,6 +37,14 @@ export class GameManager {
         this.room = room;
         this.state = room.state;
     }
+
+    /**
+     * 🎯 服務端移動配置 - 與客戶端保持一致
+     */
+    private readonly MOVEMENT_CONFIG = {
+        MOVEMENT_SCALE: 10,        // 移動縮放係數，與客戶端保持一致
+        FIXED_DELTA: 1 / 60        // 固定 delta time (60 FPS)
+    };
 
     /**
      * 設置 BattleSystem 引用
@@ -63,10 +85,47 @@ export class GameManager {
             (this.room as any).handleGameTick();
         }, 166);
 
-        // 新增：定期同步敵人快照 (每3秒)
-        this.enemySyncTimer = this.room.clock.setInterval(() => {
-            this.state.updateAllEnemySnapshots();
-        }, 3000);
+        // 定期更新場上所有單位位置 - 改進版本
+        this.allUnitSyncPos = this.room.clock.setInterval(() => {
+            const allPositions = this.getAllUnitPositions();
+            this.room.broadcast('syncPosition', {
+                timestamp: Date.now(),
+                sequence: ++this.moveSequence,
+                positions: allPositions
+            });
+            this.lastSyncTime = Date.now();
+        }, 5000);
+
+        // 每次移動的單位 - 改進版本（包含速度信息）
+        this.moveTick = this.room.clock.setInterval(() => {
+            if (Object.keys(this.moveData).length > 0) {
+                // 🎯 首先更新服務端位置（使用與客戶端相同的邏輯）
+                this.updateServerPositions();
+
+                this.moveSequence++;
+
+                // 🔧 為每個移動數據添加速度信息
+                const enrichedMoveData: Record<string, { vx: number, vy: number, speed: number }> = {};
+
+                for (const [unitId, velocity] of Object.entries(this.moveData)) {
+                    const speed = this.getUnitSpeed(unitId);
+                    enrichedMoveData[unitId] = {
+                        vx: velocity.vx,
+                        vy: velocity.vy,
+                        speed: speed
+                    };
+                }
+
+                this.room.broadcast('move-tick', {
+                    sequence: this.moveSequence,
+                    timestamp: Date.now(),
+                    duration: 166, // 這批移動指令的持續時間
+                    moveData: enrichedMoveData
+                });
+                this.moveData = {};
+            }
+        }, 166);
+
         if (!this.state.isTestMode)
             // Waves 流程
             this.gameFlow();
@@ -184,9 +243,13 @@ export class GameManager {
             this.gameLoop.clear();
             this.gameLoop = null;
         }
-        if (this.enemySyncTimer) {
-            this.enemySyncTimer.clear();
-            this.enemySyncTimer = null;
+        if (this.allUnitSyncPos) {
+            this.allUnitSyncPos.clear();
+            this.allUnitSyncPos = null;
+        }
+        if (this.moveTick) {
+            this.moveTick.clear();
+            this.moveTick = null;
         }
 
         this.room.clock.stop();
@@ -213,6 +276,119 @@ export class GameManager {
 
         // 發送效能數據給客戶端 (可選)
         this.room.broadcast("performanceReport", report);
+    }
+
+    /**
+     * 獲取所有單位的位置（用於強制同步）
+     */
+    private getAllUnitPositions(): Record<string, { x: number, y: number }> {
+        const positions: Record<string, { x: number, y: number }> = {};
+
+        // 收集所有Heroes位置 - 🔧 使用hero.id而不是heroId
+        for (const [heroId, hero] of this.state.heroes) {
+            positions[hero.id] = { x: hero.x, y: hero.y };
+        }
+
+        // 收集所有Enemies位置 - 🔧 使用enemy.id而不是enemyId
+        for (const [enemyId, enemy] of this.state.enemySnapshots) {
+            if (!enemy.isDead) {
+                positions[enemy.id] = { x: enemy.x, y: enemy.y };
+            }
+        }
+
+        return positions;
+    }
+
+    /**
+     * 🔧 獲取單位移動速度（從服務端狀態）
+     */
+    private getUnitSpeed(unitId: string): number {
+        // 檢查Heroes
+        for (const [heroId, hero] of this.state.heroes) {
+            if (heroId === unitId || hero.id === unitId) {
+                return hero.speed || 5; // 預設Hero速度
+            }
+        }
+
+        // 檢查Enemies
+        for (const [enemyId, enemy] of this.state.enemySnapshots) {
+            if (enemyId === unitId || enemy.id === unitId) {
+                return enemy.speed || 3; // 預設Enemy速度
+            }
+        }
+
+        console.warn(`⚠️ GameManager: No speed found for unit ${unitId}`);
+        return 1; // 預設速度
+    }
+
+    /**
+     * 🎯 服務端位置更新 - 使用與客戶端相同的移動邏輯
+     */
+    private updateServerPositions(): void {
+        const deltaTime = this.MOVEMENT_CONFIG.FIXED_DELTA;
+
+        // 更新所有有移動向量的單位
+        for (const [unitId, velocity] of Object.entries(this.moveData)) {
+            this.applyMovementToServerUnit(unitId, velocity, deltaTime);
+        }
+    }
+
+    /**
+     * 🎯 應用移動到服務端單位 - 與客戶端邏輯完全一致
+     */
+    private applyMovementToServerUnit(unitId: string, velocity: MoveVector, deltaTime: number): void {
+        // 獲取單位速度
+        const speed = this.getUnitSpeed(unitId);
+
+        // 使用與客戶端相同的移動計算公式
+        const moveDistance = speed * this.MOVEMENT_CONFIG.MOVEMENT_SCALE * deltaTime;
+        const deltaX = velocity.vx * moveDistance;
+        const deltaY = velocity.vy * moveDistance;
+
+        let updated = false;
+
+        // 更新Heroes位置
+        for (const [heroId, hero] of this.state.heroes) {
+            if (heroId === unitId || hero.id === unitId) {
+                const oldX = hero.x;
+                const oldY = hero.y;
+                hero.x += deltaX;
+                hero.y += deltaY;
+                // 確保在世界邊界內
+                hero.x = Math.max(-500, Math.min(500, hero.x));
+                hero.y = Math.max(-500, Math.min(500, hero.y));
+                console.log(`🎯 Server updated Hero ${unitId}: (${oldX.toFixed(1)},${oldY.toFixed(1)}) → (${hero.x.toFixed(1)},${hero.y.toFixed(1)}) delta:(${deltaX.toFixed(2)},${deltaY.toFixed(2)})`);
+                updated = true;
+                return;
+            }
+        }
+
+        // 更新Enemies位置
+        for (const [enemyId, enemy] of this.state.enemySnapshots) {
+            if (enemyId === unitId || enemy.id === unitId) {
+                const oldX = enemy.x;
+                const oldY = enemy.y;
+                enemy.x += deltaX;
+                enemy.y += deltaY;
+                // 確保在世界邊界內
+                enemy.x = Math.max(-500, Math.min(500, enemy.x));
+                enemy.y = Math.max(-500, Math.min(500, enemy.y));
+                console.log(`🎯 Server updated Enemy ${unitId}: (${oldX.toFixed(1)},${oldY.toFixed(1)}) → (${enemy.x.toFixed(1)},${enemy.y.toFixed(1)}) delta:(${deltaX.toFixed(2)},${deltaY.toFixed(2)})`);
+                updated = true;
+                return;
+            }
+        }
+
+        if (!updated) {
+            console.warn(`⚠️ Could not find unit ${unitId} to update position`);
+        }
+    }
+
+    /**
+     * 添加單位移動數據到下次同步
+     */
+    addMoveData(unitId: string, velocity: MoveVector): void {
+        this.moveData[unitId] = velocity;
     }
 
     /**

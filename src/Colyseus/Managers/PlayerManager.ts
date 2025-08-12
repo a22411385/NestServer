@@ -1,5 +1,6 @@
 import { Client, Room } from "colyseus";
 import { GameRoomState, GamePlayer, Hero } from "../../Shared/Schema/GameState";
+import { IdGenerator } from "../../Util/IdGenerator";
 
 const mapSize = 1000;
 
@@ -149,7 +150,8 @@ export class PlayerManager {
     initializeAllHeroes(): void {
         for (const [playerId, player] of this.state.players) {
             const hero = new Hero();
-            hero.id = playerId;
+            // 🔧 使用統一的ID生成系統
+            hero.id = IdGenerator.generateHeroId(playerId);
             hero.name = player.name;
 
             hero.x = 0;
@@ -157,7 +159,10 @@ export class PlayerManager {
 
             hero.hp = hero.maxHp;
             hero.invincibleRemaining = 0;
+            // 🔧 注意：Map的key還是使用playerId，但hero.id是標準化的
             this.state.heroes.set(playerId, hero);
+
+            console.log(`👤 Initialized hero with ID: ${hero.id} for player: ${playerId}`);
         }
     }
 

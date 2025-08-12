@@ -26,8 +26,7 @@ export class StatusEffect extends Schema {
 // 單位基底
 export class GameUnit extends Schema {
     @type("string") id: string = "";
-    @type("number") x: number = 0;
-    @type("number") y: number = 0;
+
     @type("number") hp: number = 10;
     @type("number") maxHp: number = 10;
     @type("number") radius: number = 20; // 體積/碰撞半徑
@@ -38,6 +37,8 @@ export class GameUnit extends Schema {
     @type({ map: Skill }) skills = new MapSchema<Skill>();
     @type({ map: StatusEffect }) statusEffects = new MapSchema<StatusEffect>();
 
+    x: number = 0;
+    y: number = 0;
     // 加血方法
     heal(amount: number): number {
         const oldHp = this.hp;
@@ -89,8 +90,8 @@ export class GameUnit extends Schema {
 // 敵人快照 - 用於網路同步的簡化版本
 export class EnemySnapshot extends Schema {
     @type("string") id: string = "";
-    @type("number") x: number = 0;
-    @type("number") y: number = 0;
+    @type("number") x: number = 0; // X 座標
+    @type("number") y: number = 0; // Y 座標
     @type("number") hp: number = 10;
     @type("number") maxHp: number = 10;
     @type("number") type: number = 1;
@@ -257,29 +258,6 @@ export class Enemy extends GameUnit {
                 this.attackCooldown = 1500;
                 break;
         }
-    }
-
-    // 創建用於同步的快照
-    createSnapshot(): EnemySnapshot {
-        const snapshot = new EnemySnapshot();
-        snapshot.id = this.id;
-        snapshot.x = Math.round(this.x); // 減少精度以節省頻寬
-        snapshot.y = Math.round(this.y);
-        snapshot.hp = this.hp;
-        snapshot.maxHp = this.maxHp;
-        snapshot.type = this.type;
-        snapshot.isDead = this.isDead;
-        snapshot.damage = this.damage;
-        snapshot.expReward = this.expReward;
-        return snapshot;
-    }
-
-    // 從快照更新（客戶端預測用）
-    updateFromSnapshot(snapshot: EnemySnapshot): void {
-        this.x = snapshot.x;
-        this.y = snapshot.y;
-        this.hp = snapshot.hp;
-        this.isDead = snapshot.isDead;
     }
 
     // 獲取AI狀態（供伺服器端調試用）
@@ -462,8 +440,7 @@ export class GameRoomState extends Schema {
     // 添加完整敵人的方法
     addEnemy(enemy: Enemy): void {
         this.fullEnemies.set(enemy.id, enemy);
-        // 同時更新快照
-        this.updateEnemySnapshot(enemy);
+        // 同時更新快照  this.updateEnemySnapshot(enemy);
     }
 
     // 移除敵人
@@ -486,23 +463,18 @@ export class GameRoomState extends Schema {
         return this.fullEnemies;
     }
 
-    // 更新單個敵人快照
-    updateEnemySnapshot(enemy: Enemy): void {
-        const snapshot = enemy.createSnapshot();
-        this.enemySnapshots.set(enemy.id, snapshot);
-    }
 
     // 批量更新所有敵人快照
-    updateAllEnemySnapshots(): void {
-        for (const [id, enemy] of this.fullEnemies) {
-            if (!enemy.isDead) {
-                this.updateEnemySnapshot(enemy);
-            } else {
-                // 清理死亡敵人的快照
-                this.enemySnapshots.delete(id);
-            }
-        }
-    }
+    // updateAllEnemySnapshots(): void {
+    //     for (const [id, enemy] of this.fullEnemies) {
+    //         if (!enemy.isDead) {
+    //             this.updateEnemySnapshot(enemy);
+    //         } else {
+    //             // 清理死亡敵人的快照
+    //             this.enemySnapshots.delete(id);
+    //         }
+    //     }
+    // }
 
     // 清理死亡的敵人
     cleanupDeadEnemies(): { killedEnemies: string[], totalExp: number } {
@@ -617,11 +589,6 @@ export class UnitFactory {
         enemy.y = y;
         enemy.initializeByType(type);
         return enemy;
-    }
-
-    // 創建敵人快照（用於初始同步）
-    static createEnemySnapshot(enemy: Enemy): EnemySnapshot {
-        return enemy.createSnapshot();
     }
 
     static createStatusEffect(id: string, type: string, duration: number, value: number): StatusEffect {

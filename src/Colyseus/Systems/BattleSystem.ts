@@ -1,5 +1,7 @@
 import { Room, Client, Delayed } from "colyseus";
 import { GameRoomState, Enemy, Hero } from "../../Shared/Schema/GameState";
+import { GameManager } from "../Managers/GameManager";
+import { IdGenerator } from "../../Util/IdGenerator";
 
 const mapSize = 1000;
 const maxZombies = 50;
@@ -11,10 +13,18 @@ export class BattleSystem {
     private room: Room<GameRoomState>;
     private state: GameRoomState;
     private enemySpawnTimer: Delayed | null = null;
+    private gameManager: GameManager | null = null;
 
     constructor(room: Room<GameRoomState>) {
         this.room = room;
         this.state = room.state;
+    }
+
+    /**
+     * 設置 GameManager 引用
+     */
+    setGameManager(gameManager: GameManager): void {
+        this.gameManager = gameManager;
     }
 
     /**
@@ -81,30 +91,23 @@ export class BattleSystem {
      */
     handlePlayerMoveVector(client: Client, vx: number, vy: number): void {
         const hero = this.state.heroes.get(client.sessionId);
+
         if (hero) {
             // 設置移動向量
-            hero.vx = vx;
-            hero.vy = vy;
-            console.log(`🎯 Player ${hero.name} velocity: (${vx.toFixed(2)}, ${vy.toFixed(2)})`);
+            if (hero.vx != vx || hero.vy != vy) {
+                hero.vx = vx;
+                hero.vy = vy;
+                // 通知 GameManager 添加到移動同步數據
+                if (this.gameManager) {
+                    this.gameManager.addMoveData(hero.id, { vx, vy });
+                }
+
+                console.log(`🎯 Player ${hero.name} velocity: (${vx.toFixed(2)}, ${vy.toFixed(2)})`);
+            }
+
+
         }
     }
-
-    /**
-     * 處理玩家移動（舊版本，保留向後兼容）
-     */
-    handlePlayerMove(client: Client, x: number, y: number): void {
-        const hero = this.state.heroes.get(client.sessionId);
-        if (hero && !hero.isDead) {
-            // 簡單的位置驗證
-            const newX = Math.max(0, Math.min(mapSize, x));
-            const newY = Math.max(0, Math.min(mapSize, y));
-
-            hero.x = newX;
-            hero.y = newY;
-            console.log(`🚶 Player ${hero.name} moved to (${newX.toFixed(1)}, ${newY.toFixed(1)})`);
-        }
-    }
-
     /**
      * 開始敵人生成循環
      */
@@ -140,11 +143,12 @@ export class BattleSystem {
 
         let spawnedCount = 0;
         for (let i = 0; i < spawnCount; i++) {
-            const enemy = new Enemy();
-            enemy.id = `${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
-
             // 隨機決定殭屍類型
             const randomType = Math.floor(Math.random() * 3) + 1;
+
+            const enemy = new Enemy();
+            // 🔧 使用統一的ID生成系統
+            enemy.id = IdGenerator.generateEnemyId(randomType);
             enemy.initializeByType(randomType);
 
             // 隨機在地圖邊緣生成
@@ -179,7 +183,8 @@ export class BattleSystem {
      */
     spawnSingleEnemy(x: number, y: number, type: number = 1): string {
         const enemy = new Enemy();
-        enemy.id = `test_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
+        // 🔧 使用統一的測試ID生成系統
+        enemy.id = IdGenerator.generateTestEnemyId(type);
 
         // 設置敵人類型
         enemy.initializeByType(type);
