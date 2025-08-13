@@ -1,5 +1,5 @@
 import { Client, Room } from "colyseus";
-import { GameRoomState, GamePlayer, Hero } from "../../Shared/Schema/GameState";
+import { GameRoomState, GamePlayer, Hero } from "../Schema/GameState";
 import { IdGenerator } from "../../Util/IdGenerator";
 
 const mapSize = 1000;

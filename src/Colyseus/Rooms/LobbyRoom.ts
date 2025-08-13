@@ -2,7 +2,7 @@ import { Room, Client } from "colyseus";
 
 import { matchMaker } from "colyseus";
 import { MapSchema } from "@colyseus/schema";
-import { LobbyPlayer, LobbyRoomInfo, LobbyState } from "src/Shared/Schema/LobbyState";
+import { LobbyPlayer, LobbyRoomInfo, LobbyState } from "@/Colyseus/Schema/LobbyState";
 
 export class LobbyRoom extends Room<LobbyState> {
     maxClients = 100; // 大廳可以容納很多玩家

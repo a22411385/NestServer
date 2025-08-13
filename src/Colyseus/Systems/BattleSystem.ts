@@ -1,7 +1,9 @@
 import { Room, Client, Delayed } from "colyseus";
-import { GameRoomState, Enemy, Hero } from "../../Shared/Schema/GameState";
+import { GameRoomState } from "../Schema/GameState";
 import { GameManager } from "../Managers/GameManager";
 import { IdGenerator } from "../../Util/IdGenerator";
+import { Enemy } from "../Schema/Unit/Enemy";
+import { Hero } from "@/Shared/struct";
 
 const mapSize = 1000;
 const maxZombies = 50;

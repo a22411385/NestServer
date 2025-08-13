@@ -1,5 +1,5 @@
 import { Room, Client, ServerError, Presence, Delayed } from "colyseus";
-import { GameRoomState as GameRoomState, GamePlayer, GameCoreState, Enemy, Hero } from "../../Shared/Schema/GameState";
+import { GameRoomState as GameRoomState, GamePlayer, GameCoreState, Enemy, Hero } from "../Schema/GameState";
 
 // 引入新的管理器和系統
 import { PlayerManager } from "../Managers/PlayerManager";

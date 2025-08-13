@@ -1,7 +1,8 @@
 import { Room, Delayed } from "colyseus";
-import { GameRoomState } from "../../Shared/Schema/GameState";
+import { GameRoomState } from "../Schema/GameState";
 import { delay } from "../../Util/Utils";
 
+const ONE_TICK_TIME = 100;
 /**
  * 🎯 服務端移動配置 - 與客戶端保持一致
  */
@@ -66,31 +67,23 @@ export class GameManager {
         this.room.clock.clear();
         this.room.clock.start();
 
-        // 降低AI更新頻率以提升效能 - 從10FPS降至6FPS  
-        this.gameLoop = this.room.clock.setInterval(() => {
-            // 呼叫 GameRoom 的公開方法來處理遊戲更新
-
-        }, 166);
-
         // 每5秒更新場上所有單位位置
         this.allUnitSyncPos = this.room.clock.setInterval(() => {
             const allPositions = this.getAllUnitPositions();
-            this.room.broadcast('syncPosition', {
-                timestamp: Date.now(),
-                positions: allPositions
-            });
+            this.room.broadcast('syncPosition', allPositions);
 
         }, 5000);
 
         // 每次移動的單位 - 改進版本（包含速度信息）
         this.moveTick = this.room.clock.setInterval(() => {
+            (this.room as any).handleGameTick();
+            const enrichedMoveData: Record<string, { vx: number, vy: number, speed: number }> = {};
+
             if (Object.keys(this.moveData).length > 0) {
                 // 🎯 首先更新服務端位置（使用與客戶端相同的邏輯）
-                this.updateServerPositions();
-                (this.room as any).handleGameTick();
-                // 🔧 為每個移動數據添加速度信息
-                const enrichedMoveData: Record<string, { vx: number, vy: number, speed: number }> = {};
 
+                // 🔧 為每個移動數據添加速度信息
+                this.updateServerPositions(this.moveData);
                 for (const [unitId, velocity] of Object.entries(this.moveData)) {
                     const speed = this.getUnitSpeed(unitId);
                     enrichedMoveData[unitId] = {
@@ -99,14 +92,18 @@ export class GameManager {
                         speed: speed
                     };
                 }
+                this.moveData = {};
 
-                this.room.broadcast('frame-tick', {
-                    frameId: this.serverFrame,
-                    moveData: enrichedMoveData
-                });
-                this.serverFrame++;
             }
-        }, 166);
+
+
+
+            this.room.broadcast('move-tick', {
+                frameId: this.serverFrame,
+                moveData: enrichedMoveData
+            });
+            this.serverFrame++;
+        }, ONE_TICK_TIME);
 
         if (!this.state.isTestMode)
             // Waves 流程
@@ -214,7 +211,7 @@ export class GameManager {
      * 遊戲每幀更新
      */
     public updateGameTick(): { deltaTime: number; currentTime: number } {
-        const dt = 166; // ms per tick (6 FPS)
+        const dt = ONE_TICK_TIME; // ms per tick (6 FPS)
         const currentTime = Date.now();
         // 更新遊戲時間
         this.state.gameCore.gameTime += dt;
@@ -266,12 +263,13 @@ export class GameManager {
     /**
      * 🎯 更新所有單位位置
      */
-    private updateServerPositions(): void {
+    private updateServerPositions(_data: Record<string, MoveVector>): void {
         const deltaTime = MOVEMENT_CONFIG.FIXED_DELTA;
 
         // 更新所有有移動向量的單位
-        for (const [unitId, velocity] of Object.entries(this.moveData)) {
-            this.applyMovementToServerUnit(unitId, velocity, deltaTime);
+        for (let i in _data) {
+            let hero = this.state.heroes.get(i)
+            let unit = this.state.state.get(i)
         }
     }
 
@@ -283,7 +281,7 @@ export class GameManager {
         const speed = this.getUnitSpeed(unitId);
 
         // 使用與客戶端相同的移動計算公式
-        const moveDistance = speed * MOVEMENT_CONFIG.MOVEMENT_SCALE * deltaTime;
+        const moveDistance = speed * MOVEMENT_CONFIG.MOVEMENT_SCALE;
         const deltaX = velocity.vx * moveDistance;
         const deltaY = velocity.vy * moveDistance;
 
