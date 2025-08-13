@@ -1,7 +1,14 @@
 import { Room, Delayed } from "colyseus";
 import { GameRoomState } from "../../Shared/Schema/GameState";
 import { delay } from "../../Util/Utils";
-import { IdGenerator } from "../../Util/IdGenerator";
+
+/**
+ * 🎯 服務端移動配置 - 與客戶端保持一致
+ */
+const MOVEMENT_CONFIG = {
+    MOVEMENT_SCALE: 10,        // 移動縮放係數，與客戶端保持一致
+    FIXED_DELTA: 1 / 60        // 固定 delta time (60 FPS)
+};
 
 // 移動向量介面
 interface MoveVector {
@@ -13,6 +20,7 @@ interface MoveVector {
  * 遊戲管理器 - 負責遊戲流程控制、波次管理和遊戲狀態
  */
 export class GameManager {
+
     private room: Room<GameRoomState>;
     private state: GameRoomState;
     private gameLoop: Delayed | null = null;
@@ -20,43 +28,31 @@ export class GameManager {
     private moveTick: Delayed | null = null;
     private moveData: Record<string, MoveVector> = {};
     private battleSystem: any = null; // 會在初始化時設置
-
-    // 改進的同步系統屬性
-    private moveSequence: number = 0;
-    private lastSyncTime: number = 0;
-
-    private performanceStats = {
-        aiUpdatesPerSecond: 0,
-        aiUpdateCounter: 0,
-        lastStatsTime: Date.now(),
-        maxEnemyCount: 0,
-        averagePlayersAlive: 0
-    };
+    private serverFrame = 0;
 
     constructor(room: Room<GameRoomState>) {
         this.room = room;
         this.state = room.state;
     }
 
-    /**
-     * 🎯 服務端移動配置 - 與客戶端保持一致
-     */
-    private readonly MOVEMENT_CONFIG = {
-        MOVEMENT_SCALE: 10,        // 移動縮放係數，與客戶端保持一致
-        FIXED_DELTA: 1 / 60        // 固定 delta time (60 FPS)
-    };
 
     /**
      * 設置 BattleSystem 引用
      */
-    setBattleSystem(battleSystem: any): void {
+    public setBattleSystem(battleSystem: any): void {
         this.battleSystem = battleSystem;
     }
 
     /**
+ * 添加單位移動數據到下次同步
+ */
+    public addMoveData(unitId: string, velocity: MoveVector): void {
+        this.moveData[unitId] = velocity;
+    }
+    /**
      * 開始遊戲
      */
-    startGame(): void {
+    public startGame(): void {
         console.log(`🎮 Game started in room ${this.room.roomId}`);
         this.state.state = "playing";
 
@@ -67,33 +63,23 @@ export class GameManager {
         this.state.gameCore.aliveHeroes = this.state.players.size;
 
         // 開始遊戲循環
-        this.startGameLoop();
-
-        console.log(`✅ Game started - Wave: ${this.state.gameCore.waveNumber}, Heroes: ${this.state.heroes.size}`);
-    }
-
-    /**
-     * 開始遊戲循環
-     */
-    private startGameLoop(): void {
         this.room.clock.clear();
         this.room.clock.start();
 
         // 降低AI更新頻率以提升效能 - 從10FPS降至6FPS  
         this.gameLoop = this.room.clock.setInterval(() => {
             // 呼叫 GameRoom 的公開方法來處理遊戲更新
-            (this.room as any).handleGameTick();
+
         }, 166);
 
-        // 定期更新場上所有單位位置 - 改進版本
+        // 每5秒更新場上所有單位位置
         this.allUnitSyncPos = this.room.clock.setInterval(() => {
             const allPositions = this.getAllUnitPositions();
             this.room.broadcast('syncPosition', {
                 timestamp: Date.now(),
-                sequence: ++this.moveSequence,
                 positions: allPositions
             });
-            this.lastSyncTime = Date.now();
+
         }, 5000);
 
         // 每次移動的單位 - 改進版本（包含速度信息）
@@ -101,9 +87,7 @@ export class GameManager {
             if (Object.keys(this.moveData).length > 0) {
                 // 🎯 首先更新服務端位置（使用與客戶端相同的邏輯）
                 this.updateServerPositions();
-
-                this.moveSequence++;
-
+                (this.room as any).handleGameTick();
                 // 🔧 為每個移動數據添加速度信息
                 const enrichedMoveData: Record<string, { vx: number, vy: number, speed: number }> = {};
 
@@ -116,19 +100,19 @@ export class GameManager {
                     };
                 }
 
-                this.room.broadcast('move-tick', {
-                    sequence: this.moveSequence,
-                    timestamp: Date.now(),
-                    duration: 166, // 這批移動指令的持續時間
+                this.room.broadcast('frame-tick', {
+                    frameId: this.serverFrame,
                     moveData: enrichedMoveData
                 });
-                this.moveData = {};
+                this.serverFrame++;
             }
         }, 166);
 
         if (!this.state.isTestMode)
             // Waves 流程
             this.gameFlow();
+
+        console.log(`✅ Game started - Wave: ${this.state.gameCore.waveNumber}, Heroes: ${this.state.heroes.size}`);
     }
 
     /**
@@ -179,41 +163,11 @@ export class GameManager {
         }
     }
 
-    /**
-     * 遊戲每幀更新
-     */
-    updateGameTick(): { deltaTime: number; currentTime: number } {
-        const dt = 166; // ms per tick (6 FPS)
-        const currentTime = Date.now();
-
-        // 更新遊戲時間
-        this.state.gameCore.gameTime += dt;
-
-        // 效能統計
-        this.performanceStats.aiUpdateCounter++;
-
-        // 每秒統計一次效能數據
-        if (currentTime - this.performanceStats.lastStatsTime >= 1000) {
-            this.performanceStats.aiUpdatesPerSecond = this.performanceStats.aiUpdateCounter;
-            this.performanceStats.aiUpdateCounter = 0;
-            this.performanceStats.lastStatsTime = currentTime;
-
-            const activeEnemies = this.state.getEnemyCount();
-            this.performanceStats.maxEnemyCount = Math.max(this.performanceStats.maxEnemyCount, activeEnemies);
-
-            // 如果敵人數量過多，記錄警告
-            if (activeEnemies > 80) {
-                console.warn(`⚠️ High enemy count: ${activeEnemies}, consider optimization`);
-            }
-        }
-
-        return { deltaTime: dt, currentTime };
-    }
 
     /**
      * 結束遊戲
      */
-    endGame(reason: "allPlayersDead" | "waveComplete"): void {
+    private endGame(reason: "allPlayersDead" | "waveComplete"): void {
         console.log(`Game ended: ${reason}`);
         this.state.state = 'waiting';
         this.state.gameCore.status = 'prepare';
@@ -237,7 +191,7 @@ export class GameManager {
     /**
      * 停止遊戲循環
      */
-    stopGameLoop(): void {
+    public stopGameLoop(): void {
         // 停止所有計時器
         if (this.gameLoop) {
             this.gameLoop.clear();
@@ -254,30 +208,18 @@ export class GameManager {
 
         this.room.clock.stop();
         this.room.clock.clear();
-
-        // 輸出效能報告
-        this.logPerformanceReport();
     }
 
     /**
-     * 效能報告
+     * 遊戲每幀更新
      */
-    private logPerformanceReport(): void {
-        const report = {
-            房間ID: this.room.roomId,
-            最大敵人數量: this.performanceStats.maxEnemyCount,
-            AI更新頻率: `${this.performanceStats.aiUpdatesPerSecond} updates/sec`,
-            玩家數量: this.state.players.size,
-            最終波數: this.state.gameCore.waveNumber,
-            遊戲時長: `${Math.round(this.state.gameCore.gameTime / 1000)}秒`
-        };
-
-        console.log('🎮 GameRoom 效能報告:', report);
-
-        // 發送效能數據給客戶端 (可選)
-        this.room.broadcast("performanceReport", report);
+    public updateGameTick(): { deltaTime: number; currentTime: number } {
+        const dt = 166; // ms per tick (6 FPS)
+        const currentTime = Date.now();
+        // 更新遊戲時間
+        this.state.gameCore.gameTime += dt;
+        return { deltaTime: dt, currentTime };
     }
-
     /**
      * 獲取所有單位的位置（用於強制同步）
      */
@@ -322,10 +264,10 @@ export class GameManager {
     }
 
     /**
-     * 🎯 服務端位置更新 - 使用與客戶端相同的移動邏輯
+     * 🎯 更新所有單位位置
      */
     private updateServerPositions(): void {
-        const deltaTime = this.MOVEMENT_CONFIG.FIXED_DELTA;
+        const deltaTime = MOVEMENT_CONFIG.FIXED_DELTA;
 
         // 更新所有有移動向量的單位
         for (const [unitId, velocity] of Object.entries(this.moveData)) {
@@ -341,7 +283,7 @@ export class GameManager {
         const speed = this.getUnitSpeed(unitId);
 
         // 使用與客戶端相同的移動計算公式
-        const moveDistance = speed * this.MOVEMENT_CONFIG.MOVEMENT_SCALE * deltaTime;
+        const moveDistance = speed * MOVEMENT_CONFIG.MOVEMENT_SCALE * deltaTime;
         const deltaX = velocity.vx * moveDistance;
         const deltaY = velocity.vy * moveDistance;
 
@@ -384,12 +326,7 @@ export class GameManager {
         }
     }
 
-    /**
-     * 添加單位移動數據到下次同步
-     */
-    addMoveData(unitId: string, velocity: MoveVector): void {
-        this.moveData[unitId] = velocity;
-    }
+
 
     /**
      * 檢查遊戲是否正在進行
