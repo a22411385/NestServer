@@ -1,6 +1,7 @@
 import { Room, Delayed } from "colyseus";
 import { GameRoomState, UnitType } from "../Schema/GameState";
 import { delay } from "../../Util/Utils";
+import { UnitManager } from "../Systems/UnitManager";
 
 const ONE_TICK_TIME = 100;
 /**
@@ -31,9 +32,13 @@ export class GameManager {
     private battleSystem: any = null; // 會在初始化時設置
     private serverFrame = 0;
     private gameTime: number = 0;
+
+    public unitManager: UnitManager;
+
     constructor(room: Room<GameRoomState>) {
         this.room = room;
         this.state = room.state;
+        this.unitManager = new UnitManager(room);
     }
 
 

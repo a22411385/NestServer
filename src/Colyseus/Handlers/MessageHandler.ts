@@ -29,12 +29,8 @@ export class MessageHandler {
         this.room.onMessage("toggleReady", (client, message) => {
             if (gameManager.isPlaying) return;
 
-            const allReady = playerManager.togglePlayerReady(client);
+            playerManager.togglePlayerReady(client);
 
-            // 檢查是否所有玩家都準備好了
-            if (allReady && playerManager.getPlayerCount() >= 1) {
-                this.room.broadcast("allPlayersReady", {});
-            }
         });
 
         // 開始遊戲（只有主機可以）
@@ -207,41 +203,10 @@ export class MessageHandler {
     }
 
     /**
-     * 通知其他玩家有新玩家加入
-     */
-    notifyPlayerJoined(client: Client, playerName: string, characterId: number): void {
-        this.room.broadcast("playerJoined", {
-            playerId: client.sessionId,
-            playerName: playerName,
-            characterId: characterId,
-        }, { except: client });
-    }
-
-    /**
-     * 通知其他玩家有玩家離開
-     */
-    notifyPlayerLeft(playerId: string, playerName: string): void {
-        this.room.broadcast("playerLeft", {
-            playerId: playerId,
-            playerName: playerName,
-        });
-    }
-
-    /**
      * 通知新主機
      */
     notifyNewHost(newHostId: string): void {
         this.room.broadcast("newHost", { newHostId: newHostId });
-    }
-
-    /**
-     * 通知玩家準備狀態改變
-     */
-    notifyPlayerReadyChanged(playerId: string, isReady: boolean): void {
-        this.room.broadcast("playerReadyChanged", {
-            playerId: playerId,
-            isReady: isReady,
-        });
     }
 
     /**

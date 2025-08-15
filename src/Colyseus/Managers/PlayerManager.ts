@@ -95,18 +95,11 @@ export class PlayerManager {
         console.log(`Player ${player.name} toggleReady`);
         player.isReady = !player.isReady;
 
-        this.room.broadcast("playerReadyChanged", {
-            playerId: client.sessionId,
-            isReady: player.isReady,
-        });
 
         this.state.players.set(client.sessionId, player);
 
         // 檢查是否所有玩家都準備好了
         const allReady = this.getAllPlayersReady();
-        if (allReady && this.state.players.size >= 1) {
-            this.room.broadcast("allPlayersReady", {});
-        }
 
         return allReady;
     }

@@ -1,0 +1,21 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Colyseus: schema-codegen → ViteRPG",
+      "type": "shell",
+      "command": "npx",
+      "args": [
+        "schema-codegen",
+        "src/Colyseus/Schema/*",
+        "--ts",
+        "--output",
+        "${workspaceFolder:ViteRPG}/src/Colyseus/Schema"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder:NestServer}"
+      },
+      "problemMatcher": []
+    }
+  ]
+}

@@ -118,7 +118,7 @@ export class BattleSystem {
 
         // 每秒生成一隻
         this.enemySpawnTimer = this.room.clock.setInterval(() => {
-            this.spawnZombies();
+            this.gameManager?.unitManager.spawnZombies();
         }, 1000);
     }
 
@@ -132,51 +132,6 @@ export class BattleSystem {
         }
     }
 
-    /**
-     * 生成殭屍到 enemies，數量不超過最大上限
-     */
-    private spawnZombies(): void {
-        const currentCount = this.state.getEnemyCount();
-        const canSpawn = Math.max(0, maxZombies - currentCount);
-        const spawnCount = Math.min(1, canSpawn);
-        if (spawnCount <= 0) return;
-
-        let spawnedCount = 0;
-        for (let i = 0; i < spawnCount; i++) {
-            // 隨機決定殭屍類型
-            const randomType = Math.floor(Math.random() * 3) + 1;
-
-            const enemy = new Enemy();
-            // 🔧 使用統一的ID生成系統
-            enemy.id = IdGenerator.generateEnemyId(randomType);
-            enemy.initializeByType(randomType);
-
-            // 隨機在地圖邊緣生成
-            const edge = Math.floor(Math.random() * 4);
-            switch (edge) {
-                case 0: // 上
-                    enemy.x = Math.random() * mapSize;
-                    enemy.y = 0;
-                    break;
-                case 1: // 下
-                    enemy.x = Math.random() * mapSize;
-                    enemy.y = mapSize;
-                    break;
-                case 2: // 左
-                    enemy.x = 0;
-                    enemy.y = Math.random() * mapSize;
-                    break;
-                case 3: // 右
-                    enemy.x = mapSize;
-                    enemy.y = Math.random() * mapSize;
-                    break;
-            }
-
-            // 使用新的添加方法
-            this.state.addEnemy(enemy);
-            spawnedCount++;
-        }
-    }
 
     /**
      * 測試房專用：生成單隻敵人到指定位置
