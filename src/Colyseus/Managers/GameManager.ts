@@ -226,7 +226,7 @@ export class GameManager {
     /**
      * 獲取所有單位的位置（用於強制同步）
      */
-    private getAllUnitPositions(): Record<string, { x: number, y: number }> {
+    public getAllUnitPositions(): Record<string, { x: number, y: number }> {
         const positions: Record<string, { x: number, y: number }> = {};
 
         // 收集所有單位位置
@@ -238,6 +238,7 @@ export class GameManager {
 
         return positions;
     }
+
     /**
      * 強制同步所有座標
      */

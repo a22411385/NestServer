@@ -24,6 +24,8 @@ export class GameUnit extends Schema {
     @type("string") owner: string = "";
     @type("number") hp: number = 10;
     @type("number") maxHp: number = 10;
+
+    @type("number") baseMoveSpeed = 10;
     @type("number") radius: number = 20; // 體積/碰撞半徑
 
     @type("boolean") isDead: boolean = false;

@@ -8,6 +8,7 @@ export class Enemy extends GameUnit {
 
     @type("number") damage: number = 10; // 攻擊傷害
     @type("number") expReward: number = 1; // 擊殺獎勵經驗值
+    @type("number") lv: number = 1; // 敵人等級
 
     // AI 狀態 - 不同步，僅伺服器端使用
     private aiState: string = "chase"; // AI 狀態: chase, attack, idle
@@ -115,6 +116,7 @@ export class Enemy extends GameUnit {
             this.vx = 0;
             this.vy = 0;
         }
+
     }
 
     // 嘗試攻擊
@@ -135,9 +137,9 @@ export class Enemy extends GameUnit {
     }
 
     // 根據類型初始化屬性
-    initializeByType(type: number): void {
-        this.type = type;
-        switch (type) {
+    initializeByType(lv: number): void {
+        this.lv = lv;
+        switch (lv) {
             case 1: // 普通殭屍
                 this.hp = this.maxHp = 20;
                 this.speed = 50;

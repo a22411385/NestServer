@@ -81,7 +81,10 @@ export class MessageHandler {
 
         this.room.onMessage('updateGameState', (client, message) => {
             if (!gameManager.isPlaying) return;
-            client.send('updateGameState', this.room.state.gameCore);
+            client.send('updateGameState', {
+                state: this.room.state.gameCore,
+                position: gameManager.getAllUnitPositions()
+            });
         });
 
         // === 測試房專用指令 ===
