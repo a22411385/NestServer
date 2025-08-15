@@ -1,6 +1,7 @@
 import { Client, Room } from "colyseus";
-import { GameRoomState, GamePlayer, Hero } from "../Schema/GameState";
+import { GameRoomState, GamePlayer, UnitType, UnitFactory } from "../Schema/GameState";
 import { IdGenerator } from "../../Util/IdGenerator";
+import { Hero } from "../Schema/Unit/Hero";
 
 const mapSize = 1000;
 
@@ -149,18 +150,19 @@ export class PlayerManager {
      */
     initializeAllHeroes(): void {
         for (const [playerId, player] of this.state.players) {
-            const hero = new Hero();
+
+            const hero = new Hero
             // 🔧 使用統一的ID生成系統
             hero.id = IdGenerator.generateHeroId(playerId);
             hero.name = player.name;
-
+            hero.owner = playerId;
             hero.x = 0;
             hero.y = 0;
 
             hero.hp = hero.maxHp;
             hero.invincibleRemaining = 0;
-            // 🔧 注意：Map的key還是使用playerId，但hero.id是標準化的
-            this.state.heroes.set(playerId, hero);
+
+            this.state.allUnits.set(hero.id, hero);
 
             console.log(`👤 Initialized hero with ID: ${hero.id} for player: ${playerId}`);
         }
@@ -170,18 +172,21 @@ export class PlayerManager {
      * 檢查所有玩家是否死亡
      */
     checkAllPlayersDead(): boolean {
-        for (const [, hero] of this.state.heroes) {
+        let heros = [];
+        for (const [, hero] of this.state.allUnits) {
+            if (hero.type == UnitType.hero) heros.push(hero);
             if (!hero.isDead && hero.hp > 0) return false;
         }
-        return this.state.heroes.size > 0; // 確保有玩家存在
+        return heros.length > 0; // 確保有玩家存在
     }
 
     /**
      * 更新所有 Hero 的無敵時間
      */
     updateHeroesInvincible(deltaTime: number): void {
-        for (const [, hero] of this.state.heroes) {
-            hero.updateInvincible(deltaTime);
+        for (const [, hero] of this.state.allUnits) {
+            if (hero.type == UnitType.hero)
+                (hero as Hero).updateInvincible(deltaTime);
         }
     }
 
@@ -191,14 +196,16 @@ export class PlayerManager {
     checkAndHandlePlayerDeaths(): { anyPlayerDied: boolean; allDead: boolean } {
         let anyPlayerDied = false;
 
-        for (const [, hero] of this.state.heroes) {
-            if (hero.hp <= 0 && !hero.isDead) {
-                hero.isDead = true;
-                anyPlayerDied = true;
+        for (const [, hero] of this.state.allUnits) {
+            if (hero.type == UnitType.hero) {
+                if (hero.hp <= 0 && !hero.isDead) {
+                    hero.isDead = true;
+                    anyPlayerDied = true;
 
-                // 這裡可以由外部傳入戰報回調
-                console.log(`${hero.name} 被殭屍群殺死了！`);
-                this.room.broadcast("heroDied", { heroId: hero.id });
+                    // 這裡可以由外部傳入戰報回調
+                    console.log(`${(hero as Hero).name} 被殭屍群殺死了！`);
+                    this.room.broadcast("heroDied", { heroId: hero.id });
+                }
             }
         }
 
@@ -218,8 +225,8 @@ export class PlayerManager {
      */
     getAliveHeroCount(): number {
         let count = 0;
-        for (const [, hero] of this.state.heroes) {
-            if (!hero.isDead && hero.hp > 0) count++;
+        for (const [, hero] of this.state.allUnits) {
+            if (hero.type == UnitType.hero && !hero.isDead && hero.hp > 0) count++;
         }
         return count;
     }

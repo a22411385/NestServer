@@ -1,6 +1,7 @@
 import { MapSchema, type } from "@colyseus/schema";
-import { GameUnit, UnitType } from "../GameState";
+import { UnitType } from "../GameState";
 import { Hero } from "./Hero";
+import { GameUnit } from "./GameUnit";
 
 // 殭屍 - 伺服器端完整版本
 export class Enemy extends GameUnit {
@@ -26,6 +27,7 @@ export class Enemy extends GameUnit {
         this.speed = 50; // 每秒移動50像素
         this.radius = 15;
         this.type = UnitType.enemy;
+        this.owner = 'enemy'
     }
 
     // 尋找最近的目標 - 優化版本使用快取

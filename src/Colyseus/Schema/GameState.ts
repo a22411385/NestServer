@@ -1,7 +1,10 @@
 
 
 import { Schema, type, MapSchema } from "@colyseus/schema";
+import { GameUnit, StatusEffect } from "./Unit/GameUnit";
 import { Enemy } from "./Unit/Enemy";
+import { Hero } from "./Unit/Hero";
+
 export type gameStateTag = "waiting" | 'playing' | 'finished' | 'pedding' | 'testing';
 export type gameFlowStatus = "prepare" | 'battle' | 'rest' | 'settlement' | 'test_mode';
 export type roomType = "normal" | "test";
@@ -13,90 +16,13 @@ export enum UnitType {
     npc,
     boss
 }
-// 技能基底
-export class Skill extends Schema {
+// --- Item (道具) Schema ---
+export class Item extends Schema {
     @type("string") id: string = "";
-    @type("string") name: string = "";
-    @type("number") cooldown: number = 0; // 冷卻時間 (ms)
-    @type("number") remainingCooldown: number = 0; // 剩餘冷卻時間
-    @type("number") damage: number = 0; // 技能傷害
-    @type("number") range: number = 100; // 技能範圍
-}
-
-// 狀態效果
-export class StatusEffect extends Schema {
-    @type("string") id: string = "";
-    @type("string") type: string = ""; // buff, debuff, heal, damage
-    @type("number") duration: number = 0; // 持續時間 (ms)
-    @type("number") value: number = 0; // 效果數值
-}
-
-// 單位基底
-export class GameUnit extends Schema {
-    @type("string") id: string = "";
-    @type("string") type: UnitType = UnitType.enemy;
-
-    @type("number") hp: number = 10;
-    @type("number") maxHp: number = 10;
-    @type("number") radius: number = 20; // 體積/碰撞半徑
-
-    @type("boolean") isDead: boolean = false;
-    @type({ map: Skill }) skills = new MapSchema<Skill>();
-    @type({ map: StatusEffect }) statusEffects = new MapSchema<StatusEffect>();
-
-    x: number = 0;
-    y: number = 0;
-
-    speed: number = 1; // 移動速度
-    vx: number = 0; // X 軸速度向量
-    vy: number = 0; // Y 軸速度向量
-
-    // 加血方法
-    heal(amount: number): number {
-        const oldHp = this.hp;
-        this.hp = Math.min(this.maxHp, this.hp + amount);
-        return this.hp - oldHp; // 返回實際恢復的血量
-    }
-
-    // 扣血方法
-    takeDamage(amount: number): boolean {
-        this.hp = Math.max(0, this.hp - amount);
-        if (this.hp <= 0 && !this.isDead) {
-            this.isDead = true;
-            return true; // 返回是否死亡
-        }
-        return false;
-    }
-
-    // 檢查是否在範圍內
-    isInRange(target: GameUnit, range: number): boolean {
-        const dx = target.x - this.x;
-        const dy = target.y - this.y;
-        const distance = Math.hypot(dx, dy);
-        return distance <= range;
-    }
-
-    // 添加狀態效果
-    addStatusEffect(effect: StatusEffect): void {
-        this.statusEffects.set(effect.id, effect);
-    }
-
-    // 移除狀態效果
-    removeStatusEffect(effectId: string): void {
-        this.statusEffects.delete(effectId);
-    }
-
-    // 重置狀態
-    reset(): void {
-        this.hp = this.maxHp;
-        this.isDead = false;
-        this.statusEffects.clear();
-
-        // 重置技能冷卻
-        for (const [, skill] of this.skills) {
-            skill.remainingCooldown = 0;
-        }
-    }
+    @type("number") x: number = 0;
+    @type("number") y: number = 0;
+    @type("string") itemType: string = "exp"; // exp, heal, buff ...
+    @type("number") value: number = 1;
 }
 
 
@@ -112,9 +38,12 @@ export class GamePlayer extends Schema {
 export class GameCoreState extends Schema {
     // 遊戲設置
     @type("number") waveNumber: number = 1;
-    @type("number") gameTime: number = 0;
     @type('string') status: gameFlowStatus = 'prepare'
     @type("number") aliveHeroes: number = 0; // 存活英雄數量
+    @type({ map: Item }) items = new MapSchema<Item>();
+
+    //這裡只同步場上所有單位的存活
+    @type({ map: GameUnit }) allUnits = new MapSchema<GameUnit>();
 
     // 遊戲狀態管理方法
     isGameActive(): boolean {
@@ -141,33 +70,19 @@ export class GameCoreState extends Schema {
     // 重置遊戲核心狀態
     resetGame(): void {
         this.waveNumber = 1;
-
-        this.gameTime = 0;
         this.status = 'prepare';
         this.aliveHeroes = 0;
     }
 }
 
-// --- Item (道具) Schema ---
-export class Item extends Schema {
-    @type("string") id: string = "";
-    @type("number") x: number = 0;
-    @type("number") y: number = 0;
-    @type("string") itemType: string = "exp"; // exp, heal, buff ...
-    @type("number") value: number = 1;
-}
 
 export class GameRoomState extends Schema {
     // === 核心狀態（高頻同步）===
     @type({ map: GamePlayer }) players = new MapSchema<GamePlayer>();
     //@type({ map: Hero }) heroes = new MapSchema<Hero>(); // 玩家操作單位
     @type(GameCoreState) gameCore: GameCoreState = new GameCoreState();
-    @type({ map: GameUnit }) allUnits = new MapSchema<GameUnit>();
-    // === 重要實體（中頻同步）===
-    @type({ map: Item }) items = new MapSchema<Item>();
 
-    // === 大量實體（低頻同步）===
-    //  @type({ map: EnemySnapshot }) enemySnapshots = new MapSchema<EnemySnapshot>();
+    // === 重要實體（中頻同步）===
 
     // === 房間基本資訊 ===
     @type("string") roomName: string = "";
@@ -177,31 +92,83 @@ export class GameRoomState extends Schema {
 
     // === 測試房模式相關 ===
     @type("boolean") isTestMode: boolean = false; // 測試模式標記
-    @type("boolean") playerInvincible: boolean = false; // 玩家無敵狀態
 
-    // 添加完整敵人的方法
+    get allUnits() {
+        return this.gameCore.allUnits;
+    }
+
+    // 添加完整單位的方法
     addUnit(unit: GameUnit): void {
         this.allUnits.set(unit.id, unit);
     }
 
-    // 移除敵人
-    removeUnit(unit: GameUnit): void {
-        this.allUnits.set(unit.id, unit);
+    // 移除單位
+    removeUnit(unitId: string): void {
+        this.allUnits.delete(unitId);
     }
 
-    //清除UnitType.enemy的元素
-    removeAllEnemy(): void {
+    // 移除敵人
+    removeEnemy(enemyId: string): void {
+        this.allUnits.delete(enemyId);
+    }
 
+    // 清除所有敵人類型的單位
+    removeAllEnemy(): void {
+        const toRemove: string[] = [];
+        for (const [unitId, unit] of this.allUnits) {
+            if (unit.type === UnitType.enemy) {
+                toRemove.push(unitId);
+            }
+        }
+        for (const unitId of toRemove) {
+            this.allUnits.delete(unitId);
+        }
+    }
+
+    // 添加敵人 (便利方法)
+    addEnemy(enemy: Enemy): void {
+        enemy.type = UnitType.enemy;
+        this.addUnit(enemy);
+    }
+
+    // 添加英雄 (便利方法)
+    addHero(hero: Hero): void {
+        hero.type = UnitType.hero;
+        this.addUnit(hero);
     }
 
     // 獲取完整敵人資料（伺服器端用）
-    getEnemy(unit: GameUnit): Enemy | undefined {
-        return this.allUnits.get(unit.id) as Enemy;
+    getEnemy(enemyId: string): Enemy | undefined {
+        const unit = this.allUnits.get(enemyId);
+        return (unit && unit.type === UnitType.enemy) ? unit as Enemy : undefined;
+    }
+
+    // 獲取英雄資料
+    getHero(heroId: string): Hero | undefined {
+        const unit = this.allUnits.get("hero_" + heroId);
+        return (unit && unit.type === UnitType.hero) ? unit as Hero : undefined;
     }
 
     // 獲取所有敵人（伺服器端用）
     getAllEnemies(): Map<string, Enemy> {
+        const enemies = new Map<string, Enemy>();
+        for (const [unitId, unit] of this.allUnits) {
+            if (unit.type === UnitType.enemy) {
+                enemies.set(unitId, unit as Enemy);
+            }
+        }
+        return enemies;
+    }
 
+    // 獲取所有英雄
+    getAllHeroes(): Map<string, Hero> {
+        const heroes = new Map<string, Hero>();
+        for (const [unitId, unit] of this.allUnits) {
+            if (unit.type === UnitType.hero) {
+                heroes.set(unitId, unit as Hero);
+            }
+        }
+        return heroes;
     }
 
 
@@ -210,11 +177,12 @@ export class GameRoomState extends Schema {
         const killedEnemies: string[] = [];
         let totalExp = 0;
 
-        for (const [enemyId, enemy] of this.allUnits) {
-            if (enemy.isDead) {
-                killedEnemies.push(enemyId);
+        for (const [unitId, unit] of this.allUnits) {
+            if (unit.type === UnitType.enemy && unit.isDead) {
+                const enemy = unit as Enemy;
+                killedEnemies.push(unitId);
                 totalExp += enemy.expReward;
-                this.removeEnemy(enemyId);
+                this.removeEnemy(unitId);
             }
         }
 
@@ -229,8 +197,10 @@ export class GameRoomState extends Schema {
     // 獲取存活敵人數量
     getAliveEnemyCount(): number {
         let count = 0;
-        for (const [, enemy] of this.fullEnemies) {
-            if (!enemy.isDead) count++;
+        for (const [, unit] of this.allUnits) {
+            if (unit.type === UnitType.enemy && !unit.isDead) {
+                count++;
+            }
         }
         return count;
     }
@@ -261,8 +231,8 @@ export class GameRoomState extends Schema {
     // 更新存活英雄數量
     updateAliveHeroes(): number {
         let aliveCount = 0;
-        for (const [, hero] of this.heroes) {
-            if (!hero.isDead) {
+        for (const [, unit] of this.allUnits) {
+            if (unit.type === UnitType.hero && !unit.isDead) {
                 aliveCount++;
             }
         }
@@ -277,10 +247,8 @@ export class GameRoomState extends Schema {
 
     // 重置遊戲狀態
     resetGameState(): void {
-        this.fullEnemies.clear();
-        this.enemySnapshots.clear();
-        this.items.clear();
-        this.heroes.clear();
+        this.allUnits.clear();
+        this.gameCore.items.clear();
         this.gameCore.resetGame();
 
         // 重置玩家準備狀態

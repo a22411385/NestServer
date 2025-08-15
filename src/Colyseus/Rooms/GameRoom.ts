@@ -1,11 +1,12 @@
-import { Room, Client, ServerError, Presence, Delayed } from "colyseus";
-import { GameRoomState as GameRoomState, GamePlayer, GameCoreState, Enemy, Hero } from "../Schema/GameState";
+import { Room, Client } from "colyseus";
+import { GameRoomState as GameRoomState, GameCoreState, UnitType } from "../Schema/GameState";
 
 // 引入新的管理器和系統
 import { PlayerManager } from "../Managers/PlayerManager";
 import { GameManager } from "../Managers/GameManager";
 import { BattleSystem } from "../Systems/BattleSystem";
 import { MessageHandler } from "../Handlers/MessageHandler";
+import { Hero } from "../Schema/Unit/Hero";
 
 export interface GameRoomOptions {
     roomName: string;
@@ -129,9 +130,9 @@ export class GameRoom extends Room<GameRoomState> {
 
         if (deathResult.anyPlayerDied) {
             // 發送死亡戰報
-            for (const [, hero] of this.state.heroes) {
-                if (hero.hp <= 0 && hero.isDead) {
-                    this.messageHandler.sendBattleLog(`${hero.name} 被殭屍群殺死了！`, 'death');
+            for (const [, hero] of this.state.gameCore.allUnits) {
+                if (hero.type == UnitType.hero && hero.hp <= 0 && hero.isDead) {
+                    this.messageHandler.sendBattleLog(`${(hero as Hero).name} 被殭屍群殺死了！`, 'death');
                 }
             }
 

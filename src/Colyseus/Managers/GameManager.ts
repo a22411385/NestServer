@@ -1,5 +1,5 @@
 import { Room, Delayed } from "colyseus";
-import { GameRoomState } from "../Schema/GameState";
+import { GameRoomState, UnitType } from "../Schema/GameState";
 import { delay } from "../../Util/Utils";
 
 const ONE_TICK_TIME = 100;
@@ -7,7 +7,7 @@ const ONE_TICK_TIME = 100;
  * 🎯 服務端移動配置 - 與客戶端保持一致
  */
 const MOVEMENT_CONFIG = {
-    MOVEMENT_SCALE: 10,        // 移動縮放係數，與客戶端保持一致
+    MOVEMENT_SCALE: 5,        // 移動縮放係數，與客戶端保持一致
     FIXED_DELTA: 1 / 60        // 固定 delta time (60 FPS)
 };
 
@@ -30,7 +30,7 @@ export class GameManager {
     private moveData: Record<string, MoveVector> = {};
     private battleSystem: any = null; // 會在初始化時設置
     private serverFrame = 0;
-
+    private gameTime: number = 0;
     constructor(room: Room<GameRoomState>) {
         this.room = room;
         this.state = room.state;
@@ -59,7 +59,6 @@ export class GameManager {
 
         // 初始化遊戲核心狀態
         this.state.gameCore.waveNumber = 1;
-        this.state.gameCore.gameTime = 0;
         this.state.gameCore.status = 'prepare';
         this.state.gameCore.aliveHeroes = this.state.players.size;
 
@@ -68,11 +67,7 @@ export class GameManager {
         this.room.clock.start();
 
         // 每5秒更新場上所有單位位置
-        this.allUnitSyncPos = this.room.clock.setInterval(() => {
-            const allPositions = this.getAllUnitPositions();
-            this.room.broadcast('syncPosition', allPositions);
-
-        }, 5000);
+        this.allUnitSyncPos = this.room.clock.setInterval(this.forceUpdateAllPositions.bind(this), 5000);
 
         // 每次移動的單位 - 改進版本（包含速度信息）
         this.moveTick = this.room.clock.setInterval(() => {
@@ -83,7 +78,7 @@ export class GameManager {
                 // 🎯 首先更新服務端位置（使用與客戶端相同的邏輯）
 
                 // 🔧 為每個移動數據添加速度信息
-                this.updateServerPositions(this.moveData);
+                this.setUnitMoveVector(this.moveData);
                 for (const [unitId, velocity] of Object.entries(this.moveData)) {
                     const speed = this.getUnitSpeed(unitId);
                     enrichedMoveData[unitId] = {
@@ -91,12 +86,23 @@ export class GameManager {
                         vy: velocity.vy,
                         speed: speed
                     };
+
+
+                    const unit = this.state.allUnits.get(unitId);
+
+                    if (unit) {
+                        console.log(`🎯 unit ${unitId} velocity: (${unit.vx.toFixed(2)}, ${unit.vy.toFixed(2)})`);
+                        unit.vx = velocity.vx;
+                        unit.vy = velocity.vy;
+                        unit.speed = speed; // 更新單位速度
+                    }
                 }
+
                 this.moveData = {};
 
             }
 
-
+            this.MoveAllUnit();
 
             this.room.broadcast('move-tick', {
                 frameId: this.serverFrame,
@@ -109,7 +115,7 @@ export class GameManager {
             // Waves 流程
             this.gameFlow();
 
-        console.log(`✅ Game started - Wave: ${this.state.gameCore.waveNumber}, Heroes: ${this.state.heroes.size}`);
+        console.log(`✅ Game started - Wave: ${this.state.gameCore.waveNumber}, Heroes: ${this.state.getAllHeroes().size}`);
     }
 
     /**
@@ -170,7 +176,7 @@ export class GameManager {
         this.state.gameCore.status = 'prepare';
 
         const finalWave = this.state.gameCore.waveNumber;
-        const survivedTime = this.state.gameCore.gameTime;
+        const survivedTime = this.gameTime;
 
         this.state.gameCore.waveNumber = 0;
 
@@ -214,7 +220,7 @@ export class GameManager {
         const dt = ONE_TICK_TIME; // ms per tick (6 FPS)
         const currentTime = Date.now();
         // 更新遊戲時間
-        this.state.gameCore.gameTime += dt;
+        this.gameTime += dt;
         return { deltaTime: dt, currentTime };
     }
     /**
@@ -223,108 +229,82 @@ export class GameManager {
     private getAllUnitPositions(): Record<string, { x: number, y: number }> {
         const positions: Record<string, { x: number, y: number }> = {};
 
-        // 收集所有Heroes位置 - 🔧 使用hero.id而不是heroId
-        for (const [heroId, hero] of this.state.heroes) {
-            positions[hero.id] = { x: hero.x, y: hero.y };
-        }
-
-        // 收集所有Enemies位置 - 🔧 使用enemy.id而不是enemyId
-        for (const [enemyId, enemy] of this.state.enemySnapshots) {
-            if (!enemy.isDead) {
-                positions[enemy.id] = { x: enemy.x, y: enemy.y };
+        // 收集所有單位位置
+        for (const [unitId, unit] of this.state.allUnits) {
+            if (!unit.isDead) {
+                positions[unit.id] = { x: unit.x, y: unit.y };
             }
         }
 
         return positions;
+    }
+    /**
+     * 強制同步所有座標
+     */
+    private forceUpdateAllPositions() {
+        const allPositions = this.getAllUnitPositions();
+        this.room.broadcast('syncPosition', allPositions);
     }
 
     /**
      * 🔧 獲取單位移動速度（從服務端狀態）
      */
     private getUnitSpeed(unitId: string): number {
-        // 檢查Heroes
-        for (const [heroId, hero] of this.state.heroes) {
-            if (heroId === unitId || hero.id === unitId) {
-                return hero.speed || 5; // 預設Hero速度
-            }
-        }
+        // 檢查所有單位
 
-        // 檢查Enemies
-        for (const [enemyId, enemy] of this.state.enemySnapshots) {
-            if (enemyId === unitId || enemy.id === unitId) {
-                return enemy.speed || 3; // 預設Enemy速度
-            }
-        }
+        let unit = this.state.allUnits.get(unitId);
+        if (unit)
+            return unit.speed || (unit.type === UnitType.hero ? 5 : 3);
 
-        console.warn(`⚠️ GameManager: No speed found for unit ${unitId}`);
+        // console.warn(`⚠️ GameManager: No speed found for unit ${unitId}`);
         return 1; // 預設速度
     }
 
     /**
-     * 🎯 更新所有單位位置
+     * 設定單位的移動向量
      */
-    private updateServerPositions(_data: Record<string, MoveVector>): void {
-        const deltaTime = MOVEMENT_CONFIG.FIXED_DELTA;
+    private setUnitMoveVector(_data: Record<string, MoveVector>): void {
 
         // 更新所有有移動向量的單位
-        for (let i in _data) {
-            let hero = this.state.heroes.get(i)
-            let unit = this.state.state.get(i)
+        for (let unitId in _data) {
+            let unit = this.state.allUnits.get(unitId);
+            if (unit) {
+                unit.vx = _data[unitId].vx
+                unit.vy = _data[unitId].vy
+
+                //     this.applyMovementToServerUnit(unitId, _data[unitId], MOVEMENT_CONFIG.FIXED_DELTA);
+            }
         }
     }
 
     /**
      * 🎯 應用移動到服務端單位 - 與客戶端邏輯完全一致
      */
-    private applyMovementToServerUnit(unitId: string, velocity: MoveVector, deltaTime: number): void {
-        // 獲取單位速度
-        const speed = this.getUnitSpeed(unitId);
+    private MoveAllUnit(): void {
 
-        // 使用與客戶端相同的移動計算公式
-        const moveDistance = speed * MOVEMENT_CONFIG.MOVEMENT_SCALE;
-        const deltaX = velocity.vx * moveDistance;
-        const deltaY = velocity.vy * moveDistance;
+        for (const [unitId, unit] of this.state.allUnits) {
 
-        let updated = false;
+            if (unit.vx == 0 && unit.vy == 0) continue;
 
-        // 更新Heroes位置
-        for (const [heroId, hero] of this.state.heroes) {
-            if (heroId === unitId || hero.id === unitId) {
-                const oldX = hero.x;
-                const oldY = hero.y;
-                hero.x += deltaX;
-                hero.y += deltaY;
-                // 確保在世界邊界內
-                hero.x = Math.max(-500, Math.min(500, hero.x));
-                hero.y = Math.max(-500, Math.min(500, hero.y));
-                console.log(`🎯 Server updated Hero ${unitId}: (${oldX.toFixed(1)},${oldY.toFixed(1)}) → (${hero.x.toFixed(1)},${hero.y.toFixed(1)}) delta:(${deltaX.toFixed(2)},${deltaY.toFixed(2)})`);
-                updated = true;
-                return;
-            }
-        }
+            // 獲取單位速度
+            const speed = this.getUnitSpeed(unitId);
 
-        // 更新Enemies位置
-        for (const [enemyId, enemy] of this.state.enemySnapshots) {
-            if (enemyId === unitId || enemy.id === unitId) {
-                const oldX = enemy.x;
-                const oldY = enemy.y;
-                enemy.x += deltaX;
-                enemy.y += deltaY;
-                // 確保在世界邊界內
-                enemy.x = Math.max(-500, Math.min(500, enemy.x));
-                enemy.y = Math.max(-500, Math.min(500, enemy.y));
-                console.log(`🎯 Server updated Enemy ${unitId}: (${oldX.toFixed(1)},${oldY.toFixed(1)}) → (${enemy.x.toFixed(1)},${enemy.y.toFixed(1)}) delta:(${deltaX.toFixed(2)},${deltaY.toFixed(2)})`);
-                updated = true;
-                return;
-            }
-        }
+            // 使用與客戶端相同的移動計算公式
+            const moveDistance = speed * MOVEMENT_CONFIG.FIXED_DELTA * MOVEMENT_CONFIG.MOVEMENT_SCALE;
+            const deltaX = unit.vx * moveDistance;
+            const deltaY = unit.vy * moveDistance;
 
-        if (!updated) {
-            console.warn(`⚠️ Could not find unit ${unitId} to update position`);
+            console.log(`🎯 unit ${unitId} Move: (${deltaX.toFixed(2)}, ${deltaY.toFixed(2)})`);
+            unit.x += deltaX;
+            unit.y += deltaY;
+
+            // 確保在世界邊界內
+            unit.x = Math.max(-500, Math.min(500, unit.x));
+            unit.y = Math.max(-500, Math.min(500, unit.y));
+
+            // const unitType = unit.type === UnitType.hero ? 'Hero' : 'Enemy';
         }
     }
-
-
 
     /**
      * 檢查遊戲是否正在進行
@@ -344,7 +324,7 @@ export class GameManager {
      * 獲取遊戲時間
      */
     getGameTime(): number {
-        return this.state.gameCore.gameTime;
+        return this.gameTime;
     }
 
     /**

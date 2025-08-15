@@ -1,6 +1,7 @@
 import { type } from "@colyseus/schema";
-import { GameUnit, UnitType } from "../GameState";
+import { UnitType } from "../GameState";
 import { Enemy } from "./Enemy";
+import { GameUnit } from "./GameUnit";
 
 // 玩家操控的主要單位
 export class Hero extends GameUnit {

@@ -1,9 +1,10 @@
 import { Room, Client, Delayed } from "colyseus";
-import { GameRoomState } from "../Schema/GameState";
+import { MapSchema } from "@colyseus/schema";
+import { GameRoomState, UnitType } from "../Schema/GameState";
 import { GameManager } from "../Managers/GameManager";
 import { IdGenerator } from "../../Util/IdGenerator";
 import { Enemy } from "../Schema/Unit/Enemy";
-import { Hero } from "@/Shared/struct";
+import { Hero } from "../Schema/Unit/Hero";
 
 const mapSize = 1000;
 const maxZombies = 50;
@@ -36,16 +37,17 @@ export class BattleSystem {
         const player = this.state.players.get(client.sessionId);
         if (!player) return;
 
-        const hero = this.state.heroes.get(client.sessionId);
+        const hero = this.state.getHero(client.sessionId);
         if (!hero || hero.isDead) return;
 
         // 查找範圍內的敵人
         let targetEnemy: Enemy | null = null;
         let closestDistance = hero.attackRange;
 
-        for (const [enemyId, enemy] of this.state.getAllEnemies()) {
-            if (enemy.isDead) continue;
+        for (const [unitId, unit] of this.state.allUnits) {
+            if (unit.type !== UnitType.enemy || unit.isDead) continue;
 
+            const enemy = unit as Enemy;
             const distance = Math.hypot(
                 enemy.x - targetX,
                 enemy.y - targetY
@@ -92,22 +94,18 @@ export class BattleSystem {
      * 處理玩家移動向量
      */
     handlePlayerMoveVector(client: Client, vx: number, vy: number): void {
-        const hero = this.state.heroes.get(client.sessionId);
+        const hero = this.state.getHero(client.sessionId);
 
         if (hero) {
             // 設置移動向量
             if (hero.vx != vx || hero.vy != vy) {
-                hero.vx = vx;
-                hero.vy = vy;
+
                 // 通知 GameManager 添加到移動同步數據
                 if (this.gameManager) {
                     this.gameManager.addMoveData(hero.id, { vx, vy });
                 }
 
-                console.log(`🎯 Player ${hero.name} velocity: (${vx.toFixed(2)}, ${vy.toFixed(2)})`);
             }
-
-
         }
     }
     /**
@@ -207,10 +205,13 @@ export class BattleSystem {
     updateEnemyAI(deltaTime: number, currentTime: number): Map<string, { before: number; after: number; hero: Hero }> {
         const heroHealthChanges = new Map<string, { before: number; after: number; hero: Hero }>();
 
-        // 記錄攻擊前的英雄血量
-        for (const [heroId, hero] of this.state.heroes) {
-            if (!hero.isDead) {
-                heroHealthChanges.set(heroId, {
+        // 記錄攻擊前的英雄血量並創建MapSchema
+        const heroMapSchema = new MapSchema<Hero>();
+        for (const [unitId, unit] of this.state.allUnits) {
+            if (unit.type === UnitType.hero && !unit.isDead) {
+                const hero = unit as Hero;
+                heroMapSchema.set(unitId, hero);
+                heroHealthChanges.set(unitId, {
                     before: hero.hp,
                     after: hero.hp,
                     hero: hero
@@ -219,10 +220,11 @@ export class BattleSystem {
         }
 
         // 更新每個敵人的 AI
-        for (const [enemyId, enemy] of this.state.getAllEnemies()) {
-            if (!enemy.isDead) {
+        for (const [unitId, unit] of this.state.allUnits) {
+            if (unit.type === UnitType.enemy && !unit.isDead) {
+                const enemy = unit as Enemy;
                 // 呼叫 Enemy 自己的優化 AI 更新
-                enemy.updateAI(this.state.heroes, deltaTime, currentTime);
+                enemy.updateAI(heroMapSchema, deltaTime, currentTime);
             }
         }
 
@@ -265,8 +267,10 @@ export class BattleSystem {
      */
     getAliveEnemyCount(): number {
         let count = 0;
-        for (const [, enemy] of this.state.getAllEnemies()) {
-            if (!enemy.isDead) count++;
+        for (const [, unit] of this.state.allUnits) {
+            if (unit.type === UnitType.enemy && !unit.isDead) {
+                count++;
+            }
         }
         return count;
     }
