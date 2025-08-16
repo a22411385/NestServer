@@ -1,12 +1,14 @@
 import { Room, Client } from "colyseus";
-import { GameRoomState as GameRoomState, GameCoreState, UnitType } from "../Schema/GameState";
+import { GameRoomState as GameRoomState, GameCoreState, UnitType } from "@/Colyseus/Schema/GameState";
 
 // 引入新的管理器和系統
-import { PlayerManager } from "../Managers/PlayerManager";
-import { GameManager } from "../Managers/GameManager";
-import { BattleSystem } from "../Systems/BattleSystem";
-import { MessageHandler } from "../Handlers/MessageHandler";
-import { Hero } from "../Schema/Unit/Hero";
+import { PlayerManager } from "@/Colyseus/Managers/PlayerManager";
+import { GameManager } from "@/Colyseus/Managers/GameManager";
+import { BattleSystem } from "@/Colyseus/Systems/BattleSystem";
+import { MessageHandler } from "@/Colyseus/Handlers/MessageHandler";
+import { Hero } from "@/Colyseus/Schema/Unit/Hero";
+import { MovementSystem } from "@/Colyseus/Systems/MovemnetSystem";
+import { UnitManager } from "../Systems/UnitManager";
 
 export interface GameRoomOptions {
     roomName: string;
@@ -20,13 +22,30 @@ export interface GameRoomOptions {
 export class GameRoom extends Room<GameRoomState> {
     maxClients = 6;
     autoDispose = true;
-
     // 管理器實例
-    private playerManager: PlayerManager;
-    private gameManager: GameManager;
-    private battleSystem: BattleSystem;
-    private messageHandler: MessageHandler;
+    public gameManager: GameManager;
 
+    public playerManager: PlayerManager;
+    public battleSystem: BattleSystem;
+    public messageHandler: MessageHandler;
+    public movementSystem: MovementSystem;
+    public unitManager: UnitManager;
+
+
+    /**
+    * 初始化所有管理器
+    */
+    public initializeManagers(): void {
+
+        this.playerManager = new PlayerManager(this);
+
+        this.battleSystem = new BattleSystem(this);
+        this.messageHandler = new MessageHandler(this);
+        this.movementSystem = new MovementSystem(this);
+        this.unitManager = new UnitManager(this);
+        this.gameManager = new GameManager(this);
+
+    }
     get IsPlaying(): boolean {
         return this.gameManager.isPlaying;
     }
@@ -48,11 +67,10 @@ export class GameRoom extends Room<GameRoomState> {
             // 初始化遊戲數據，避免 undefined
             this.state.gameCore = new GameCoreState;
 
-            // 初始化管理器
             this.initializeManagers();
-
             // 設置消息處理器
-            this.setupMessageHandlers();
+            this.messageHandler.setupMessageHandlers();
+
 
             console.log(`GameRoom ${this.roomId} created successfully`);
         } catch (error) {
@@ -81,32 +99,6 @@ export class GameRoom extends Room<GameRoomState> {
         this.messageHandler.cleanup();
     }
 
-    /**
-     * 初始化所有管理器
-     */
-    private initializeManagers(): void {
-        this.playerManager = new PlayerManager(this);
-        this.gameManager = new GameManager(this);
-        this.battleSystem = new BattleSystem(this);
-        this.messageHandler = new MessageHandler(this);
-
-        // 設置管理器之間的引用
-        this.gameManager.setBattleSystem(this.battleSystem);
-        this.battleSystem.setGameManager(this.gameManager);
-    }
-
-    /**
-     * 設置消息處理器
-     */
-    private setupMessageHandlers(): void {
-        this.messageHandler.setupMessageHandlers(
-            this.playerManager,
-            this.gameManager,
-            this.battleSystem
-        );
-
-
-    }
 
     /**
      * 處理遊戲 Tick - 整合所有系統更新

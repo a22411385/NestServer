@@ -2,6 +2,8 @@ import { MapSchema, type } from "@colyseus/schema";
 import { UnitType } from "../GameState";
 import { Hero } from "./Hero";
 import { GameUnit } from "./GameUnit";
+import { MoveVector } from "@/Shared/Interface";
+import { Vector2 } from "@/Shared/BattleMathUtils";
 
 // 殭屍 - 伺服器端完整版本
 export class Enemy extends GameUnit {
@@ -70,17 +72,18 @@ export class Enemy extends GameUnit {
     }
 
     // AI 更新邏輯 - 優化版本
-    updateAI(targets: MapSchema<Hero>, deltaTime: number, currentTime: number): void {
-        if (this.isDead) return;
+    updateAI(targets: MapSchema<Hero>, deltaTime: number, currentTime: number): Vector2 {
+        let moveVector = { x: 0, y: 0 };
+        if (this.isDead) return moveVector;
 
         // 減少不必要的計算頻率
         const shouldUpdateAI = currentTime - this.lastAIUpdateTime >= this.aiUpdateInterval;
-        if (!shouldUpdateAI && this.aiState !== "attack") return;
+        if (!shouldUpdateAI && this.aiState !== "attack") return moveVector;
 
         const target = this.findNearestTarget(targets);
         if (!target) {
             this.aiState = "idle";
-            return;
+            return moveVector;
         }
 
         const distanceToTarget = this.getDistanceTo(target);
@@ -96,14 +99,15 @@ export class Enemy extends GameUnit {
         } else {
             // 追蹤目標
             this.aiState = "chase";
-            this.chaseTarget(target, deltaTime);
+            moveVector = this.chaseTarget(target, deltaTime);
         }
 
         this.lastAIUpdateTime = currentTime;
+        return moveVector;
     }
 
     // 追蹤目標
-    private chaseTarget(target: GameUnit, deltaTime: number): void {
+    private chaseTarget(target: GameUnit, deltaTime: number): Vector2 {
         // 移動邏輯由外部實現，這裡只設置方向向量
         const dx = target.x - this.x;
         const dy = target.y - this.y;
@@ -116,6 +120,7 @@ export class Enemy extends GameUnit {
             this.vx = 0;
             this.vy = 0;
         }
+        return { x: this.vx, y: this.vy };
 
     }
 

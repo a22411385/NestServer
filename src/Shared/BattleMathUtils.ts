@@ -3,7 +3,7 @@
 import seedrandom from 'seedrandom';
 
 export type Int = number & { __int__: void };
-export interface Vector2 { x: Int, y: Int }
+export interface Vector2 { x: number, y: number }
 export function toInt(n: number): Int {
     return Number((n).toFixed(2)) as Int;
 }

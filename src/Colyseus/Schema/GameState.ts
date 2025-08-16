@@ -35,11 +35,13 @@ export class GamePlayer extends Schema {
     @type("number") exp: number = 0;
 }
 
+
 export class GameCoreState extends Schema {
     // 遊戲設置
     @type("number") waveNumber: number = 1;
     @type('string') status: gameFlowStatus = 'prepare'
     @type("number") aliveHeroes: number = 0; // 存活英雄數量
+    @type("number") gameframe: number = 0; // 遊戲時間
     @type({ map: Item }) items = new MapSchema<Item>();
 
     //這裡只同步場上所有單位的存活

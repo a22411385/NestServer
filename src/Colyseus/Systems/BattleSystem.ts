@@ -5,6 +5,7 @@ import { GameManager } from "../Managers/GameManager";
 import { IdGenerator } from "../../Util/IdGenerator";
 import { Enemy } from "../Schema/Unit/Enemy";
 import { Hero } from "../Schema/Unit/Hero";
+import { GameRoom } from "../Rooms/GameRoom";
 
 const mapSize = 1000;
 const maxZombies = 50;
@@ -13,12 +14,12 @@ const maxZombies = 50;
  * 戰鬥系統 - 負責戰鬥邏輯、敵人管理、AI 更新和攻擊處理
  */
 export class BattleSystem {
-    private room: Room<GameRoomState>;
+    private room: GameRoom;
     private state: GameRoomState;
     private enemySpawnTimer: Delayed | null = null;
     private gameManager: GameManager | null = null;
 
-    constructor(room: Room<GameRoomState>) {
+    constructor(room: GameRoom) {
         this.room = room;
         this.state = room.state;
     }
@@ -90,24 +91,7 @@ export class BattleSystem {
         }
     }
 
-    /**
-     * 處理玩家移動向量
-     */
-    handlePlayerMoveVector(client: Client, vx: number, vy: number): void {
-        const hero = this.state.getHero(client.sessionId);
 
-        if (hero) {
-            // 設置移動向量
-            if (hero.vx != vx || hero.vy != vy) {
-
-                // 通知 GameManager 添加到移動同步數據
-                if (this.gameManager) {
-                    this.gameManager.addMoveData(hero.id, { vx, vy });
-                }
-
-            }
-        }
-    }
     /**
      * 開始敵人生成循環
      */
@@ -118,7 +102,7 @@ export class BattleSystem {
 
         // 每秒生成一隻
         this.enemySpawnTimer = this.room.clock.setInterval(() => {
-            this.gameManager?.unitManager.spawnZombies();
+            this.room.unitManager.spawnZombies();
         }, 1000);
     }
 
@@ -179,7 +163,8 @@ export class BattleSystem {
             if (unit.type === UnitType.enemy && !unit.isDead) {
                 const enemy = unit as Enemy;
                 // 呼叫 Enemy 自己的優化 AI 更新
-                enemy.updateAI(heroMapSchema, deltaTime, currentTime);
+                const moveVector = enemy.updateAI(heroMapSchema, deltaTime, currentTime);
+                this.room.movementSystem.addMoveData(enemy.id, moveVector);
             }
         }
 

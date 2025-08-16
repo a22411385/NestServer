@@ -4,15 +4,16 @@ import { PlayerManager } from "../Managers/PlayerManager";
 import { GameManager } from "../Managers/GameManager";
 import { BattleSystem } from "../Systems/BattleSystem";
 import { Hero } from "../Schema/Unit/Hero";
+import { GameRoom } from "../Rooms/GameRoom";
 
 /**
  * 消息處理器 - 統一處理所有 Colyseus 客戶端消息和廣播
  */
 export class MessageHandler {
-    private room: Room<GameRoomState>;
+    private room: GameRoom;
     private state: GameRoomState;
 
-    constructor(room: Room<GameRoomState>) {
+    constructor(room: GameRoom) {
         this.room = room;
         this.state = room.state;
     }
@@ -20,15 +21,14 @@ export class MessageHandler {
     /**
      * 設置所有消息處理器
      */
-    setupMessageHandlers(
-        playerManager: PlayerManager,
-        gameManager: GameManager,
-        battleSystem: BattleSystem
-    ): void {
+    setupMessageHandlers(): void {
+        const playerManager = this.room.playerManager;
+        const gameManager = this.room.gameManager;
+        const battleSystem = this.room.battleSystem;
+
         // 玩家準備/取消準備
         this.room.onMessage("toggleReady", (client, message) => {
             if (gameManager.isPlaying) return;
-
             playerManager.togglePlayerReady(client);
 
         });
@@ -66,7 +66,7 @@ export class MessageHandler {
         // 玩家移動向量（新的基於速度的移動系統）
         this.room.onMessage("playerMoveVector", (client, message) => {
             if (!gameManager.isPlaying) return;
-            battleSystem.handlePlayerMoveVector(client, message.vx, message.vy);
+            this.room.movementSystem.handlePlayerMoveVector(client, message.vx, message.vy);
         });
 
         // 玩家攻擊
@@ -79,7 +79,7 @@ export class MessageHandler {
             if (!gameManager.isPlaying) return;
             client.send('updateGameState', {
                 state: this.room.state.gameCore,
-                position: gameManager.getAllUnitPositions()
+                position: this.room.movementSystem.getAllUnitPositions()
             });
         });
 

@@ -1,44 +1,35 @@
-import { Room, Delayed } from "colyseus";
-import { GameRoomState, UnitType } from "../Schema/GameState";
+import { Delayed } from "colyseus";
+import { GameRoomState } from "../Schema/GameState";
 import { delay } from "../../Util/Utils";
-import { UnitManager } from "../Systems/UnitManager";
+import { GameRoom } from "../Rooms/GameRoom";
+import { BattleSystem } from "../Systems/BattleSystem";
+import { MovementSystem } from "../Systems/MovemnetSystem";
 
 const ONE_TICK_TIME = 100;
 /**
  * 🎯 服務端移動配置 - 與客戶端保持一致
  */
-const MOVEMENT_CONFIG = {
-    MOVEMENT_SCALE: 5,        // 移動縮放係數，與客戶端保持一致
-    FIXED_DELTA: 1 / 60        // 固定 delta time (60 FPS)
-};
-
-// 移動向量介面
-interface MoveVector {
-    vx: number;
-    vy: number;
-}
 
 /**
  * 遊戲管理器 - 負責遊戲流程控制、波次管理和遊戲狀態
  */
 export class GameManager {
 
-    private room: Room<GameRoomState>;
+    private room: GameRoom;
     private state: GameRoomState;
     private gameLoop: Delayed | null = null;
     private allUnitSyncPos: Delayed | null = null;
     private moveTick: Delayed | null = null;
-    private moveData: Record<string, MoveVector> = {};
-    private battleSystem: any = null; // 會在初始化時設置
-    private serverFrame = 0;
+
+    private battleSystem: BattleSystem;
+    private movementSystem: MovementSystem;
     private gameTime: number = 0;
 
-    public unitManager: UnitManager;
-
-    constructor(room: Room<GameRoomState>) {
+    constructor(room: GameRoom) {
         this.room = room;
         this.state = room.state;
-        this.unitManager = new UnitManager(room);
+        this.battleSystem = room.battleSystem;
+        this.movementSystem = room.movementSystem;
     }
 
 
@@ -49,12 +40,6 @@ export class GameManager {
         this.battleSystem = battleSystem;
     }
 
-    /**
- * 添加單位移動數據到下次同步
- */
-    public addMoveData(unitId: string, velocity: MoveVector): void {
-        this.moveData[unitId] = velocity;
-    }
     /**
      * 開始遊戲
      */
@@ -72,12 +57,34 @@ export class GameManager {
         this.room.clock.start();
 
         // 每5秒更新場上所有單位位置
-        this.allUnitSyncPos = this.room.clock.setInterval(this.forceUpdateAllPositions.bind(this), 5000);
+        let system = this.movementSystem;
+        //  let fn = this.movementSystem.forceUpdateAllPositions.bind(this);
+        this.allUnitSyncPos = this.room.clock.setInterval(() => {
+
+            system.forceUpdateAllPositions();
+
+        }, 5000);
 
         // 每次移動的單位 - 改進版本（包含速度信息）
         this.moveTick = this.room.clock.setInterval(() => {
-            (this.room as any).handleGameTick();
-            const enrichedMoveData: Record<string, { vx: number, vy: number, speed: number }> = {};
+
+            //遊戲每幀推進
+            this.room.handleGameTick();
+
+            //單位移動推進
+            this.movementSystem.MoveAllUnit();
+        }, 5000);
+
+        // 每次移動的單位 - 改進版本（包含速度信息）
+        this.moveTick = this.room.clock.setInterval(() => {
+
+            //遊戲每幀推進
+            this.room.handleGameTick();
+
+            //單位移動推進
+            this.movementSystem.MoveAllUnit();
+            /*
+              // const enrichedMoveData: Record<string, { vx: number, vy: number, speed: number }> = {};
 
             if (Object.keys(this.moveData).length > 0) {
                 // 🎯 首先更新服務端位置（使用與客戶端相同的邏輯）
@@ -96,7 +103,7 @@ export class GameManager {
                     const unit = this.state.allUnits.get(unitId);
 
                     if (unit) {
-                        console.log(`🎯 unit ${unitId} velocity: (${unit.vx.toFixed(2)}, ${unit.vy.toFixed(2)})`);
+                        //console.log(`🎯 unit ${unitId} velocity: (${unit.vx.toFixed(2)}, ${unit.vy.toFixed(2)})`);
                         unit.vx = velocity.vx;
                         unit.vy = velocity.vy;
                         unit.speed = speed; // 更新單位速度
@@ -107,13 +114,12 @@ export class GameManager {
 
             }
 
-            this.MoveAllUnit();
 
             this.room.broadcast('move-tick', {
                 frameId: this.serverFrame,
                 moveData: enrichedMoveData
-            });
-            this.serverFrame++;
+            });*/
+            this.state.gameCore.gameframe++;
         }, ONE_TICK_TIME);
 
         if (!this.state.isTestMode)
@@ -228,89 +234,7 @@ export class GameManager {
         this.gameTime += dt;
         return { deltaTime: dt, currentTime };
     }
-    /**
-     * 獲取所有單位的位置（用於強制同步）
-     */
-    public getAllUnitPositions(): Record<string, { x: number, y: number }> {
-        const positions: Record<string, { x: number, y: number }> = {};
 
-        // 收集所有單位位置
-        for (const [unitId, unit] of this.state.allUnits) {
-            if (!unit.isDead) {
-                positions[unit.id] = { x: unit.x, y: unit.y };
-            }
-        }
-
-        return positions;
-    }
-
-    /**
-     * 強制同步所有座標
-     */
-    private forceUpdateAllPositions() {
-        const allPositions = this.getAllUnitPositions();
-        this.room.broadcast('syncPosition', allPositions);
-    }
-
-    /**
-     * 🔧 獲取單位移動速度（從服務端狀態）
-     */
-    private getUnitSpeed(unitId: string): number {
-        // 檢查所有單位
-
-        let unit = this.state.allUnits.get(unitId);
-        if (unit)
-            return unit.speed || (unit.type === UnitType.hero ? 5 : 3);
-
-        // console.warn(`⚠️ GameManager: No speed found for unit ${unitId}`);
-        return 1; // 預設速度
-    }
-
-    /**
-     * 設定單位的移動向量
-     */
-    private setUnitMoveVector(_data: Record<string, MoveVector>): void {
-
-        // 更新所有有移動向量的單位
-        for (let unitId in _data) {
-            let unit = this.state.allUnits.get(unitId);
-            if (unit) {
-                unit.vx = _data[unitId].vx
-                unit.vy = _data[unitId].vy
-
-                //     this.applyMovementToServerUnit(unitId, _data[unitId], MOVEMENT_CONFIG.FIXED_DELTA);
-            }
-        }
-    }
-
-    /**
-     * 🎯 應用移動到服務端單位 - 與客戶端邏輯完全一致
-     */
-    private MoveAllUnit(): void {
-
-        for (const [unitId, unit] of this.state.allUnits) {
-
-            if (unit.vx == 0 && unit.vy == 0) continue;
-
-            // 獲取單位速度
-            const speed = this.getUnitSpeed(unitId);
-
-            // 使用與客戶端相同的移動計算公式
-            const moveDistance = speed * MOVEMENT_CONFIG.FIXED_DELTA * MOVEMENT_CONFIG.MOVEMENT_SCALE;
-            const deltaX = unit.vx * moveDistance;
-            const deltaY = unit.vy * moveDistance;
-
-            console.log(`🎯 unit ${unitId} Move: (${deltaX.toFixed(2)}, ${deltaY.toFixed(2)})`);
-            unit.x += deltaX;
-            unit.y += deltaY;
-
-            // 確保在世界邊界內
-            unit.x = Math.max(-500, Math.min(500, unit.x));
-            unit.y = Math.max(-500, Math.min(500, unit.y));
-
-            // const unitType = unit.type === UnitType.hero ? 'Hero' : 'Enemy';
-        }
-    }
 
     /**
      * 檢查遊戲是否正在進行

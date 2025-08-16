@@ -25,6 +25,10 @@ export class GameUnit extends Schema {
     @type("number") hp: number = 10;
     @type("number") maxHp: number = 10;
 
+    @type("number") speed: number = 1; // 移動速度
+    @type("number") vx: number = 0; // X 軸速度向量
+    @type("number") vy: number = 0; // Y 軸速度向量
+
     @type("number") baseMoveSpeed = 10;
     @type("number") radius: number = 20; // 體積/碰撞半徑
 
@@ -35,9 +39,6 @@ export class GameUnit extends Schema {
     x: number = 0;
     y: number = 0;
 
-    speed: number = 1; // 移動速度
-    vx: number = 0; // X 軸速度向量
-    vy: number = 0; // Y 軸速度向量
 
     // 加血方法
     heal(amount: number): number {
