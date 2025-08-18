@@ -57,24 +57,7 @@ export class GameManager {
         this.room.clock.start();
 
         // 每5秒更新場上所有單位位置
-        let system = this.movementSystem;
-        //  let fn = this.movementSystem.forceUpdateAllPositions.bind(this);
-        this.allUnitSyncPos = this.room.clock.setInterval(() => {
-
-            system.forceUpdateAllPositions();
-
-        }, 5000);
-
-        // 每次移動的單位 - 改進版本（包含速度信息）
-        this.moveTick = this.room.clock.setInterval(() => {
-
-            //遊戲每幀推進
-            this.room.handleGameTick();
-
-            //單位移動推進
-            this.movementSystem.MoveAllUnit();
-        }, 5000);
-
+        //  let system = this.movementSystem;
         // 每次移動的單位 - 改進版本（包含速度信息）
         this.moveTick = this.room.clock.setInterval(() => {
 

@@ -6,6 +6,7 @@ import { IdGenerator } from "../../Util/IdGenerator";
 import { Enemy } from "../Schema/Unit/Enemy";
 import { Hero } from "../Schema/Unit/Hero";
 import { GameRoom } from "../Rooms/GameRoom";
+import { Vector2 } from "../Schema/Unit/GameUnit";
 
 const mapSize = 1000;
 const maxZombies = 50;
@@ -50,8 +51,8 @@ export class BattleSystem {
 
             const enemy = unit as Enemy;
             const distance = Math.hypot(
-                enemy.x - targetX,
-                enemy.y - targetY
+                enemy.position.x - targetX,
+                enemy.position.y - targetY
             );
 
             if (distance <= closestDistance) {
@@ -129,8 +130,10 @@ export class BattleSystem {
         enemy.initializeByType(type);
 
         // 設置指定位置
-        enemy.x = Math.max(0, Math.min(1000, x));
-        enemy.y = Math.max(0, Math.min(800, y));
+        enemy.position = new Vector2(
+            Math.max(0, Math.min(1000, x)),
+            Math.max(0, Math.min(800, y))
+        );
 
         // 添加到遊戲狀態
         this.state.addEnemy(enemy);
@@ -163,8 +166,8 @@ export class BattleSystem {
             if (unit.type === UnitType.enemy && !unit.isDead) {
                 const enemy = unit as Enemy;
                 // 呼叫 Enemy 自己的優化 AI 更新
-                const moveVector = enemy.updateAI(heroMapSchema, deltaTime, currentTime);
-                this.room.movementSystem.addMoveData(enemy.id, moveVector);
+                enemy.updateAI(heroMapSchema, deltaTime, currentTime);
+                //  this.room.movementSystem.addMoveData(enemy.id, moveVector);
             }
         }
 

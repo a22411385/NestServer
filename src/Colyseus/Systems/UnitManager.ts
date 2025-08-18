@@ -3,6 +3,7 @@ import { IdGenerator } from "@/Util/IdGenerator";
 import { Enemy } from "../Schema/Unit/Enemy";
 import { Room } from "colyseus";
 import { GameRoomState } from "../Schema/GameState";
+import { Vector2 } from "../Schema/Unit/GameUnit";
 
 const MAX_ENEMY_COUNT = 100;
 const MAP_SIZE = 1000;
@@ -39,27 +40,28 @@ export class UnitManager {
             enemy.id = IdGenerator.generateEnemyId(randomType);
             enemy.initializeByType(randomType);
 
+            let position = new Vector2(0, 0);
             // 隨機在地圖邊緣生成
             const edge = Math.floor(Math.random() * 4);
             switch (edge) {
                 case 0: // 上
-                    enemy.x = Math.random() * MAP_SIZE;
-                    enemy.y = 0;
+                    position.x = Math.random() * MAP_SIZE;
+                    position.y = 0;
                     break;
                 case 1: // 下
-                    enemy.x = Math.random() * MAP_SIZE;
-                    enemy.y = MAP_SIZE;
+                    position.x = Math.random() * MAP_SIZE;
+                    position.y = MAP_SIZE;
                     break;
                 case 2: // 左
-                    enemy.x = 0;
-                    enemy.y = Math.random() * MAP_SIZE;
+                    position.x = 0;
+                    position.y = Math.random() * MAP_SIZE;
                     break;
                 case 3: // 右
-                    enemy.x = MAP_SIZE;
-                    enemy.y = Math.random() * MAP_SIZE;
+                    position.x = MAP_SIZE;
+                    position.y = Math.random() * MAP_SIZE;
                     break;
             }
-
+            enemy.position = position;
             // 使用新的添加方法
             this.room.state.addEnemy(enemy);
             spawnedCount++;

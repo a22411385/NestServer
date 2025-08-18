@@ -35,7 +35,7 @@ export class MovementSystem {
         // 收集所有單位位置
         for (const [unitId, unit] of this.getAllUnits) {
             if (!unit.isDead) {
-                positions[unit.id] = { x: unit.x, y: unit.y };
+                positions[unit.id] = { x: unit.position.x, y: unit.position.y };
             }
         }
 
@@ -58,7 +58,7 @@ export class MovementSystem {
 
         let unit = this.room.state.allUnits.get(unitId);
         if (unit)
-            return unit.speed || (unit.type === UnitType.hero ? 5 : 3);
+            return unit.speed || (unit.type === UnitType.hero ? 3 : 3);
 
         return 1; // 預設速度
     }
@@ -73,31 +73,35 @@ export class MovementSystem {
             if (unit.vx == 0 && unit.vy == 0) {
                 continue;
             }
-            // 獲取單位速度
-            const speed = this.getUnitSpeed(unitId);
 
-            // 使用與客戶端相同的移動計算公式
-            const moveDistance = speed * MOVEMENT_CONFIG.FIXED_DELTA * MOVEMENT_CONFIG.MOVEMENT_SCALE;
-            const deltaX = unit.vx * moveDistance;
-            const deltaY = unit.vy * moveDistance;
-
-            unit.x += deltaX;
-            unit.y += deltaY;
-
-            // 確保在世界邊界內
-            unit.x = Math.max(-500, Math.min(500, unit.x));
-            unit.y = Math.max(-500, Math.min(500, unit.y));
-
+            this.MoveUnit(unit);
         }
     }
-    addMoveData(unitId: string, moveVector: Vector2): void {
+    private MoveUnit(unit: GameUnit): void {
+        // 獲取單位速度
+        const speed = this.getUnitSpeed(unit.id);
 
-        const unit = this.room.state.allUnits.get(unitId);
-        if (unit) {
-            unit.vx = moveVector.x;
-            unit.vy = moveVector.y;
-        }
+        // 使用與客戶端相同的移動計算公式
+        const moveDistance = speed * MOVEMENT_CONFIG.FIXED_DELTA * MOVEMENT_CONFIG.MOVEMENT_SCALE;
+        const deltaX = unit.vx * moveDistance;
+        const deltaY = unit.vy * moveDistance;
+
+        unit.position.x += deltaX;
+        unit.position.y += deltaY;
+
+        // 確保在世界邊界內
+        unit.position.x = Math.max(-500, Math.min(500, unit.position.x));
+        unit.position.y = Math.max(-500, Math.min(500, unit.position.y));
     }
+
+    // addMoveData(unitId: string, moveVector: Vector2): void {
+
+    //     const unit = this.room.state.allUnits.get(unitId);
+    //     if (unit) {
+    //         unit.vx = moveVector.x;
+    //         unit.vy = moveVector.y;
+    //     }
+    // }
 
     /**
      * 處理玩家移動向量
@@ -106,11 +110,10 @@ export class MovementSystem {
         const hero = this.room.state.getHero(client.sessionId);
 
         if (hero) {
-            // 設置移動向量
-            if (hero.vx != vx || hero.vy != vy) {
-                this.addMoveData(hero.id, { x: vx, y: vy });
-            }
+            hero.vx = vx;
+            hero.vy = vy;
+            this.MoveUnit(hero);
+
         }
     }
-
 }

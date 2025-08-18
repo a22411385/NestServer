@@ -16,7 +16,7 @@ export class Hero extends GameUnit {
         super();
         this.hp = 100;
         this.maxHp = 100;
-        this.speed = 100; // 每秒移動100像素
+        this.speed = 50; // 每秒移動100像素
         this.radius = 20;
         this.type = UnitType.hero;
     }

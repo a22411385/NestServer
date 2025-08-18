@@ -2,6 +2,7 @@ import { Client, Room } from "colyseus";
 import { GameRoomState, GamePlayer, UnitType, UnitFactory } from "../Schema/GameState";
 import { IdGenerator } from "../../Util/IdGenerator";
 import { Hero } from "../Schema/Unit/Hero";
+import { Vector2 } from "../Schema/Unit/GameUnit";
 
 const mapSize = 1000;
 
@@ -149,8 +150,7 @@ export class PlayerManager {
             hero.id = IdGenerator.generateHeroId(playerId);
             hero.name = player.name;
             hero.owner = playerId;
-            hero.x = 0;
-            hero.y = 0;
+            hero.position = new Vector2(0, 0);
 
             hero.hp = hero.maxHp;
             hero.invincibleRemaining = 0;

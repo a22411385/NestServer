@@ -2,7 +2,6 @@ import { MapSchema, type } from "@colyseus/schema";
 import { UnitType } from "../GameState";
 import { Hero } from "./Hero";
 import { GameUnit } from "./GameUnit";
-import { MoveVector } from "@/Shared/Interface";
 import { Vector2 } from "@/Shared/BattleMathUtils";
 
 // 殭屍 - 伺服器端完整版本
@@ -66,8 +65,8 @@ export class Enemy extends GameUnit {
 
     // 獲取到目標的距離
     getDistanceTo(target: GameUnit): number {
-        const dx = target.x - this.x;
-        const dy = target.y - this.y;
+        const dx = target.position.x - this.position.x;
+        const dy = target.position.y - this.position.y;
         return Math.hypot(dx, dy);
     }
 
@@ -89,8 +88,6 @@ export class Enemy extends GameUnit {
         const distanceToTarget = this.getDistanceTo(target);
         const attackRange = this.radius + target.radius;
 
-        const oldX = this.x;
-        const oldY = this.y;
 
         // 如果在攻擊範圍內
         if (distanceToTarget <= attackRange) {
@@ -109,8 +106,8 @@ export class Enemy extends GameUnit {
     // 追蹤目標
     private chaseTarget(target: GameUnit, deltaTime: number): Vector2 {
         // 移動邏輯由外部實現，這裡只設置方向向量
-        const dx = target.x - this.x;
-        const dy = target.y - this.y;
+        const dx = target.position.x - this.position.x;
+        const dy = target.position.y - this.position.y;
         const distance = Math.hypot(dx, dy);
 
         if (distance > 0) {

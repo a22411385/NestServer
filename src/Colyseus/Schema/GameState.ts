@@ -1,7 +1,7 @@
 
 
 import { Schema, type, MapSchema } from "@colyseus/schema";
-import { GameUnit, StatusEffect } from "./Unit/GameUnit";
+import { GameUnit, StatusEffect, Vector2 } from "./Unit/GameUnit";
 import { Enemy } from "./Unit/Enemy";
 import { Hero } from "./Unit/Hero";
 
@@ -275,8 +275,7 @@ export class UnitFactory {
         const hero = new Hero();
         hero.id = id;
         hero.name = name;
-        hero.x = x;
-        hero.y = y;
+        hero.position = new Vector2(x, y);
         hero.reset();
         return hero;
     }
@@ -284,8 +283,7 @@ export class UnitFactory {
     static createEnemy(type: number = 1, x: number = 0, y: number = 0): Enemy {
         const enemy = new Enemy();
         enemy.id = `enemy_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
-        enemy.x = x;
-        enemy.y = y;
+        enemy.position = new Vector2(x, y);
         enemy.initializeByType(type);
         return enemy;
     }

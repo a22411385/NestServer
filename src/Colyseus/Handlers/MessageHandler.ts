@@ -5,6 +5,7 @@ import { GameManager } from "../Managers/GameManager";
 import { BattleSystem } from "../Systems/BattleSystem";
 import { Hero } from "../Schema/Unit/Hero";
 import { GameRoom } from "../Rooms/GameRoom";
+import { Vector2 } from "../Schema/Unit/GameUnit";
 
 /**
  * 消息處理器 - 統一處理所有 Colyseus 客戶端消息和廣播
@@ -134,8 +135,7 @@ export class MessageHandler {
             for (let [uid, unit] of this.state.allUnits) {
                 if (unit.type == UnitType.hero) {
                     let hero = unit as Hero;
-                    hero.x = 100;
-                    hero.y = 100;
+                    hero.position = new Vector2(100, 100);
                     hero.hp = hero.maxHp;
                     hero.invincibleRemaining = 0;
                 }

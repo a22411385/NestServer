@@ -1,5 +1,17 @@
 import { MapSchema, Schema, type } from "@colyseus/schema";
 import { UnitType } from "../GameState";
+
+export class Vector2 extends Schema {
+    @type("number") x: number = 0;
+    @type("number") y: number = 0;
+
+    constructor(x: number, y: number) {
+        super();
+        this.x = x;
+        this.y = y;
+    }
+}
+
 // 技能基底
 export class Skill extends Schema {
     @type("string") id: string = "";
@@ -26,8 +38,7 @@ export class GameUnit extends Schema {
     @type("number") maxHp: number = 10;
 
     @type("number") speed: number = 1; // 移動速度
-    @type("number") vx: number = 0; // X 軸速度向量
-    @type("number") vy: number = 0; // Y 軸速度向量
+
 
     @type("number") baseMoveSpeed = 10;
     @type("number") radius: number = 20; // 體積/碰撞半徑
@@ -36,9 +47,13 @@ export class GameUnit extends Schema {
     @type({ map: Skill }) skills = new MapSchema<Skill>();
     @type({ map: StatusEffect }) statusEffects = new MapSchema<StatusEffect>();
 
-    x: number = 0;
-    y: number = 0;
+    @type(Vector2) position: Vector2 = new Vector2(0, 0);
+    // @type("number") y: number = 0;
 
+
+
+    vx: number = 0; // X 軸速度向量
+    vy: number = 0; // Y 軸速度向量
 
     // 加血方法
     heal(amount: number): number {
@@ -59,8 +74,8 @@ export class GameUnit extends Schema {
 
     // 檢查是否在範圍內
     isInRange(target: GameUnit, range: number): boolean {
-        const dx = target.x - this.x;
-        const dy = target.y - this.y;
+        const dx = target.position.x - this.position.x;
+        const dy = target.position.y - this.position.y;
         const distance = Math.hypot(dx, dy);
         return distance <= range;
     }
