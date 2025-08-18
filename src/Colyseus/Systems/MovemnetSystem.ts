@@ -1,8 +1,6 @@
 import { UnitType } from "@/Colyseus/Schema/GameState";
-import { GameManager } from "../Managers/GameManager";
 import { GameRoom } from "../Rooms/GameRoom";
 import { GameUnit } from "../Schema/Unit/GameUnit";
-import { Vector2 } from "@/Shared/BattleMathUtils";
 import { Client } from "colyseus";
 
 
@@ -40,14 +38,6 @@ export class MovementSystem {
         }
 
         return positions;
-    }
-
-    /**
-     * 強制同步所有座標
-     */
-    public forceUpdateAllPositions() {
-        const allPositions = this.getAllUnitPositions();
-        this.room.broadcast('syncPosition', allPositions);
     }
 
     /**
@@ -89,9 +79,12 @@ export class MovementSystem {
         unit.position.x += deltaX;
         unit.position.y += deltaY;
 
+        const mapWidth = this.room.mapWidth;
+        const mapHeight = this.room.mapHeight;
+
         // 確保在世界邊界內
-        unit.position.x = Math.max(-500, Math.min(500, unit.position.x));
-        unit.position.y = Math.max(-500, Math.min(500, unit.position.y));
+        unit.position.x = Math.max(-mapWidth / 2, Math.min(mapWidth / 2, unit.position.x));
+        unit.position.y = Math.max(-mapHeight / 2, Math.min(mapHeight / 2, unit.position.y));
     }
 
     // addMoveData(unitId: string, moveVector: Vector2): void {

@@ -12,7 +12,6 @@ import {
     RandomAffixData
 } from 'src/Game/Item/ItemData';
 import { GoogleSheetsService } from './google-sheets.service';
-import { MonsterData, ProfessionData } from 'src/Game/Combat/UnitData';
 import { InjectRepository } from '@nestjs/typeorm';
 import { PlayerItemORM } from 'src/ORM/playeritem.entity';
 import { Repository } from 'typeorm';
@@ -51,9 +50,9 @@ export class ItemFactoryService {
         await googleSheetService.InitData([
 
             //職業表
-            { tableName: "Profession", classType: ProfessionData },
+            // { tableName: "Profession", classType: ProfessionData },
             //怪物表
-            { tableName: "Monster", classType: MonsterData },
+            //{ tableName: "Monster", classType: MonsterData },
 
             //物品基礎表
             { tableName: "ItemBase", classType: ItemBase },

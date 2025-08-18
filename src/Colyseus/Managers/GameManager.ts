@@ -5,6 +5,12 @@ import { GameRoom } from "../Rooms/GameRoom";
 import { BattleSystem } from "../Systems/BattleSystem";
 import { MovementSystem } from "../Systems/MovemnetSystem";
 
+const RoundTimeSetting = {
+    prepare: 3,
+    battle: 30,
+    rest: 10
+}
+
 const ONE_TICK_TIME = 100;
 /**
  * 🎯 服務端移動配置 - 與客戶端保持一致
@@ -18,7 +24,7 @@ export class GameManager {
     private room: GameRoom;
     private state: GameRoomState;
     private gameLoop: Delayed | null = null;
-    private allUnitSyncPos: Delayed | null = null;
+    private roundTime: Delayed | null = null;
     private moveTick: Delayed | null = null;
 
     private battleSystem: BattleSystem;
@@ -55,10 +61,12 @@ export class GameManager {
         // 開始遊戲循環
         this.room.clock.clear();
         this.room.clock.start();
+        this.roundTime = this.room.clock.setInterval(() => {
 
-        // 每5秒更新場上所有單位位置
-        //  let system = this.movementSystem;
-        // 每次移動的單位 - 改進版本（包含速度信息）
+            if (this.state.gameCore.roundTime > 0)
+                this.state.gameCore.roundTime--;
+
+        }, 1000)
         this.moveTick = this.room.clock.setInterval(() => {
 
             //遊戲每幀推進
@@ -66,43 +74,7 @@ export class GameManager {
 
             //單位移動推進
             this.movementSystem.MoveAllUnit();
-            /*
-              // const enrichedMoveData: Record<string, { vx: number, vy: number, speed: number }> = {};
 
-            if (Object.keys(this.moveData).length > 0) {
-                // 🎯 首先更新服務端位置（使用與客戶端相同的邏輯）
-
-                // 🔧 為每個移動數據添加速度信息
-                this.setUnitMoveVector(this.moveData);
-                for (const [unitId, velocity] of Object.entries(this.moveData)) {
-                    const speed = this.getUnitSpeed(unitId);
-                    enrichedMoveData[unitId] = {
-                        vx: velocity.vx,
-                        vy: velocity.vy,
-                        speed: speed
-                    };
-
-
-                    const unit = this.state.allUnits.get(unitId);
-
-                    if (unit) {
-                        //console.log(`🎯 unit ${unitId} velocity: (${unit.vx.toFixed(2)}, ${unit.vy.toFixed(2)})`);
-                        unit.vx = velocity.vx;
-                        unit.vy = velocity.vy;
-                        unit.speed = speed; // 更新單位速度
-                    }
-                }
-
-                this.moveData = {};
-
-            }
-
-
-            this.room.broadcast('move-tick', {
-                frameId: this.serverFrame,
-                moveData: enrichedMoveData
-            });*/
-            this.state.gameCore.gameframe++;
         }, ONE_TICK_TIME);
 
         if (!this.state.isTestMode)
@@ -122,7 +94,8 @@ export class GameManager {
             // 波次開始準備
             this.broadcastBattleLog(`第 ${this.state.gameCore.waveNumber} 波準備中...`, 'event');
             this.state.gameCore.status = 'prepare';
-            await delay(3);
+            this.state.gameCore.roundTime = RoundTimeSetting.prepare;
+            await delay(RoundTimeSetting.prepare);
 
             // 波次開始
             this.broadcastBattleLog(`第 ${this.state.gameCore.waveNumber} 波開始！殭屍來襲！`, 'event');
@@ -132,9 +105,9 @@ export class GameManager {
             if (this.battleSystem) {
                 this.battleSystem.startEnemySpawning();
             }
-
+            this.state.gameCore.roundTime = RoundTimeSetting.battle;
             // 每波30秒
-            await delay(30);
+            await delay(RoundTimeSetting.battle);
 
             // 通知外部停止生成敵人
             if (this.battleSystem) {
@@ -147,11 +120,12 @@ export class GameManager {
 
             // 清除場上所有敵人
             this.state.removeAllEnemy();
-
+            this.state.gameCore.roundTime = RoundTimeSetting.rest;
             // 修整時間10秒
-            await delay(10);
+            await delay(RoundTimeSetting.rest);
 
             this.state.gameCore.waveNumber++;
+
             if (this.state.gameCore.waveNumber > 50) {
                 this.broadcastBattleLog("恭喜！您成功完成了所有 50 波挑戰！", 'event');
                 this.endGame("waveComplete");
@@ -194,9 +168,9 @@ export class GameManager {
             this.gameLoop.clear();
             this.gameLoop = null;
         }
-        if (this.allUnitSyncPos) {
-            this.allUnitSyncPos.clear();
-            this.allUnitSyncPos = null;
+        if (this.roundTime) {
+            this.roundTime.clear();
+            this.roundTime = null;
         }
         if (this.moveTick) {
             this.moveTick.clear();

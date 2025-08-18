@@ -10,9 +10,6 @@ export class CharacterORM {
     @PrimaryGeneratedColumn()
     id: number;
 
-    // @Column()
-    // userId: number;
-
     @Column()
     name: string = "";
 

@@ -32,6 +32,7 @@ export class StatusEffect extends Schema {
 // 單位基底
 export class GameUnit extends Schema {
     @type("string") id: string = "";
+    @type("string") name: string = '';
     @type("number") type: number = UnitType.enemy;
     @type("string") owner: string = "";
     @type("number") hp: number = 10;

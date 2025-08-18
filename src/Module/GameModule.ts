@@ -1,7 +1,6 @@
 import { Module } from "@nestjs/common";
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { CharacterController } from "src/Controller/character.controller";
-import { GameController } from "src/Controller/game.controller";
 import { ItemFactoryService } from "src/Service/ItemFactory.service";
 import { AccountORM } from "src/ORM/account.entity";
 import { CharacterORM } from "src/ORM/charater.entity";
@@ -13,9 +12,8 @@ import { ColyseusService } from "src/Service/colyseus.service";
 
 @Module({
     imports: [TypeOrmModule.forFeature([AccountORM, CharacterORM, PlayerItemORM, EquipmentDataORM])],
-    controllers: [CharacterController, GameController, ItemEditorController],
+    controllers: [CharacterController, ItemEditorController],
     providers: [ItemFactoryService, ColyseusService],
-    // providers: [CharacterService, GoogleSheetsService, , ItemFactoryService],
     exports: [ItemFactoryService], // 給別人用就 export
 
 })

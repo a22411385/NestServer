@@ -5,7 +5,7 @@ import { GameUnit } from "./GameUnit";
 
 // 玩家操控的主要單位
 export class Hero extends GameUnit {
-    @type("string") name: string = '';
+
     @type("number") invincibleRemaining: number = 0; // 無敵剩餘時間 (ms)
     @type("number") level: number = 1;
     @type("number") exp: number = 0;

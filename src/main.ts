@@ -1,11 +1,10 @@
 import { NestFactory, Reflector } from '@nestjs/core';
 import { AppModule } from './app.module';
 import dotenv from 'dotenv';
-import { BadRequestException, ValidationError, ValidationPipe } from '@nestjs/common';
+import { BadRequestException, INestApplicationContext, ValidationError, ValidationPipe } from '@nestjs/common';
 import { ErrorCode } from './Shared/ErrorCode';
 import { HttpRespone } from './Shared/struct';
 import { SetMetadata } from '@nestjs/common';
-import { TestSimulatorService } from './Test/test-simulator.service';
 import { ColyseusServer } from './Colyseus/ColyseusServer';
 
 export const IS_PUBLIC_KEY = 'isPublic';
@@ -53,3 +52,13 @@ async function bootstrap() {
 
 }
 bootstrap();
+
+
+let appContext: INestApplicationContext | null = null;
+
+export async function getAppContext(): Promise<INestApplicationContext> {
+  if (!appContext) {
+    appContext = await NestFactory.createApplicationContext(AppModule);
+  }
+  return appContext;
+}
