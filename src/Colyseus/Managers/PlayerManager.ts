@@ -3,6 +3,7 @@ import { GameRoomState, GamePlayer, UnitType, UnitFactory } from "../Schema/Game
 import { IdGenerator } from "../../Util/IdGenerator";
 import { Hero } from "../Schema/Unit/Hero";
 import { Vector2 } from "../Schema/Unit/GameUnit";
+import { LobbyPlayer } from "../Schema/LobbyState";
 
 const mapSize = 1000;
 
@@ -21,13 +22,13 @@ export class PlayerManager {
     /**
      * 處理玩家加入房間
      */
-    handlePlayerJoin(client: Client, options: any): void {
-        console.log(`Player ${client.sessionId} joined room ${this.room.roomId}`);
+    handlePlayerJoin(client: Client, lobbyPlayer: LobbyPlayer): void {
+        console.log(`Player ${client.sessionId} joined room ${lobbyPlayer.name}`);
 
         try {
             // 驗證輸入參數
-            const playerName = options.playerName || `Player${client.sessionId.substring(0, 6)}`;
-            const characterId = Number(options.characterId) || 1;
+            const playerName = lobbyPlayer.name || `Player${client.sessionId.substring(0, 6)}`;
+            const characterId = Number(lobbyPlayer.characterId) || 1;
 
             const player = new GamePlayer();
             player.id = client.sessionId;

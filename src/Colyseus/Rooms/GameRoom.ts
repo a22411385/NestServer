@@ -9,6 +9,8 @@ import { MessageHandler } from "@/Colyseus/Handlers/MessageHandler";
 import { Hero } from "@/Colyseus/Schema/Unit/Hero";
 import { MovementSystem } from "@/Colyseus/Systems/MovemnetSystem";
 import { UnitManager } from "../Systems/UnitManager";
+import { MiddleRoom } from "./MiddleRoom";
+import { LobbyPlayer } from "../Schema/LobbyState";
 
 export interface GameRoomOptions {
     roomName: string;
@@ -19,7 +21,7 @@ export interface GameRoomOptions {
     roomType?: "normal" | "test"; // 新增：房間類型
 }
 
-export class GameRoom extends Room<GameRoomState> {
+export class GameRoom extends MiddleRoom<GameRoomState> {
 
     //先寫死
     public mapWidth: number = 2000;
@@ -87,8 +89,10 @@ export class GameRoom extends Room<GameRoomState> {
         }
     }
 
-    onJoin(client: Client, options: any, auth: any) {
-        this.playerManager.handlePlayerJoin(client, options);
+    async onJoin(client: Client, options: any): Promise<LobbyPlayer> {
+        let player = await super.onJoin(client, options);
+        this.playerManager.handlePlayerJoin(client, player);
+        return player;
     }
 
     onLeave(client: Client, consented: boolean) {

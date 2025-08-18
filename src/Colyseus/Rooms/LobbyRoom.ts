@@ -1,15 +1,13 @@
 import { Room, Client } from "colyseus";
-import jwt from 'jsonwebtoken';
+
 import { matchMaker } from "colyseus";
 import { MapSchema } from "@colyseus/schema";
 import { LobbyPlayer, LobbyRoomInfo, LobbyState } from "@/Colyseus/Schema/LobbyState";
-import { JWTPayload } from "@/struct";
-import { DataSource, Repository } from "typeorm";
-import { CharacterORM } from "@/ORM/charater.entity";
-import { getAppContext } from "@/main";
 
-export class LobbyRoom extends Room<LobbyState> {
-    private characterRepo?: Repository<CharacterORM>;
+
+import { MiddleRoom } from "./MiddleRoom";
+
+export class LobbyRoom extends MiddleRoom<LobbyState> {
 
     maxClients = 100; // 大廳可以容納很多玩家
     autoDispose = false; // 大廳不自動銷毀
@@ -30,30 +28,15 @@ export class LobbyRoom extends Room<LobbyState> {
         console.log("Lobby room initialized successfully");
     }
 
-    async onJoin(client: Client, options: any) {
+    async onJoin(client: Client, options: any): Promise<LobbyPlayer> {
         console.log(`Player ${client.sessionId} joined lobby`);
-        const token = options?.token;
-        if (!token) {
 
-            throw new Error("Unauthorized")
-        }
         try {
             // 業務邏輯：驗證和處理玩家加入
-            const playerData = await this.validatePlayerOptions(token, client.sessionId);
-
-            // 創建玩家 Schema 物件
-            const player = new LobbyPlayer();
-            player.id = playerData.id;
-            player.name = playerData.name;
-            player.characterId = playerData.characterId;
-            player.level = playerData.level;
-            player.status = "idle";
-
+            let playerData = await super.onJoin(client, options);
             // 更新狀態
-            this.state.players.set(client.sessionId, player);
+            this.state.players.set(client.sessionId, playerData);
             this.state.totalPlayers = this.state.players.size;
-
-            console.log(`Player ${playerData.name} successfully added to lobby`);
 
             // 發送歡迎訊息給新玩家
             client.send("lobbyWelcome", {
@@ -68,11 +51,12 @@ export class LobbyRoom extends Room<LobbyState> {
                 characterId: playerData.characterId,
                 totalPlayers: this.state.totalPlayers
             }, { except: client });
-
+            return playerData;
         } catch (error) {
             console.error(`Error adding player ${client.sessionId}:`, error);
             client.send("error", { message: "Failed to join lobby: " + error.message });
             client.leave();
+            throw error;
         }
     }
 
@@ -97,34 +81,7 @@ export class LobbyRoom extends Room<LobbyState> {
         }
     }
 
-    /**
-     * 業務邏輯：驗證玩家選項
-     */
-    private async validatePlayerOptions(token: string, sessionId: string) {
-        const payload = jwt.verify(token, process.env.JWT_KEY as string) as JWTPayload;
-        const app = await getAppContext();
-        const dataSource = app.get<DataSource>(DataSource);
-        this.characterRepo = dataSource.getRepository(CharacterORM);
 
-        const character = await this.characterRepo.findOne({
-            where: {
-                id: payload.playerId
-            }
-        });
-
-
-        const playerName = character?.name || `Player${sessionId.substring(0, 6)}`;
-        const characterId = character?.id || 1;
-        const level = character?.Lv || 1;
-
-
-        return {
-            id: sessionId,
-            name: playerName.trim(),
-            characterId: characterId,
-            level: level
-        };
-    }
 
     /**
      * 業務邏輯：添加房間到大廳列表

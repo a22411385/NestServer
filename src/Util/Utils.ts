@@ -1,5 +1,10 @@
-import { ExperienceData } from "src/Game/Combat/UnitData";
 
+export class ExperienceData {
+
+  Lv: number;
+  Exp: number;
+  TotalExp: number;
+}
 export class LevelUtils {
   // 傳進來經驗表，例如 [0, 100, 300, 600, 1000, ...]
   static expTable: ExperienceData[] = [];
