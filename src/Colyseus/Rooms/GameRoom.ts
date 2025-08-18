@@ -1,5 +1,5 @@
 import { Room, Client } from "colyseus";
-import { GameRoomState as GameRoomState, GameCoreState, UnitType } from "@/Colyseus/Schema/GameState";
+import { GameRoomState as GameRoomState, GameCoreState, UnitType, MapData } from "@/Colyseus/Schema/GameState";
 
 // 引入新的管理器和系統
 import { PlayerManager } from "@/Colyseus/Managers/PlayerManager";
@@ -20,6 +20,11 @@ export interface GameRoomOptions {
 }
 
 export class GameRoom extends Room<GameRoomState> {
+
+    //先寫死
+    public mapWidth: number = 2000;
+    public mapHeight: number = 2000;
+
     maxClients = 6;
     autoDispose = true;
     // 管理器實例
@@ -67,6 +72,9 @@ export class GameRoom extends Room<GameRoomState> {
             // 初始化遊戲數據，避免 undefined
             this.state.gameCore = new GameCoreState;
 
+            this.state.mapData = new MapData;
+            this.state.mapData.width = this.mapWidth;
+            this.state.mapData.height = this.mapHeight;
             this.initializeManagers();
             // 設置消息處理器
             this.messageHandler.setupMessageHandlers();

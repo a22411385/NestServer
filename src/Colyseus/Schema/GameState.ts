@@ -77,6 +77,15 @@ export class GameCoreState extends Schema {
     }
 }
 
+// 地圖數據
+export class MapData extends Schema {
+    @type("string") id: string = "";
+    @type("string") name: string = "原型";
+    @type("number") width: number = 2000;
+    @type("number") height: number = 2000;
+    @type({ map: "string" }) tiles = new MapSchema<string>();
+
+}
 
 export class GameRoomState extends Schema {
     // === 核心狀態（高頻同步）===
@@ -91,6 +100,9 @@ export class GameRoomState extends Schema {
     @type("number") maxPlayers: number = 6;
     @type("string") state: gameStateTag = "waiting";
     @type("string") roomType: roomType = "normal"; // 新增：房間類型
+
+    // === 地圖數據 ===
+    @type(MapData) mapData: MapData = new MapData();
 
     // === 測試房模式相關 ===
     @type("boolean") isTestMode: boolean = false; // 測試模式標記

@@ -6,15 +6,18 @@ import { GameRoomState } from "../Schema/GameState";
 import { Vector2 } from "../Schema/Unit/GameUnit";
 
 const MAX_ENEMY_COUNT = 100;
-const MAP_SIZE = 1000;
+
 
 export class UnitManager {
-
+    private mapWidth: number;
+    private mapHeight: number;
     private room: Room<GameRoomState>;
 
     constructor(room: Room<GameRoomState>) {
 
         this.room = room;
+        this.mapWidth = room.state.mapData.width;
+        this.mapHeight = room.state.mapData.height;
     }
 
 
@@ -45,23 +48,24 @@ export class UnitManager {
             const edge = Math.floor(Math.random() * 4);
             switch (edge) {
                 case 0: // 上
-                    position.x = Math.random() * MAP_SIZE;
+                    position.x = Math.random() * this.mapWidth;
                     position.y = 0;
                     break;
                 case 1: // 下
-                    position.x = Math.random() * MAP_SIZE;
-                    position.y = MAP_SIZE;
+                    position.x = Math.random() * this.mapWidth;
+                    position.y = this.mapHeight;
                     break;
                 case 2: // 左
                     position.x = 0;
-                    position.y = Math.random() * MAP_SIZE;
+                    position.y = Math.random() * this.mapHeight;
                     break;
                 case 3: // 右
-                    position.x = MAP_SIZE;
-                    position.y = Math.random() * MAP_SIZE;
+                    position.x = this.mapWidth;
+                    position.y = Math.random() * this.mapHeight;
                     break;
             }
             enemy.position = position;
+            console.log('生成殭屍', enemy.id, '類型:', randomType, '位置:', position);
             // 使用新的添加方法
             this.room.state.addEnemy(enemy);
             spawnedCount++;
