@@ -11,7 +11,7 @@ export class MiddleRoom<T extends Schema> extends Room<T> {
 
     private characterRepo?: Repository<CharacterORM>;
 
-    async onJoin(client: Client, options: any): Promise<LobbyPlayer> {
+    async onAuth(client: Client, options: any): Promise<LobbyPlayer> {
         console.log(`Player ${client.sessionId} joined lobby`);
         const token = options?.token;
         if (!token) {

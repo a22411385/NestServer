@@ -45,6 +45,7 @@
     "express": "^5.1.0",
     "googleapis": "^148.0.0",
     "md5": "^2.3.0",
+    "mitt": "^3.0.1",
     "mysql2": "^3.14.0",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",

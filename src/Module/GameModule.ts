@@ -8,12 +8,11 @@ import { CharacterORM } from "src/ORM/charater.entity";
 import { ItemEditorController } from "src/Controller/itemEditor.controller";
 import { PlayerItemORM } from "src/ORM/playeritem.entity";
 import { EquipmentDataORM } from "src/ORM/equipmentData.entity";
-import { ColyseusService } from "src/Service/colyseus.service";
 
 @Module({
     imports: [TypeOrmModule.forFeature([AccountORM, CharacterORM, PlayerItemORM, EquipmentDataORM])],
     controllers: [CharacterController, ItemEditorController],
-    providers: [ItemFactoryService, ColyseusService],
+    providers: [ItemFactoryService],
     exports: [ItemFactoryService], // 給別人用就 export
 
 })

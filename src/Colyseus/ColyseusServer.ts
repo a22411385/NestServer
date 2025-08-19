@@ -22,11 +22,11 @@ export class ColyseusServer {
     private setupRooms() {
         // 註冊房間類型
         this.server.define("lobby", LobbyRoom);
-        this.server.define("game_room", GameRoom);
+        this.server.define("game", GameRoom);//.enableRealtimeListing();
 
         console.log("Colyseus rooms registered:");
         console.log("- lobby: LobbyRoom");
-        console.log("- game_room: GameRoom");
+
     }
 
     private setupMiddleware() {

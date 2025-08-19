@@ -19,6 +19,10 @@ export class PlayerManager {
         this.state = room.state;
     }
 
+    public getPlayerName(playerId: string): string {
+        const player = this.state.players.get(playerId);
+        return player ? player.name : "未知玩家";
+    }
     /**
      * 處理玩家加入房間
      */

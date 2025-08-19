@@ -23,7 +23,6 @@ export class LobbyPlayer extends Schema {
 export class LobbyState extends Schema {
     @type({ map: LobbyRoomInfo }) rooms = new MapSchema<LobbyRoomInfo>();
     @type({ map: LobbyPlayer }) players = new MapSchema<LobbyPlayer>();
-    @type("number") totalRooms: number = 0;
-    @type("number") totalPlayers: number = 0;
+
 
 }

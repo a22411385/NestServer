@@ -10,7 +10,8 @@ import { Hero } from "@/Colyseus/Schema/Unit/Hero";
 import { MovementSystem } from "@/Colyseus/Systems/MovemnetSystem";
 import { UnitManager } from "../Systems/UnitManager";
 import { MiddleRoom } from "./MiddleRoom";
-import { LobbyPlayer } from "../Schema/LobbyState";
+import { LobbyPlayer, LobbyRoomInfo } from "../Schema/LobbyState";
+import { LobbyRoomBus } from "./LobbyRoom";
 
 export interface GameRoomOptions {
     roomName: string;
@@ -19,6 +20,7 @@ export interface GameRoomOptions {
     hostName: string;
     hostCharacterId: number;
     roomType?: "normal" | "test"; // 新增：房間類型
+    isPrivate?: boolean;
 }
 
 export class GameRoom extends MiddleRoom<GameRoomState> {
@@ -37,6 +39,8 @@ export class GameRoom extends MiddleRoom<GameRoomState> {
     public messageHandler: MessageHandler;
     public movementSystem: MovementSystem;
     public unitManager: UnitManager;
+
+    private roomInfo: LobbyRoomInfo;
 
 
     /**
@@ -78,9 +82,19 @@ export class GameRoom extends MiddleRoom<GameRoomState> {
             this.state.mapData.width = this.mapWidth;
             this.state.mapData.height = this.mapHeight;
             this.initializeManagers();
+
+            this.roomInfo = new LobbyRoomInfo();
+            this.roomInfo.roomId = this.roomId;
+            this.roomInfo.roomName = this.state.roomName;
+            this.roomInfo.hostName = options.hostName;
+            this.roomInfo.currentPlayers = 0;
+            this.roomInfo.maxPlayers = this.state.maxPlayers;
+            this.roomInfo.isStarted = false;
+            this.roomInfo.isPrivate = options.isPrivate || false;
+
             // 設置消息處理器
             this.messageHandler.setupMessageHandlers();
-
+            LobbyRoomBus.emit("roomCreated", { roomId: this.roomId, roomInfo: this.roomInfo });
 
             console.log(`GameRoom ${this.roomId} created successfully`);
         } catch (error) {
@@ -89,9 +103,11 @@ export class GameRoom extends MiddleRoom<GameRoomState> {
         }
     }
 
-    async onJoin(client: Client, options: any): Promise<LobbyPlayer> {
-        let player = await super.onJoin(client, options);
+    async onJoin(client: Client, options: any, player: LobbyPlayer): Promise<LobbyPlayer> {
+
         this.playerManager.handlePlayerJoin(client, player);
+        this.roomInfo.currentPlayers = this.playerManager.getPlayerCount();
+        LobbyRoomBus.emit("roomUpdated", { roomId: this.roomId, roomInfo: this.roomInfo });
         return player;
     }
 
@@ -102,6 +118,9 @@ export class GameRoom extends MiddleRoom<GameRoomState> {
         if (this.playerManager.getPlayerCount() === 0) {
             this.gameManager.stopGameLoop();
         }
+        this.roomInfo.currentPlayers = this.playerManager.getPlayerCount();
+        this.roomInfo.hostName = newHostId ? this.playerManager.getPlayerName(newHostId) : "無主機";
+        LobbyRoomBus.emit("roomUpdated", { roomId: this.roomId, roomInfo: this.roomInfo });
     }
 
     onDispose() {
@@ -109,6 +128,7 @@ export class GameRoom extends MiddleRoom<GameRoomState> {
         this.gameManager.stopGameLoop();
         this.battleSystem.cleanup();
         this.messageHandler.cleanup();
+        LobbyRoomBus.emit("roomDeleted", { roomId: this.roomId });
     }
 
 
