@@ -40,8 +40,7 @@ export class GameRoom extends MiddleRoom<GameRoomState> {
     public movementSystem: MovementSystem;
     public unitManager: UnitManager;
 
-    private roomInfo: LobbyRoomInfo;
-
+    public roomInfo: LobbyRoomInfo;
 
     /**
     * 初始化所有管理器
@@ -89,12 +88,13 @@ export class GameRoom extends MiddleRoom<GameRoomState> {
             this.roomInfo.hostName = options.hostName;
             this.roomInfo.currentPlayers = 0;
             this.roomInfo.maxPlayers = this.state.maxPlayers;
-            this.roomInfo.isStarted = false;
+            this.roomInfo.state = "waiting";
             this.roomInfo.isPrivate = options.isPrivate || false;
 
             // 設置消息處理器
             this.messageHandler.setupMessageHandlers();
             LobbyRoomBus.emit("roomCreated", { roomId: this.roomId, roomInfo: this.roomInfo });
+
 
             console.log(`GameRoom ${this.roomId} created successfully`);
         } catch (error) {
@@ -102,6 +102,15 @@ export class GameRoom extends MiddleRoom<GameRoomState> {
             throw error;
         }
     }
+    async onAuth(client: Client, options: any): Promise<LobbyPlayer> {
+        if (this.state.state == "playing") {
+            throw new Error("遊戲已經開始，無法加入");
+        }
+
+
+        return await super.onAuth(client, options);
+    }
+
 
     async onJoin(client: Client, options: any, player: LobbyPlayer): Promise<LobbyPlayer> {
 

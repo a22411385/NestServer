@@ -67,7 +67,7 @@ export class UnitManager {
             enemy.position = position;
             //名稱先寫死
             enemy.name = ZombieName[randomType - 1];
-            console.log('生成殭屍', enemy.id, '類型:', randomType, '位置:', position);
+            // console.log('生成殭屍', enemy.id, '類型:', randomType, '位置:', position);
             // 使用新的添加方法
             this.room.state.addEnemy(enemy);
             spawnedCount++;

@@ -1,4 +1,5 @@
 import { Schema, type, MapSchema } from "@colyseus/schema";
+import { RoomStateType } from "./GameState";
 
 export class LobbyRoomInfo extends Schema {
     @type("string") roomId: string = "";
@@ -6,7 +7,7 @@ export class LobbyRoomInfo extends Schema {
     @type("string") hostName: string = "";
     @type("number") currentPlayers: number = 0;
     @type("number") maxPlayers: number = 6;
-    @type("boolean") isStarted: boolean = false;
+    @type("string") state: RoomStateType = "waiting";
     @type("boolean") isPrivate: boolean = false;
 
 }

@@ -1,9 +1,10 @@
 import { Delayed } from "colyseus";
-import { GameRoomState } from "../Schema/GameState";
+import { RoomStateType, GameRoomState } from "../Schema/GameState";
 import { delay } from "../../Util/Utils";
 import { GameRoom } from "../Rooms/GameRoom";
 import { BattleSystem } from "../Systems/BattleSystem";
 import { MovementSystem } from "../Systems/MovemnetSystem";
+import { LobbyRoomBus } from "../Rooms/LobbyRoom";
 
 const RoundTimeSetting = {
     prepare: 3,
@@ -38,6 +39,10 @@ export class GameManager {
         this.movementSystem = room.movementSystem;
     }
 
+    public setRoomState(state: RoomStateType) {
+        this.state.state = state;
+        LobbyRoomBus.emit("roomStateChanged", { roomId: this.room.roomId, state });
+    }
 
     /**
      * 設置 BattleSystem 引用
@@ -51,8 +56,7 @@ export class GameManager {
      */
     public startGame(): void {
         console.log(`🎮 Game started in room ${this.room.roomId}`);
-        this.state.state = "playing";
-
+        this.setRoomState("playing");
         // 初始化遊戲核心狀態
         this.state.gameCore.waveNumber = 1;
         this.state.gameCore.status = 'prepare';
@@ -140,7 +144,7 @@ export class GameManager {
      */
     private endGame(reason: "allPlayersDead" | "waveComplete"): void {
         console.log(`Game ended: ${reason}`);
-        this.state.state = 'waiting';
+        this.setRoomState("waiting");
         this.state.gameCore.status = 'prepare';
 
         const finalWave = this.state.gameCore.waveNumber;

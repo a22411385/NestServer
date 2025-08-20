@@ -5,7 +5,7 @@ import { GameUnit, StatusEffect, Vector2 } from "./Unit/GameUnit";
 import { Enemy } from "./Unit/Enemy";
 import { Hero } from "./Unit/Hero";
 
-export type gameStateTag = "waiting" | 'playing' | 'finished' | 'pedding' | 'testing';
+export type RoomStateType = "waiting" | 'playing';
 export type gameFlowStatus = "prepare" | 'battle' | 'rest' | 'settlement' | 'test_mode';
 export type roomType = "normal" | "test";
 export enum UnitType {
@@ -98,7 +98,7 @@ export class GameRoomState extends Schema {
     // === 房間基本資訊 ===
     @type("string") roomName: string = "";
     @type("number") maxPlayers: number = 6;
-    @type("string") state: gameStateTag = "waiting";
+    @type("string") state: RoomStateType = "waiting";
     @type("string") roomType: roomType = "normal"; // 新增：房間類型
 
     // === 地圖數據 ===
@@ -226,10 +226,6 @@ export class GameRoomState extends Schema {
 
     isPlaying(): boolean {
         return this.state === "playing";
-    }
-
-    isFinished(): boolean {
-        return this.state === "finished";
     }
 
     // 檢查所有玩家是否準備好
