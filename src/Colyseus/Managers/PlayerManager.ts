@@ -1,7 +1,7 @@
 import { Client, Room } from "colyseus";
 import { GameRoomState, GamePlayer, UnitType, UnitFactory } from "../Schema/GameState";
 import { IdGenerator } from "../../Util/IdGenerator";
-import { Hero } from "../Schema/Unit/Hero";
+import { ServerHero } from "../Schema/Unit/Hero";
 import { Vector2 } from "../Schema/Unit/GameUnit";
 import { LobbyPlayer } from "../Schema/LobbyState";
 
@@ -150,7 +150,7 @@ export class PlayerManager {
     initializeAllHeroes(): void {
         for (const [playerId, player] of this.state.players) {
 
-            const hero = new Hero
+            const hero = new ServerHero
             // 🔧 使用統一的ID生成系統
             hero.id = IdGenerator.generateHeroId(playerId);
             hero.name = player.name;
@@ -184,7 +184,7 @@ export class PlayerManager {
     updateHeroesInvincible(deltaTime: number): void {
         for (const [, hero] of this.state.allUnits) {
             if (hero.type == UnitType.hero)
-                (hero as Hero).updateInvincible(deltaTime);
+                (hero as ServerHero).updateInvincible(deltaTime);
         }
     }
 
@@ -201,7 +201,7 @@ export class PlayerManager {
                     anyPlayerDied = true;
 
                     // 這裡可以由外部傳入戰報回調
-                    console.log(`${(hero as Hero).name} 被殭屍群殺死了！`);
+                    console.log(`${(hero as ServerHero).name} 被殭屍群殺死了！`);
                     this.room.broadcast("heroDied", { heroId: hero.id });
                 }
             }

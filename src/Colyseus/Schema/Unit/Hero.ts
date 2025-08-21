@@ -1,10 +1,10 @@
 import { type } from "@colyseus/schema";
 import { UnitType } from "../GameState";
-import { Enemy } from "./Enemy";
-import { GameUnit } from "./GameUnit";
+import { ServerEnemy } from "./Enemy";
+import { ServerGameUnit } from "./GameUnit";
 
 // 玩家操控的主要單位
-export class Hero extends GameUnit {
+export class ServerHero extends ServerGameUnit {
 
     @type("number") invincibleRemaining: number = 0; // 無敵剩餘時間 (ms)
     @type("number") level: number = 1;
@@ -46,7 +46,7 @@ export class Hero extends GameUnit {
     }
 
     // 攻擊敵人
-    attackEnemy(enemy: Enemy): boolean {
+    attackEnemy(enemy: ServerEnemy): boolean {
         if (this.isInRange(enemy, this.attackRange)) {
             const killed = enemy.takeDamage(this.attackDamage);
             if (killed) {

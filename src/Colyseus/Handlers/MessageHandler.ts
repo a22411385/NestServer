@@ -3,7 +3,7 @@ import { GameRoomState, UnitType } from "../Schema/GameState";
 import { PlayerManager } from "../Managers/PlayerManager";
 import { GameManager } from "../Managers/GameManager";
 import { BattleSystem } from "../Systems/BattleSystem";
-import { Hero } from "../Schema/Unit/Hero";
+import { ServerHero } from "../Schema/Unit/Hero";
 import { GameRoom } from "../Rooms/GameRoom";
 import { Vector2 } from "../Schema/Unit/GameUnit";
 
@@ -52,7 +52,7 @@ export class MessageHandler {
                 // 發送玩家初始化戰報
                 for (const [, unit] of this.state.allUnits) {
                     if (unit.type == UnitType.hero) {
-                        let hero = unit as Hero
+                        let hero = unit as ServerHero
                         this.sendBattleLog(`${hero.name} 加入戰場 (Lv.${hero.level}, HP:${hero.hp}/${hero.maxHp})`, 'event');
                     }
                 }
@@ -134,7 +134,7 @@ export class MessageHandler {
             // 重置所有玩家Hero到初始狀態
             for (let [uid, unit] of this.state.allUnits) {
                 if (unit.type == UnitType.hero) {
-                    let hero = unit as Hero;
+                    let hero = unit as ServerHero;
                     hero.position = new Vector2(100, 100);
                     hero.hp = hero.maxHp;
                     hero.invincibleRemaining = 0;

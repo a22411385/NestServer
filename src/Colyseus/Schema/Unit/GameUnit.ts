@@ -30,7 +30,7 @@ export class StatusEffect extends Schema {
     @type("number") value: number = 0; // 效果數值
 }
 // 單位基底
-export class GameUnit extends Schema {
+export class ServerGameUnit extends Schema {
     @type("string") id: string = "";
     @type("string") name: string = '';
     @type("number") type: number = UnitType.enemy;
@@ -74,7 +74,7 @@ export class GameUnit extends Schema {
     }
 
     // 檢查是否在範圍內
-    isInRange(target: GameUnit, range: number): boolean {
+    isInRange(target: ServerGameUnit, range: number): boolean {
         const dx = target.position.x - this.position.x;
         const dy = target.position.y - this.position.y;
         const distance = Math.hypot(dx, dy);

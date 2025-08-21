@@ -1,6 +1,6 @@
 import { UnitType } from "@/Colyseus/Schema/GameState";
 import { GameRoom } from "../Rooms/GameRoom";
-import { GameUnit } from "../Schema/Unit/GameUnit";
+import { ServerGameUnit } from "../Schema/Unit/GameUnit";
 import { Client } from "colyseus";
 
 
@@ -16,7 +16,7 @@ export class MovementSystem {
 
     private room: GameRoom;
 
-    get getAllUnits(): Map<string, GameUnit> {
+    get getAllUnits(): Map<string, ServerGameUnit> {
         return this.room.state.allUnits;
     }
 
@@ -67,7 +67,7 @@ export class MovementSystem {
             this.MoveUnit(unit);
         }
     }
-    private MoveUnit(unit: GameUnit): void {
+    private MoveUnit(unit: ServerGameUnit): void {
         // 獲取單位速度
         const speed = this.getUnitSpeed(unit.id);
 

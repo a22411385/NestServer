@@ -1,6 +1,6 @@
 import { IdGenerator } from "@/Util/IdGenerator";
 
-import { Enemy } from "../Schema/Unit/Enemy";
+import { ServerEnemy } from "../Schema/Unit/Enemy";
 import { Room } from "colyseus";
 import { GameRoomState } from "../Schema/GameState";
 import { Vector2 } from "../Schema/Unit/GameUnit";
@@ -38,7 +38,7 @@ export class UnitManager {
             // 隨機決定殭屍類型
             const randomType = Math.floor(Math.random() * 3) + 1;
 
-            const enemy = new Enemy();
+            const enemy = new ServerEnemy();
             // 🔧 使用統一的ID生成系統
             enemy.id = IdGenerator.generateEnemyId(randomType);
             enemy.initializeByType(randomType);

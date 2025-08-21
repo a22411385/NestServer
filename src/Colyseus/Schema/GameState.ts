@@ -1,9 +1,9 @@
 
 
 import { Schema, type, MapSchema } from "@colyseus/schema";
-import { GameUnit, StatusEffect, Vector2 } from "./Unit/GameUnit";
-import { Enemy } from "./Unit/Enemy";
-import { Hero } from "./Unit/Hero";
+import { ServerGameUnit, StatusEffect, Vector2 } from "./Unit/GameUnit";
+import { ServerEnemy } from "./Unit/Enemy";
+import { ServerHero } from "./Unit/Hero";
 
 export type RoomStateType = "waiting" | 'playing';
 export type gameFlowStatus = "prepare" | 'battle' | 'rest' | 'settlement' | 'test_mode';
@@ -45,7 +45,7 @@ export class GameCoreState extends Schema {
     @type({ map: Item }) items = new MapSchema<Item>();
 
     //這裡只同步場上所有單位的存活
-    @type({ map: GameUnit }) allUnits = new MapSchema<GameUnit>();
+    @type({ map: ServerGameUnit }) allUnits = new MapSchema<ServerGameUnit>();
 
     // 遊戲狀態管理方法
     isGameActive(): boolean {
@@ -112,7 +112,7 @@ export class GameRoomState extends Schema {
     }
 
     // 添加完整單位的方法
-    addUnit(unit: GameUnit): void {
+    addUnit(unit: ServerGameUnit): void {
         this.allUnits.set(unit.id, unit);
     }
 
@@ -140,46 +140,46 @@ export class GameRoomState extends Schema {
     }
 
     // 添加敵人 (便利方法)
-    addEnemy(enemy: Enemy): void {
+    addEnemy(enemy: ServerEnemy): void {
         enemy.type = UnitType.enemy;
         this.addUnit(enemy);
     }
 
     // 添加英雄 (便利方法)
-    addHero(hero: Hero): void {
+    addHero(hero: ServerHero): void {
         hero.type = UnitType.hero;
         this.addUnit(hero);
     }
 
     // 獲取完整敵人資料（伺服器端用）
-    getEnemy(enemyId: string): Enemy | undefined {
+    getEnemy(enemyId: string): ServerEnemy | undefined {
         const unit = this.allUnits.get(enemyId);
-        return (unit && unit.type === UnitType.enemy) ? unit as Enemy : undefined;
+        return (unit && unit.type === UnitType.enemy) ? unit as ServerEnemy : undefined;
     }
 
     // 獲取英雄資料
-    getHero(heroId: string): Hero | undefined {
+    getHero(heroId: string): ServerHero | undefined {
         const unit = this.allUnits.get("hero_" + heroId);
-        return (unit && unit.type === UnitType.hero) ? unit as Hero : undefined;
+        return (unit && unit.type === UnitType.hero) ? unit as ServerHero : undefined;
     }
 
     // 獲取所有敵人（伺服器端用）
-    getAllEnemies(): Map<string, Enemy> {
-        const enemies = new Map<string, Enemy>();
+    getAllEnemies(): Map<string, ServerEnemy> {
+        const enemies = new Map<string, ServerEnemy>();
         for (const [unitId, unit] of this.allUnits) {
             if (unit.type === UnitType.enemy) {
-                enemies.set(unitId, unit as Enemy);
+                enemies.set(unitId, unit as ServerEnemy);
             }
         }
         return enemies;
     }
 
     // 獲取所有英雄
-    getAllHeroes(): Map<string, Hero> {
-        const heroes = new Map<string, Hero>();
+    getAllHeroes(): Map<string, ServerHero> {
+        const heroes = new Map<string, ServerHero>();
         for (const [unitId, unit] of this.allUnits) {
             if (unit.type === UnitType.hero) {
-                heroes.set(unitId, unit as Hero);
+                heroes.set(unitId, unit as ServerHero);
             }
         }
         return heroes;
@@ -193,7 +193,7 @@ export class GameRoomState extends Schema {
 
         for (const [unitId, unit] of this.allUnits) {
             if (unit.type === UnitType.enemy && unit.isDead) {
-                const enemy = unit as Enemy;
+                const enemy = unit as ServerEnemy;
                 killedEnemies.push(unitId);
                 totalExp += enemy.expReward;
                 this.removeEnemy(unitId);
@@ -279,8 +279,8 @@ export class GameRoomState extends Schema {
 
 // 單位工廠
 export class UnitFactory {
-    static createHero(id: string, name: string, x: number = 0, y: number = 0): Hero {
-        const hero = new Hero();
+    static createHero(id: string, name: string, x: number = 0, y: number = 0): ServerHero {
+        const hero = new ServerHero();
         hero.id = id;
         hero.name = name;
         hero.position = new Vector2(x, y);
@@ -288,8 +288,8 @@ export class UnitFactory {
         return hero;
     }
 
-    static createEnemy(type: number = 1, x: number = 0, y: number = 0): Enemy {
-        const enemy = new Enemy();
+    static createEnemy(type: number = 1, x: number = 0, y: number = 0): ServerEnemy {
+        const enemy = new ServerEnemy();
         enemy.id = `enemy_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
         enemy.position = new Vector2(x, y);
         enemy.initializeByType(type);
@@ -306,7 +306,7 @@ export class UnitFactory {
     }
 
     // 在地圖邊緣隨機生成敵人
-    static spawnEnemyAtMapEdge(type: number = 1, mapSize: number = 1000): Enemy {
+    static spawnEnemyAtMapEdge(type: number = 1, mapSize: number = 1000): ServerEnemy {
         const edge = Math.floor(Math.random() * 4);
         let x = 0, y = 0;
 
@@ -333,7 +333,7 @@ export class UnitFactory {
     }
 
     // 在指定範圍內隨機生成英雄
-    static spawnHeroInArea(id: string, name: string, mapSize: number = 1000): Hero {
+    static spawnHeroInArea(id: string, name: string, mapSize: number = 1000): ServerHero {
         const x = Math.random() * mapSize;
         const y = Math.random() * mapSize;
         return this.createHero(id, name, x, y);

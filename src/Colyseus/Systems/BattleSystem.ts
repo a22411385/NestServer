@@ -3,8 +3,8 @@ import { MapSchema } from "@colyseus/schema";
 import { GameRoomState, UnitType } from "../Schema/GameState";
 import { GameManager } from "../Managers/GameManager";
 import { IdGenerator } from "../../Util/IdGenerator";
-import { Enemy } from "../Schema/Unit/Enemy";
-import { Hero } from "../Schema/Unit/Hero";
+import { ServerEnemy } from "../Schema/Unit/Enemy";
+import { ServerHero } from "../Schema/Unit/Hero";
 import { GameRoom } from "../Rooms/GameRoom";
 import { Vector2 } from "../Schema/Unit/GameUnit";
 
@@ -43,13 +43,13 @@ export class BattleSystem {
         if (!hero || hero.isDead) return;
 
         // 查找範圍內的敵人
-        let targetEnemy: Enemy | null = null;
+        let targetEnemy: ServerEnemy | null = null;
         let closestDistance = hero.attackRange;
 
         for (const [unitId, unit] of this.state.allUnits) {
             if (unit.type !== UnitType.enemy || unit.isDead) continue;
 
-            const enemy = unit as Enemy;
+            const enemy = unit as ServerEnemy;
             const distance = Math.hypot(
                 enemy.position.x - targetX,
                 enemy.position.y - targetY
@@ -122,7 +122,7 @@ export class BattleSystem {
      * 測試房專用：生成單隻敵人到指定位置
      */
     spawnSingleEnemy(x: number, y: number, type: number = 1): string {
-        const enemy = new Enemy();
+        const enemy = new ServerEnemy();
         // 🔧 使用統一的測試ID生成系統
         enemy.id = IdGenerator.generateTestEnemyId(type);
 
@@ -144,14 +144,14 @@ export class BattleSystem {
     /**
      * 更新所有敵人的 AI - 效能優化版本
      */
-    updateEnemyAI(deltaTime: number, currentTime: number): Map<string, { before: number; after: number; hero: Hero }> {
-        const heroHealthChanges = new Map<string, { before: number; after: number; hero: Hero }>();
+    updateEnemyAI(deltaTime: number, currentTime: number): Map<string, { before: number; after: number; hero: ServerHero }> {
+        const heroHealthChanges = new Map<string, { before: number; after: number; hero: ServerHero }>();
 
         // 記錄攻擊前的英雄血量並創建MapSchema
-        const heroMapSchema = new MapSchema<Hero>();
+        const heroMapSchema = new MapSchema<ServerHero>();
         for (const [unitId, unit] of this.state.allUnits) {
             if (unit.type === UnitType.hero && !unit.isDead) {
-                const hero = unit as Hero;
+                const hero = unit as ServerHero;
                 heroMapSchema.set(unitId, hero);
                 heroHealthChanges.set(unitId, {
                     before: hero.hp,
@@ -164,7 +164,7 @@ export class BattleSystem {
         // 更新每個敵人的 AI
         for (const [unitId, unit] of this.state.allUnits) {
             if (unit.type === UnitType.enemy && !unit.isDead) {
-                const enemy = unit as Enemy;
+                const enemy = unit as ServerEnemy;
                 // 呼叫 Enemy 自己的優化 AI 更新
                 enemy.updateAI(heroMapSchema, deltaTime, currentTime);
                 //  this.room.movementSystem.addMoveData(enemy.id, moveVector);
@@ -182,7 +182,7 @@ export class BattleSystem {
     /**
      * 處理戰鬥傷害回報
      */
-    processDamageReport(heroHealthChanges: Map<string, { before: number; after: number; hero: Hero }>): void {
+    processDamageReport(heroHealthChanges: Map<string, { before: number; after: number; hero: ServerHero }>): void {
         for (const [heroId, healthData] of heroHealthChanges) {
             if (healthData.after < healthData.before) {
                 const damage = healthData.before - healthData.after;

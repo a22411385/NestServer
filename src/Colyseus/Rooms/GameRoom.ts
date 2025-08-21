@@ -6,7 +6,7 @@ import { PlayerManager } from "@/Colyseus/Managers/PlayerManager";
 import { GameManager } from "@/Colyseus/Managers/GameManager";
 import { BattleSystem } from "@/Colyseus/Systems/BattleSystem";
 import { MessageHandler } from "@/Colyseus/Handlers/MessageHandler";
-import { Hero } from "@/Colyseus/Schema/Unit/Hero";
+import { ServerHero } from "@/Colyseus/Schema/Unit/Hero";
 import { MovementSystem } from "@/Colyseus/Systems/MovemnetSystem";
 import { UnitManager } from "../Systems/UnitManager";
 import { MiddleRoom } from "./MiddleRoom";
@@ -165,7 +165,7 @@ export class GameRoom extends MiddleRoom<GameRoomState> {
             // 發送死亡戰報
             for (const [, hero] of this.state.gameCore.allUnits) {
                 if (hero.type == UnitType.hero && hero.hp <= 0 && hero.isDead) {
-                    this.messageHandler.sendBattleLog(`${(hero as Hero).name} 被殭屍群殺死了！`, 'death');
+                    this.messageHandler.sendBattleLog(`${(hero as ServerHero).name} 被殭屍群殺死了！`, 'death');
                 }
             }
 

@@ -1,11 +1,11 @@
 import { MapSchema, type } from "@colyseus/schema";
 import { UnitType } from "../GameState";
-import { Hero } from "./Hero";
-import { GameUnit } from "./GameUnit";
+import { ServerHero } from "./Hero";
+import { ServerGameUnit } from "./GameUnit";
 import { Vector2 } from "@/Shared/BattleMathUtils";
 
 // 殭屍 - 伺服器端完整版本
-export class Enemy extends GameUnit {
+export class ServerEnemy extends ServerGameUnit {
 
     @type("number") damage: number = 10; // 攻擊傷害
     @type("number") expReward: number = 1; // 擊殺獎勵經驗值
@@ -19,7 +19,7 @@ export class Enemy extends GameUnit {
     // 效能優化屬性 (不需要同步)
     private lastAIUpdateTime: number = 0; // 上次AI更新時間
     private aiUpdateInterval: number = 200; // AI更新間隔 (ms) - 5 FPS
-    private targetCache: Hero | null = null; // 快取目標
+    private targetCache: ServerHero | null = null; // 快取目標
     private targetCacheTime: number = 0; // 目標快取時間
 
     constructor() {
@@ -33,7 +33,7 @@ export class Enemy extends GameUnit {
     }
 
     // 尋找最近的目標 - 優化版本使用快取
-    findNearestTarget(targets: MapSchema<Hero>): Hero | null {
+    findNearestTarget(targets: MapSchema<ServerHero>): ServerHero | null {
         const currentTime = Date.now();
 
         // 如果快取的目標仍然有效且未過期，直接返回
@@ -43,7 +43,7 @@ export class Enemy extends GameUnit {
             return this.targetCache;
         }
 
-        let nearestTarget: Hero | null = null;
+        let nearestTarget: ServerHero | null = null;
         let minDistance = Infinity;
 
         for (const [, target] of targets) {
@@ -64,14 +64,14 @@ export class Enemy extends GameUnit {
     }
 
     // 獲取到目標的距離
-    getDistanceTo(target: GameUnit): number {
+    getDistanceTo(target: ServerGameUnit): number {
         const dx = target.position.x - this.position.x;
         const dy = target.position.y - this.position.y;
         return Math.hypot(dx, dy);
     }
 
     // AI 更新邏輯 - 優化版本
-    updateAI(targets: MapSchema<Hero>, deltaTime: number, currentTime: number): Vector2 {
+    updateAI(targets: MapSchema<ServerHero>, deltaTime: number, currentTime: number): Vector2 {
         let moveVector = { x: 0, y: 0 };
         if (this.isDead) return moveVector;
 
@@ -104,7 +104,7 @@ export class Enemy extends GameUnit {
     }
 
     // 追蹤目標
-    private chaseTarget(target: GameUnit, deltaTime: number): Vector2 {
+    private chaseTarget(target: ServerGameUnit, deltaTime: number): Vector2 {
         // 移動邏輯由外部實現，這裡只設置方向向量
         const dx = target.position.x - this.position.x;
         const dy = target.position.y - this.position.y;
@@ -122,7 +122,7 @@ export class Enemy extends GameUnit {
     }
 
     // 嘗試攻擊
-    private attemptAttack(target: Hero, currentTime: number): boolean {
+    private attemptAttack(target: ServerHero, currentTime: number): boolean {
         if (currentTime - this.lastAttackTime >= this.attackCooldown) {
             this.lastAttackTime = currentTime;
             return this.attackTarget(target);
@@ -131,7 +131,7 @@ export class Enemy extends GameUnit {
     }
 
     // 攻擊目標
-    attackTarget(target: GameUnit): boolean {
+    attackTarget(target: ServerGameUnit): boolean {
         if (this.isInRange(target, this.radius + target.radius)) {
             return target.takeDamage(this.damage);
         }
