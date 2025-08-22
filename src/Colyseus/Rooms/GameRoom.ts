@@ -12,6 +12,9 @@ import { UnitManager } from "../Systems/UnitManager";
 import { MiddleRoom } from "./MiddleRoom";
 import { LobbyPlayer, LobbyRoomInfo } from "../Schema/LobbyState";
 import { LobbyRoomBus } from "./LobbyRoom";
+import { ServerBullet } from "@/Colyseus/Schema/Bullet";
+import { Vector2 } from "@/Colyseus/Schema/Unit/GameUnit";
+import { ServerEnemy } from "../Schema/Unit/Enemy";
 
 export interface GameRoomOptions {
     roomName: string;
@@ -152,6 +155,12 @@ export class GameRoom extends MiddleRoom<GameRoomState> {
         // 更新 Hero 無敵時間
         this.playerManager.updateHeroesInvincible(deltaTime);
 
+        // 處理英雄自動攻擊 (Vampire Survivors 風格)
+        this.updateHeroAutoAttacks();
+
+        // 更新子彈系統
+        this.updateBullets(deltaTime);
+
         // 更新敵人 AI 並獲取傷害報告
         const heroHealthChanges = this.battleSystem.updateEnemyAI(deltaTime, currentTime);
 
@@ -173,6 +182,135 @@ export class GameRoom extends MiddleRoom<GameRoomState> {
                 this.messageHandler.sendBattleLog("所有玩家陣亡，遊戲結束！", 'event');
                 this.gameManager.forceEndGame();
                 return;
+            }
+        }
+    }
+
+    /**
+     * 更新英雄自動攻擊 - Vampire Survivors 風格
+     */
+    private updateHeroAutoAttacks(): void {
+        // 獲取所有存活的敵人
+        const aliveEnemies = this.unitManager.getAllAliveEnemies();
+
+        // 遍歷所有英雄
+        for (const [heroId, unit] of this.state.gameCore.allUnits) {
+            if (unit.type !== UnitType.hero || unit.isDead) continue;
+
+            const hero = unit as ServerHero;
+
+            // 嘗試自動攻擊
+            const attackResult = hero.tryAutoAttack(aliveEnemies);
+
+            if (attackResult.shouldCreateBullet && attackResult.bulletInfo) {
+                this.createBullet(attackResult.bulletInfo);
+            }
+        }
+    }
+
+    /**
+     * 創建子彈
+     */
+    private createBullet(bulletInfo: {
+        startPosition: { x: number, y: number },
+        direction: { x: number, y: number },
+        damage: number,
+        speed: number,
+        bulletType: string,
+        ownerId: string
+    }): void {
+        const bullet = new ServerBullet();
+
+        // 生成唯一 ID
+        const bulletId = `bullet_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+        bullet.initialize(
+            bulletId,
+            bulletInfo.ownerId,
+            new Vector2(bulletInfo.startPosition.x, bulletInfo.startPosition.y),
+            new Vector2(bulletInfo.direction.x, bulletInfo.direction.y),
+            bulletInfo.damage,
+            bulletInfo.speed,
+            bulletInfo.bulletType
+        );
+
+        // 添加到遊戲狀態
+        this.state.gameCore.bullets.set(bulletId, bullet);
+    }
+
+    /**
+     * 更新子彈系統
+     */
+    private updateBullets(deltaTime: number): void {
+        const bulletsToRemove: string[] = [];
+
+        // 遍歷所有子彈
+        for (const [bulletId, bullet] of this.state.gameCore.bullets) {
+            // 檢查子彈是否應該被移除
+            if (bullet.shouldDestroy()) {
+                bulletsToRemove.push(bulletId);
+                continue;
+            }
+
+            // 檢查子彈碰撞
+            this.checkBulletCollisions(bullet);
+        }
+
+        // 移除過期的子彈
+        for (const bulletId of bulletsToRemove) {
+            this.state.gameCore.bullets.delete(bulletId);
+        }
+    }
+
+    /**
+     * 檢查子彈碰撞
+     */
+    private checkBulletCollisions(bullet: any): void {
+        const currentPos = bullet.getCurrentPosition();
+
+        // 檢查與敵人的碰撞
+        for (const [enemyId, unit] of this.state.gameCore.allUnits) {
+            if (unit.type !== UnitType.enemy || unit.isDead) continue;
+
+            const enemy = unit as ServerEnemy; // ServerEnemy
+            const distance = Math.hypot(
+                currentPos.x - enemy.position.x,
+                currentPos.y - enemy.position.y
+            );
+
+            // 碰撞檢測 (子彈半徑 + 敵人半徑)
+            const collisionDistance = 5 + enemy.radius; // 子彈半徑假設為 5
+
+            if (distance <= collisionDistance) {
+                // 造成傷害
+                const killed = enemy.takeDamage(bullet.damage);
+
+                // 處理命中
+                const shouldContinue = bullet.onHit();
+
+                if (killed) {
+                    // 給子彈擁有者經驗值
+                    const owner = this.state.gameCore.allUnits.get(bullet.ownerId);
+                    if (owner && owner.type === UnitType.hero) {
+                        const hero = owner as ServerHero;
+                        const leveledUp = hero.gainExp(enemy.expReward);
+
+                        if (leveledUp) {
+                            this.messageHandler.sendBattleLog(
+                                `${hero.name} 升級到 ${hero.level} 級！`,
+                                'event'
+                            );
+                        }
+                    }
+                    this.state.gameCore.allUnits.delete(enemyId);
+                }
+
+                // 如果子彈不應該繼續存在，標記為命中
+                if (!shouldContinue) {
+                    bullet.hasHit = true;
+                    break;
+                }
+
             }
         }
     }

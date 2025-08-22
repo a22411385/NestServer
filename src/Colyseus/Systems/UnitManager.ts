@@ -2,7 +2,7 @@ import { IdGenerator } from "@/Util/IdGenerator";
 
 import { ServerEnemy } from "../Schema/Unit/Enemy";
 import { Room } from "colyseus";
-import { GameRoomState } from "../Schema/GameState";
+import { GameRoomState, UnitType } from "../Schema/GameState";
 import { Vector2 } from "../Schema/Unit/GameUnit";
 
 const MAX_ENEMY_COUNT = 100;
@@ -72,6 +72,37 @@ export class UnitManager {
             this.room.state.addEnemy(enemy);
             spawnedCount++;
         }
+    }
+
+    /**
+     * 獲取所有存活的敵人
+     * 用於自動攻擊系統
+     */
+    public getAllAliveEnemies(): ServerEnemy[] {
+        const aliveEnemies: ServerEnemy[] = [];
+
+        for (const [, unit] of this.room.state.gameCore.allUnits) {
+            if (unit.type === UnitType.enemy && !unit.isDead) {
+                aliveEnemies.push(unit as ServerEnemy);
+            }
+        }
+
+        return aliveEnemies;
+    }
+
+    /**
+     * 獲取所有存活的英雄
+     */
+    public getAllAliveHeroes() {
+        const aliveHeroes = [];
+
+        for (const [, unit] of this.room.state.gameCore.allUnits) {
+            if (unit.type === UnitType.hero && !unit.isDead) {
+                aliveHeroes.push(unit);
+            }
+        }
+
+        return aliveHeroes;
     }
 
 }

@@ -4,6 +4,7 @@ import { Schema, type, MapSchema } from "@colyseus/schema";
 import { ServerGameUnit, StatusEffect, Vector2 } from "./Unit/GameUnit";
 import { ServerEnemy } from "./Unit/Enemy";
 import { ServerHero } from "./Unit/Hero";
+import { ServerBullet } from "./Bullet";
 
 export type RoomStateType = "waiting" | 'playing';
 export type gameFlowStatus = "prepare" | 'battle' | 'rest' | 'settlement' | 'test_mode';
@@ -46,6 +47,9 @@ export class GameCoreState extends Schema {
 
     //這裡只同步場上所有單位的存活
     @type({ map: ServerGameUnit }) allUnits = new MapSchema<ServerGameUnit>();
+
+    // 子彈系統 - Vampire Survivors 風格
+    @type({ map: ServerBullet }) bullets = new MapSchema<ServerBullet>();
 
     // 遊戲狀態管理方法
     isGameActive(): boolean {

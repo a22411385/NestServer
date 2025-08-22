@@ -11,6 +11,13 @@ export class ServerHero extends ServerGameUnit {
     @type("number") exp: number = 0;
     @type("number") attackDamage: number = 15; // 攻擊傷害
     @type("number") attackRange: number = 100; // 攻擊範圍
+    @type("number") attackSpeed: number = 1000; // 攻擊間隔 (毫秒)
+    @type("number") bulletSpeed: number = 200; // 子彈速度 (像素/秒)
+    @type("string") bulletType: string = "basic"; // 子彈類型
+
+    // 攻擊計時器 (不同步給客戶端)
+    private lastAttackTime: number = 0;
+    private autoAttackEnabled: boolean = true;
 
     constructor() {
         super();
@@ -43,9 +50,12 @@ export class ServerHero extends ServerGameUnit {
         this.hp = this.maxHp; // 升級時滿血
         this.attackDamage += 5;
         this.attackRange += 5;
+
+        // 升級時提升攻擊速度 (減少攻擊間隔)
+        this.attackSpeed = Math.max(300, this.attackSpeed - 50);
     }
 
-    // 攻擊敵人
+    // 攻擊敵人 (舊版本，保留用於近戰攻擊)
     attackEnemy(enemy: ServerEnemy): boolean {
         if (this.isInRange(enemy, this.attackRange)) {
             const killed = enemy.takeDamage(this.attackDamage);
@@ -55,6 +65,99 @@ export class ServerHero extends ServerGameUnit {
             return killed;
         }
         return false;
+    }
+
+    // 檢查是否可以攻擊
+    canAttack(): boolean {
+        const currentTime = Date.now();
+        return this.autoAttackEnabled &&
+            (currentTime - this.lastAttackTime) >= this.attackSpeed;
+    }
+
+    // 尋找最近的敵人
+    findNearestEnemy(enemies: ServerEnemy[]): ServerEnemy | null {
+        let nearestEnemy: ServerEnemy | null = null;
+        let minDistance = this.attackRange;
+
+        for (const enemy of enemies) {
+            if (enemy.isDead) continue;
+
+            const distance = this.getDistanceTo(enemy);
+            if (distance <= minDistance) {
+                nearestEnemy = enemy;
+                minDistance = distance;
+            }
+        }
+
+        return nearestEnemy;
+    }
+
+    // 計算到目標的距離
+    private getDistanceTo(target: ServerGameUnit): number {
+        const dx = target.position.x - this.position.x;
+        const dy = target.position.y - this.position.y;
+        return Math.hypot(dx, dy);
+    }
+
+    // 計算射向目標的方向向量
+    private getDirectionToTarget(target: ServerGameUnit): { x: number, y: number } {
+        const dx = target.position.x - this.position.x;
+        const dy = target.position.y - this.position.y;
+        const length = Math.hypot(dx, dy);
+
+        if (length === 0) return { x: 1, y: 0 };
+
+        return { x: dx / length, y: dy / length };
+    }
+
+    // 執行自動攻擊 (返回子彈創建資訊)
+    tryAutoAttack(enemies: ServerEnemy[]): {
+        shouldCreateBullet: boolean,
+        bulletInfo?: {
+            startPosition: { x: number, y: number },
+            direction: { x: number, y: number },
+            damage: number,
+            speed: number,
+            bulletType: string,
+            ownerId: string
+        }
+    } {
+        if (!this.canAttack()) {
+            return { shouldCreateBullet: false };
+        }
+
+        const target = this.findNearestEnemy(enemies);
+        if (!target) {
+            return { shouldCreateBullet: false };
+        }
+
+        // 更新攻擊時間
+        this.lastAttackTime = Date.now();
+
+        // 計算子彈發射資訊
+        const direction = this.getDirectionToTarget(target);
+
+        return {
+            shouldCreateBullet: true,
+            bulletInfo: {
+                startPosition: { x: this.position.x, y: this.position.y },
+                direction: direction,
+                damage: this.attackDamage,
+                speed: this.bulletSpeed,
+                bulletType: this.bulletType,
+                ownerId: this.id
+            }
+        };
+    }
+
+    // 設置自動攻擊開關
+    setAutoAttack(enabled: boolean): void {
+        this.autoAttackEnabled = enabled;
+    }
+
+    // 重置攻擊計時器 (用於技能或特殊情況)
+    resetAttackTimer(): void {
+        this.lastAttackTime = 0;
     }
 
     // 覆寫扣血方法，處理無敵時間
