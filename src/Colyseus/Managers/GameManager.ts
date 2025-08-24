@@ -143,6 +143,8 @@ export class GameManager {
      * 結束遊戲
      */
     private endGame(reason: "allPlayersDead" | "waveComplete"): void {
+
+        this.stopGameLoop();
         console.log(`Game ended: ${reason}`);
         this.setRoomState("waiting");
         this.state.gameCore.status = 'prepare';
@@ -153,7 +155,7 @@ export class GameManager {
         this.state.gameCore.waveNumber = 0;
 
         // 停止所有計時器
-        this.stopGameLoop();
+
 
         // 廣播遊戲結束
         this.room.broadcast("gameOver", {

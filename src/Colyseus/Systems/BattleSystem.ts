@@ -32,6 +32,7 @@ export class BattleSystem {
         this.gameManager = gameManager;
     }
 
+
     /**
      * 處理玩家攻擊
      */

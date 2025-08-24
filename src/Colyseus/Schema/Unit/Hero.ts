@@ -2,7 +2,37 @@ import { ArraySchema, type } from "@colyseus/schema";
 import { UnitType } from "../GameState";
 import { ServerEnemy } from "./Enemy";
 import { ServerGameUnit } from "./GameUnit";
+
 export type StatType = 'vit' | 'str' | 'agi' | 'int';
+
+// 裝備加成接口
+export interface EquipmentBonus {
+    // 固定數值加成
+    hpBonus?: number;
+    attackBonus?: number;
+    speedBonus?: number;
+    mpBonus?: number;
+
+    // 百分比加成 (0.1 = 10%)
+    hpMultiplier?: number;
+    attackMultiplier?: number;
+    speedMultiplier?: number;
+    mpMultiplier?: number;
+
+    // 特殊效果
+    critRate?: number;
+    dodgeRate?: number;
+    lifeSteal?: number;
+}
+
+// Buff 效果接口
+export interface BuffEffect {
+    id: string;
+    type: 'hp_boost' | 'attack_boost' | 'speed_boost' | 'damage_reduction';
+    value: number;
+    duration: number;
+    remaining: number;
+}
 // 玩家操控的主要單位
 export class ServerHero extends ServerGameUnit {
 
@@ -10,39 +40,55 @@ export class ServerHero extends ServerGameUnit {
     @type("number") level: number = 1;
     @type("number") exp: number = 0;
 
-    @type("number") public vit: number = 10;        // 體質 (影響血量)
-    @type("number") public str: number = 10;        // 力量 (影響攻擊力)
-    @type("number") public agi: number = 10;         // 敏捷 (影響速度)
-    @type("number") public int: number = 10;    // 智力 (影響魔力)
+    // === 基礎屬性點 (永久，升級分配) ===
+    @type("number") public vit: number = 10;        // 體質點數
+    @type("number") public str: number = 10;        // 力量點數
+    @type("number") public agi: number = 10;        // 敏捷點數
+    @type("number") public int: number = 10;        // 智力點數
 
     // @type("number") bulletSpeed: number = 200; // 子彈速度 (像素/秒)
-    @type("string") bulletType: string = "basic"; // 子彈類型
+    //public bulletType: string = "basic"; // 子彈類型（服務端使用，不需同步）
 
     @type("number") public expToNext: number = 100;     // 升級所需經驗
     @type("number") public skillPoints: number = 0;     // 技能點數
     @type("number") public statPoints: number = 0;      // 屬性點數
-    @type("number") public usedPoints: number = 0;      // 已使用的屬性點數
+    public usedPoints: number = 0;      // 已使用的屬性點數（不同步）
 
+    // === 基礎數值 (固定，不受裝備影響) - 不需要同步給客戶端 ===
+    public baseHp: number = 100;
+    public baseAttackDamage: number = 10;
+    // public baseAttackSpeed: number = 1000;
+    // public baseSpeed: number = 3;
+    public baseMp: number = 100;
 
-    // 基礎屬性
-    @type("number") public baseHp: number = 100;
-    @type("number") public baseAttackDamage: number = 10;
-    @type("number") public baseAttackSpeed: number = 1000;
-    @type("number") public baseSpeed: number = 3;
+    // === 裝備/Buff 加成 (動態變化) - 不需要同步給客戶端，客戶端只需要最終結果 ===
+    public equipmentHpBonus: number = 0;
+    public equipmentAttackBonus: number = 0;
+    // public equipmentSpeedBonus: number = 0;
+    public equipmentMpBonus: number = 0;
 
+    public buffHpBonus: number = 0;
+    public buffAttackBonus: number = 0;
+    // public buffSpeedBonus: number = 0;
+    public buffMpBonus: number = 0;
 
-    //能量
-    @type("number") public baseMp: number = 100;
+    // === 百分比加成 - 不需要同步給客戶端 ===
+    public hpMultiplier: number = 1.0;
+    public attackMultiplier: number = 1.0;
+    public speedMultiplier: number = 1.0;
+    public mpMultiplier: number = 1.0;
+
+    // === 能量系統 ===
     @type("number") public maxMp: number = 100;
     @type("number") public mp: number = 100;
     @type("number") public mpRegen: number = 1; // 每秒回復的能量值
 
-    //副屬性
-    //經驗獲得倍率
-    @type("number") public baseExpMultiplier: number = 30;
+    // === 副屬性 - 不需要同步給客戶端 ===
+    public baseExpMultiplier: number = 30;
+    public baseCritRate: number = 0; // 暴擊率 (百分比)
+    public baseDodgeRate: number = 0; // 閃避率 (百分比)
 
-    @type("number") public baseCritRate: number = 0; // 暴擊率 (百分比)
-    @type("number") public baseDodgeRate: number = 0; // 閃避率 (百分比)
+    //武器插槽
     @type(["string"]) public equippedWeapons = new ArraySchema<string>();
 
 
@@ -53,6 +99,8 @@ export class ServerHero extends ServerGameUnit {
 
     constructor() {
         super();
+
+        // 設置基礎屬性
         this.hp = 100;
         this.maxHp = 100;
         this.speed = 50; // 每秒移動100像素
@@ -60,13 +108,32 @@ export class ServerHero extends ServerGameUnit {
         this.type = UnitType.hero;
         this.attackRange = 1000;
 
+        // 初始化屬性點
         this.vit = 10;
         this.str = 10;
         this.agi = 10;
         this.int = 10;
         this.usedPoints = 0;
-        // 根據起始屬性計算基礎數值
-        this.recalculateStats();
+
+        // 初始化基礎數值
+        this.baseHp = 100;
+        this.baseAttackDamage = 10;
+        this.baseMp = 100;
+
+        // 初始化加成為0
+        this.equipmentHpBonus = 0;
+        this.equipmentAttackBonus = 0;
+        this.equipmentMpBonus = 0;
+        this.buffHpBonus = 0;
+        this.buffAttackBonus = 0;
+        this.buffMpBonus = 0;
+        this.hpMultiplier = 1.0;
+        this.attackMultiplier = 1.0;
+        this.speedMultiplier = 1.0;
+        this.mpMultiplier = 1.0;
+
+        // 計算初始屬性
+        this.recalculateAllStats();
     }
 
     /**
@@ -85,7 +152,6 @@ export class ServerHero extends ServerGameUnit {
      * 升級邏輯
      */
     private levelUp(): boolean {
-        const oldLevel = this.level;
 
         // 扣除升級所需經驗
         this.exp -= this.expToNext;
@@ -98,16 +164,14 @@ export class ServerHero extends ServerGameUnit {
         this.skillPoints += 1;
         this.statPoints += 5;
 
-        // 提升基礎屬性 (每級小幅提升)
-        //  this.baseHp += 10;
-        //  this.baseAttackDamage += 2;
-        // this.maxHp = this.baseHp; // 更新最大血量
-        this.hp = this.maxHp;     // 升級時回滿血
+        // 升級時回滿血魔
+        this.hp = this.maxHp;
+        this.mp = this.maxMp;
 
         this.usedPoints = 0;
 
         // 重新計算實際屬性
-        this.recalculateStats();
+        this.recalculateAllStats();
 
         console.log(`${this.name} 升級到 ${this.level} 級！`);
         return true;
@@ -128,71 +192,163 @@ export class ServerHero extends ServerGameUnit {
         };
     }
     // 重新計算屬性時也要考慮總屬性加成
-    public recalculateStats(): void {
-        // 基於總屬性計算實際數值
-        this.maxHp = this.baseHp + (this.vit * 5);
-        this.attackDamage = this.baseAttackDamage + (this.str * 2);
-        this.speed = this.baseSpeed + (this.agi * 0.5);
-        this.maxMp = this.baseMp + (this.int * 3);
+    public recalculateAllStats(): void {
+        // 1. 計算屬性點加成
+        const vitBonus = this.vit * 5;      // 每點體質 +5 血量
+        const strBonus = this.str * 2;      // 每點力量 +2 攻擊
+        const agiBonus = this.agi * 0.5;    // 每點敏捷 +0.5 速度
+        const intBonus = this.int * 3;      // 每點智力 +3 魔力
 
-        // 確保當前血量不超過最大血量
-        if (this.hp > this.maxHp) {
-            this.hp = this.maxHp;
-        }
+        // 2. 計算最終數值 = 基礎值 + 屬性加成 + 裝備加成 + Buff加成
+        const finalHp = (this.baseHp + vitBonus + this.equipmentHpBonus + this.buffHpBonus) * this.hpMultiplier;
+        const finalAttack = (this.baseAttackDamage + strBonus + this.equipmentAttackBonus + this.buffAttackBonus) * this.attackMultiplier;
 
-        // 確保當前魔力不超過最大魔力
-        if (this.mp > this.maxMp) {
-            this.mp = this.maxMp;
-        }
+        const finalMp = (this.baseMp + intBonus + this.equipmentMpBonus + this.buffMpBonus) * this.mpMultiplier;
+
+        // 3. 更新最終屬性
+        const oldMaxHp = this.maxHp;
+        const oldMaxMp = this.maxMp;
+
+        this.maxHp = Math.floor(finalHp);
+        this.attackDamage = Math.floor(finalAttack);
+
+        this.maxMp = Math.floor(finalMp);
+
+        // 4. 處理當前血量/魔力的變化
+        this.adjustCurrentValues(oldMaxHp, oldMaxMp);
     }
 
+    /**
+     * 調整當前血量/魔力（當最大值改變時）
+     */
+    private adjustCurrentValues(oldMaxHp: number, oldMaxMp: number): void {
+        // 血量調整：保持百分比
+        if (oldMaxHp > 0) {
+            const hpRatio = this.hp / oldMaxHp;
+            this.hp = Math.floor(this.maxHp * hpRatio);
+        } else {
+            this.hp = this.maxHp; // 初始化時設為滿血
+        }
+
+        // 魔力調整：保持百分比
+        if (oldMaxMp > 0) {
+            const mpRatio = this.mp / oldMaxMp;
+            this.mp = Math.floor(this.maxMp * mpRatio);
+        } else {
+            this.mp = this.maxMp; // 初始化時設為滿魔
+        }
+
+        // 確保不超過最大值
+        this.hp = Math.min(this.hp, this.maxHp);
+        this.mp = Math.min(this.mp, this.maxMp);
+    }
+
+    /**
+     * 分配屬性點（只修改基礎屬性點）
+     */
     public allocateStatPoint(stat: StatType, points: number = 1): boolean {
         if (this.statPoints < points) return false;
 
         this.statPoints -= points;
         this.usedPoints += points;
+
+        // 只修改屬性點，不直接修改數值
         switch (stat) {
             case 'vit':
                 this.vit += points;
-                this.baseHp += points * 5; // 每點體質+5血量
                 break;
             case 'str':
                 this.str += points;
-                this.baseAttackDamage += points * 2; // 每點力量+2攻擊
                 break;
             case 'agi':
                 this.agi += points;
-                this.baseSpeed += points * 0.5; // 每點敏捷+0.5速度
                 break;
             case 'int':
                 this.int += points;
-                this.baseMp += points * 3; // 每點智力+3魔力
                 break;
         }
 
-        this.recalculateStats();
+        // 重新計算最終屬性
+        this.recalculateAllStats();
         return true;
     }
 
+    /**
+     * 裝備加成管理
+     */
+    public applyEquipmentBonus(bonuses: EquipmentBonus[]): void {
+        // 重置裝備加成
+        this.equipmentHpBonus = 0;
+        this.equipmentAttackBonus = 0;
 
-    // 攻擊敵人 (舊版本，保留用於近戰攻擊)
-    attackEnemy(enemy: ServerEnemy): boolean {
-        if (this.isInRange(enemy, this.attackRange)) {
-            const killed = enemy.takeDamage(this.attackDamage);
-            if (killed) {
-                this.addExperience(enemy.expReward);
-            }
-            return killed;
+        this.equipmentMpBonus = 0;
+        this.hpMultiplier = 1.0;
+        this.attackMultiplier = 1.0;
+        this.speedMultiplier = 1.0;
+        this.mpMultiplier = 1.0;
+
+        // 累加所有裝備的加成
+        for (const bonus of bonuses) {
+            this.equipmentHpBonus += bonus.hpBonus || 0;
+            this.equipmentAttackBonus += bonus.attackBonus || 0;
+
+            this.equipmentMpBonus += bonus.mpBonus || 0;
+
+            this.hpMultiplier *= (1 + (bonus.hpMultiplier || 0));
+            this.attackMultiplier *= (1 + (bonus.attackMultiplier || 0));
+            this.speedMultiplier *= (1 + (bonus.speedMultiplier || 0));
+            this.mpMultiplier *= (1 + (bonus.mpMultiplier || 0));
         }
-        return false;
+
+        // 重新計算最終屬性
+        this.recalculateAllStats();
     }
 
-    // 檢查是否可以攻擊
-    canAttack(): boolean {
-        const currentTime = Date.now();
-        return this.autoAttackEnabled &&
-            (currentTime - this.lastAttackTime) >= this.attackSpeed;
+    /**
+     * Buff 效果管理
+     */
+    public applyBuffEffects(buffs: BuffEffect[]): void {
+        // 重置 Buff 加成
+        this.buffHpBonus = 0;
+        this.buffAttackBonus = 0;
+
+        this.buffMpBonus = 0;
+
+        // 累加所有 Buff 的效果
+        for (const buff of buffs) {
+            if (buff.type === 'hp_boost') {
+                this.buffHpBonus += buff.value;
+            } else if (buff.type === 'attack_boost') {
+                this.buffAttackBonus += buff.value;
+            }
+        }
+
+        // 重新計算最終屬性
+        this.recalculateAllStats();
     }
+    /**
+     * 找到射程內的敵人
+     */
+    private findTargetsInRange(enemies: ServerEnemy[], range: number): ServerEnemy[] {
+        const targetsInRange: Array<{ enemy: ServerEnemy, distance: number }> = []
+
+        for (const enemy of enemies) {
+            const distance = Math.hypot(
+                enemy.position.x - this.position.x,
+                enemy.position.y - this.position.y
+            )
+
+            if (distance <= range) {
+                targetsInRange.push({ enemy, distance })
+            }
+        }
+
+        // 按距離排序，優先攻擊最近的敵人
+        targetsInRange.sort((a, b) => a.distance - b.distance)
+
+        return targetsInRange.map(t => t.enemy)
+    }
+
 
     // 尋找最近的敵人
     findNearestEnemy(enemies: ServerEnemy[]): ServerEnemy | null {
@@ -230,56 +386,6 @@ export class ServerHero extends ServerGameUnit {
         return { x: dx / length, y: dy / length };
     }
 
-    // 執行自動攻擊 (返回子彈創建資訊)
-    tryAutoAttack(enemies: ServerEnemy[]): {
-        shouldCreateBullet: boolean,
-        bulletInfo?: {
-            startPosition: { x: number, y: number },
-            direction: { x: number, y: number },
-            damage: number,
-            //   speed: number,
-            bulletType: string,
-            ownerId: string
-        }
-    } {
-        if (!this.canAttack()) {
-            return { shouldCreateBullet: false };
-        }
-
-        const target = this.findNearestEnemy(enemies);
-        if (!target) {
-            return { shouldCreateBullet: false };
-        }
-
-        // 更新攻擊時間
-        this.lastAttackTime = Date.now();
-
-        // 計算子彈發射資訊
-        const direction = this.getDirectionToTarget(target);
-
-        return {
-            shouldCreateBullet: true,
-            bulletInfo: {
-                startPosition: { x: this.position.x, y: this.position.y },
-                direction: direction,
-                damage: this.attackDamage,
-                //  speed: this.bulletSpeed,
-                bulletType: this.bulletType,
-                ownerId: this.id
-            }
-        };
-    }
-
-    // 設置自動攻擊開關
-    setAutoAttack(enabled: boolean): void {
-        this.autoAttackEnabled = enabled;
-    }
-
-    // 重置攻擊計時器 (用於技能或特殊情況)
-    resetAttackTimer(): void {
-        this.lastAttackTime = 0;
-    }
-
     // 覆寫扣血方法，處理無敵時間
     takeDamage(amount: number): boolean {
         if (this.invincibleRemaining > 0) {
@@ -297,6 +403,16 @@ export class ServerHero extends ServerGameUnit {
     updateInvincible(deltaTime: number): void {
         if (this.invincibleRemaining > 0) {
             this.invincibleRemaining = Math.max(0, this.invincibleRemaining - deltaTime);
+        }
+    }
+
+    //嘗試進行攻擊
+
+    public tryAttack(enemys: ServerEnemy[]) {
+        //嘗試呼叫所有武器進行攻擊
+        for (const weaponId of this.equippedWeapons) {
+
+
         }
     }
 }

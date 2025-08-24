@@ -204,11 +204,11 @@ export class GameRoom extends MiddleRoom<GameRoomState> {
             const hero = unit as ServerHero;
 
             // 嘗試自動攻擊
-            const attackResult = hero.tryAutoAttack(aliveEnemies);
+            const attackResult = hero.tryAttack(aliveEnemies);
 
-            if (attackResult.shouldCreateBullet && attackResult.bulletInfo) {
-                this.createBullet(attackResult.bulletInfo);
-            }
+            // if (attackResult.shouldCreateBullet && attackResult.bulletInfo) {
+            //     this.createBullet(attackResult.bulletInfo);
+            // }
         }
     }
 
@@ -220,7 +220,7 @@ export class GameRoom extends MiddleRoom<GameRoomState> {
         direction: { x: number, y: number },
         damage: number,
         //  speed: number,
-        bulletType: string,
+        // bulletType: string,
         ownerId: string
     }): void {
         const bullet = new ServerBullet();
