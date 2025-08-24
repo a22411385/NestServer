@@ -1,4 +1,4 @@
-import { type } from "@colyseus/schema";
+import { ArraySchema, type } from "@colyseus/schema";
 import { UnitType } from "../GameState";
 import { ServerEnemy } from "./Enemy";
 import { ServerGameUnit } from "./GameUnit";
@@ -30,6 +30,7 @@ export class ServerHero extends ServerGameUnit {
     @type("number") public baseAttackSpeed: number = 1000;
     @type("number") public baseSpeed: number = 3;
 
+
     //能量
     @type("number") public baseMp: number = 100;
     @type("number") public maxMp: number = 100;
@@ -42,6 +43,7 @@ export class ServerHero extends ServerGameUnit {
 
     @type("number") public baseCritRate: number = 0; // 暴擊率 (百分比)
     @type("number") public baseDodgeRate: number = 0; // 閃避率 (百分比)
+    @type(["string"]) public equippedWeapons = new ArraySchema<string>();
 
 
 
@@ -97,9 +99,9 @@ export class ServerHero extends ServerGameUnit {
         this.statPoints += 5;
 
         // 提升基礎屬性 (每級小幅提升)
-        this.baseHp += 10;
-        this.baseAttackDamage += 2;
-        this.maxHp = this.baseHp; // 更新最大血量
+        //  this.baseHp += 10;
+        //  this.baseAttackDamage += 2;
+        // this.maxHp = this.baseHp; // 更新最大血量
         this.hp = this.maxHp;     // 升級時回滿血
 
         this.usedPoints = 0;
