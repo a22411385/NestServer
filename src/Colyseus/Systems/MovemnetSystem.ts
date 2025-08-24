@@ -5,7 +5,7 @@ import { Client } from "colyseus";
 
 
 const MOVEMENT_CONFIG = {
-    MOVEMENT_SCALE: 5,        // 移動縮放係數，與客戶端保持一致
+    MOVEMENT_SCALE: 3,        // 移動縮放係數，與客戶端保持一致
     FIXED_DELTA: 1 / 60        // 固定 delta time (60 FPS)
 };
 

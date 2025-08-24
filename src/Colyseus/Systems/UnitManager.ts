@@ -1,9 +1,11 @@
 import { IdGenerator } from "@/Util/IdGenerator";
 
 import { ServerEnemy } from "../Schema/Unit/Enemy";
-import { Room } from "colyseus";
+import { Client, Room } from "colyseus";
 import { GameRoomState, UnitType } from "../Schema/GameState";
-import { Vector2 } from "../Schema/Unit/GameUnit";
+import { ServerGameUnit, Vector2 } from "../Schema/Unit/GameUnit";
+import { ServerHero, StatType } from "../Schema/Unit/Hero";
+import { MapSchema } from "@colyseus/schema";
 
 const MAX_ENEMY_COUNT = 100;
 const ZombieName = ["普通殭屍", "快速殭屍", "強壯殭屍"];
@@ -105,4 +107,79 @@ export class UnitManager {
         return aliveHeroes;
     }
 
+
+    /**
+    * 處理屬性點分配
+    */
+    public handleStatAllocation(client: Client, message: { stat: StatType, points: number }) {
+        // 驗證玩家
+        const player = this.room.state.players.get(client.sessionId);
+        if (!player) {
+            client.send("error", { message: "Player not found" });
+            return;
+        }
+
+        // 獲取英雄
+        const hero = this.room.state.getHero(client.sessionId);
+        if (!hero) {
+            client.send("error", { message: "Hero not found" });
+            return;
+        }
+
+        // 驗證參數
+        if (!message.stat || !['vit', 'str', 'agi', 'int'].includes(message.stat)) {
+            client.send("error", { message: "Invalid stat type" });
+            return;
+        }
+
+        const points = message.points || 1;
+        if (points < 1) { // 限制單次分配上限
+            client.send("error", { message: "Invalid points amount" });
+            return;
+        }
+
+        // 執行屬性分配
+        const success = hero.allocateStatPoint(message.stat, points);
+
+        if (success) {
+            // 廣播成功訊息
+            console.log(`Player ${player.name} allocated ${points} points to ${message.stat}`);
+
+            // 記錄日誌
+
+        } else {
+            client.send("error", {
+                message: "Failed to allocate stat points",
+                reason: "Insufficient stat points"
+            });
+        }
+    }
+
+    /**
+     * 處理屬性重置 (可選功能)
+     */
+    public handleStatReset(client: Client) {
+
+        // const hero = this.getHero(client.sessionId);
+        // if (!hero) {
+        //     client.send("error", { message: "Hero not found" });
+        //     return;
+        // }
+
+        // 重置屬性邏輯 (需要在 Hero 中實作)
+        // hero.resetStats();
+    }
+
+    /**
+     * 獲取屬性顯示名稱
+     */
+    private getStatDisplayName(stat: string): string {
+        const statNames = {
+            'vitality': '體質',
+            'strength': '力量',
+            'agility': '敏捷',
+            'intelligence': '智慧'
+        };
+        return statNames[stat as keyof typeof statNames] || stat;
+    }
 }

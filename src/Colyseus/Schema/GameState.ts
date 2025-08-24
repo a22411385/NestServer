@@ -42,7 +42,7 @@ export class GameCoreState extends Schema {
     @type("number") waveNumber: number = 1;
     @type('string') status: gameFlowStatus = 'prepare'
     @type("number") aliveHeroes: number = 0; // 存活英雄數量
-    @type("number") roundTime: number = 0; // 遊戲幀數
+    @type("number") roundTime: number = 0; // 遊戲秒數
     @type({ map: Item }) items = new MapSchema<Item>();
 
     //這裡只同步場上所有單位的存活

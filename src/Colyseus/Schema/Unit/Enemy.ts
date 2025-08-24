@@ -11,6 +11,7 @@ export class ServerEnemy extends ServerGameUnit {
     @type("number") expReward: number = 1; // 擊殺獎勵經驗值
     @type("number") lv: number = 1; // 敵人等級
 
+
     // AI 狀態 - 不同步，僅伺服器端使用
     private aiState: string = "chase"; // AI 狀態: chase, attack, idle
     private lastAttackTime: number = 0; // 上次攻擊時間

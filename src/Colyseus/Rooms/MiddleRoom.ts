@@ -15,7 +15,7 @@ export class MiddleRoom<T extends Schema> extends Room<T> {
         console.log(`Player ${client.sessionId} joined lobby`);
         const token = options?.token;
         if (!token) {
-
+            console.error(`Player ${client.sessionId} failed to join lobby: No token provided`);
             throw new Error("Unauthorized")
         }
         try {

@@ -73,7 +73,7 @@ export class BattleSystem {
                 this.broadcastBattleLog(`${hero.name} 擊殺了 殭屍#${targetEnemy.id.slice(-4)}`, 'kill');
 
                 // 給予經驗值
-                if (hero.gainExp(targetEnemy.expReward)) {
+                if (hero.addExperience(targetEnemy.expReward)) {
                     this.broadcastBattleLog(`${hero.name} 升級至 Lv.${hero.level}！`, 'event');
                 }
 

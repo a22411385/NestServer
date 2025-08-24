@@ -45,6 +45,7 @@ export class GameRoom extends MiddleRoom<GameRoomState> {
 
     public roomInfo: LobbyRoomInfo;
 
+
     /**
     * 初始化所有管理器
     */
@@ -57,6 +58,9 @@ export class GameRoom extends MiddleRoom<GameRoomState> {
         this.movementSystem = new MovementSystem(this);
         this.unitManager = new UnitManager(this);
         this.gameManager = new GameManager(this);
+
+        this.onMessage("*", (client, type, message) =>
+            this.messageHandler.MessageHandler(client, type, message));
 
     }
     get IsPlaying(): boolean {
@@ -83,7 +87,6 @@ export class GameRoom extends MiddleRoom<GameRoomState> {
             this.state.mapData = new MapData;
             this.state.mapData.width = this.mapWidth;
             this.state.mapData.height = this.mapHeight;
-            this.initializeManagers();
 
             this.roomInfo = new LobbyRoomInfo();
             this.roomInfo.roomId = this.roomId;
@@ -93,9 +96,10 @@ export class GameRoom extends MiddleRoom<GameRoomState> {
             this.roomInfo.maxPlayers = this.state.maxPlayers;
             this.roomInfo.state = "waiting";
             this.roomInfo.isPrivate = options.isPrivate || false;
+            this.initializeManagers();
 
             // 設置消息處理器
-            this.messageHandler.setupMessageHandlers();
+            //  this.messageHandler.setupMessageHandlers();
             LobbyRoomBus.emit("roomCreated", { roomId: this.roomId, roomInfo: this.roomInfo });
 
 
@@ -215,7 +219,7 @@ export class GameRoom extends MiddleRoom<GameRoomState> {
         startPosition: { x: number, y: number },
         direction: { x: number, y: number },
         damage: number,
-        speed: number,
+        //  speed: number,
         bulletType: string,
         ownerId: string
     }): void {
@@ -230,8 +234,8 @@ export class GameRoom extends MiddleRoom<GameRoomState> {
             new Vector2(bulletInfo.startPosition.x, bulletInfo.startPosition.y),
             new Vector2(bulletInfo.direction.x, bulletInfo.direction.y),
             bulletInfo.damage,
-            bulletInfo.speed,
-            bulletInfo.bulletType
+            //     bulletInfo.speed,
+            //  bulletInfo.bulletType
         );
 
         // 添加到遊戲狀態
@@ -293,7 +297,7 @@ export class GameRoom extends MiddleRoom<GameRoomState> {
                     const owner = this.state.gameCore.allUnits.get(bullet.ownerId);
                     if (owner && owner.type === UnitType.hero) {
                         const hero = owner as ServerHero;
-                        const leveledUp = hero.gainExp(enemy.expReward);
+                        const leveledUp = hero.addExperience(enemy.expReward);
 
                         if (leveledUp) {
                             this.messageHandler.sendBattleLog(

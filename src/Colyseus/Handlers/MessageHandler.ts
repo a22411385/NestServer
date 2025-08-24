@@ -18,74 +18,72 @@ export class MessageHandler {
         this.room = room;
         this.state = room.state;
     }
-
-    /**
-     * 設置所有消息處理器
-     */
-    setupMessageHandlers(): void {
+    async MessageHandler(client: Client, type: string | number, message: any) {
         const playerManager = this.room.playerManager;
         const gameManager = this.room.gameManager;
         const battleSystem = this.room.battleSystem;
+        const unitManager = this.room.unitManager;
 
-        // 玩家準備/取消準備
-        this.room.onMessage("toggleReady", (client, message) => {
-            if (gameManager.isPlaying) return;
-            playerManager.togglePlayerReady(client);
-
-        });
-
-        // 開始遊戲（只有主機可以）
-        this.room.onMessage("startGame", (client, message) => {
-
-            if (!playerManager.isPlayerHost(client)) {
-                client.send("error", { message: "Only host can start the game" });
-                return;
-            }
-
-            if (playerManager.getAllPlayersReady() && playerManager.getPlayerCount() >= 1) {
-                // 初始化 Hero 單位
-                playerManager.initializeAllHeroes();
-
-                // 發送遊戲開始戰報
-                this.sendBattleLog(`遊戲開始！共有 ${playerManager.getPlayerCount()} 名玩家參與戰鬥`, 'event');
-
-                // 發送玩家初始化戰報
-                for (const [, unit] of this.state.allUnits) {
-                    if (unit.type == UnitType.hero) {
-                        let hero = unit as ServerHero
-                        this.sendBattleLog(`${hero.name} 加入戰場 (Lv.${hero.level}, HP:${hero.hp}/${hero.maxHp})`, 'event');
+        try {
+            switch (type) {
+                // 玩家準備/取消準備
+                case "toggleReady":
+                    if (gameManager.isPlaying) return;
+                    playerManager.togglePlayerReady(client);
+                    break;
+                case "startGame":
+                    if (!playerManager.isPlayerHost(client)) {
+                        client.send("error", { message: "Only host can start the game" });
+                        return;
                     }
-                }
-                gameManager.startGame();
 
+                    if (playerManager.getAllPlayersReady() && playerManager.getPlayerCount() >= 1) {
+                        // 初始化 Hero 單位
+                        playerManager.initializeAllHeroes();
 
-            } else {
-                client.send("error", { message: "Not all players are ready" });
+                        // 發送遊戲開始戰報
+                        this.sendBattleLog(`遊戲開始！共有 ${playerManager.getPlayerCount()} 名玩家參與戰鬥`, 'event');
+
+                        // 發送玩家初始化戰報
+                        for (const [, unit] of this.state.allUnits) {
+                            if (unit.type == UnitType.hero) {
+                                let hero = unit as ServerHero
+                                this.sendBattleLog(`${hero.name} 加入戰場 (Lv.${hero.level}, HP:${hero.hp}/${hero.maxHp})`, 'event');
+                            }
+                        }
+                        gameManager.startGame();
+                    } else {
+                        client.send("error", { message: "Not all players are ready" });
+                    }
+                    break;
+
+                // 玩家移動向量
+                case "playerMoveVector":
+                    if (!gameManager.isPlaying) return;
+                    this.room.movementSystem.handlePlayerMoveVector(client, message.vx, message.vy);
+                    break;
+                case "updateGameState":
+                    if (!gameManager.isPlaying) return;
+                    client.send('updateGameState', {
+                        state: this.room.state.gameCore,
+                        position: this.room.movementSystem.getAllUnitPositions()
+                    });
+                    break;
+
+                case "allocate_stat":
+                    unitManager.handleStatAllocation(client, message);
+                    break;
+
+                case "reset_stats":
+                    unitManager.handleStatReset(client);
+                    break;
+
+                // ... 其他 case
             }
-        });
-
-        // 玩家移動向量（新的基於速度的移動系統）
-        this.room.onMessage("playerMoveVector", (client, message) => {
-            if (!gameManager.isPlaying) return;
-            this.room.movementSystem.handlePlayerMoveVector(client, message.vx, message.vy);
-        });
-
-        // 玩家攻擊
-        this.room.onMessage("playerAttack", (client, message) => {
-            if (!gameManager.isPlaying && !this.state.isTestMode) return;
-            battleSystem.handlePlayerAttack(client, message.targetX, message.targetY);
-        });
-
-        this.room.onMessage('updateGameState', (client, message) => {
-            if (!gameManager.isPlaying) return;
-            client.send('updateGameState', {
-                state: this.room.state.gameCore,
-                position: this.room.movementSystem.getAllUnitPositions()
-            });
-        });
-
-        // === 測試房專用指令 ===
-        this.setupTestRoomCommands(battleSystem, playerManager);
+        } catch (error) {
+            console.error(`Error handling message ${type}:`, error);
+            client.send("error", { message: "Server error occurred" });
+        }
     }
 
     /**

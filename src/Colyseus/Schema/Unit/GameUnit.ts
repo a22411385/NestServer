@@ -37,11 +37,10 @@ export class ServerGameUnit extends Schema {
     @type("string") owner: string = "";
     @type("number") hp: number = 10;
     @type("number") maxHp: number = 10;
-
+    @type("number") attackDamage: number = 10;
+    @type("number") attackSpeed: number = 1000;
     @type("number") speed: number = 1; // 移動速度
-
-
-    @type("number") baseMoveSpeed = 10;
+    @type("number") attackRange: number = 100; // 攻擊範圍
     @type("number") radius: number = 20; // 體積/碰撞半徑
 
     @type("boolean") isDead: boolean = false;
