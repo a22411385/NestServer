@@ -76,6 +76,11 @@ export class MovementSystem {
         const deltaX = unit.vx * moveDistance;
         const deltaY = unit.vy * moveDistance;
 
+        // 更新面向角度（如果單位正在移動）
+        if (unit.vx !== 0 || unit.vy !== 0) {
+            unit.facingDirection = Math.atan2(unit.vy, unit.vx);
+        }
+
         unit.position.x += deltaX;
         unit.position.y += deltaY;
 

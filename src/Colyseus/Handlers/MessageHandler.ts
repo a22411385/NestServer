@@ -62,6 +62,12 @@ export class MessageHandler {
                     if (!gameManager.isPlaying) return;
                     this.room.movementSystem.handlePlayerMoveVector(client, message.vx, message.vy);
                     break;
+
+                // 玩家面向角度（滑鼠/手柄控制）
+                case "playerFacingDirection":
+                    if (!gameManager.isPlaying) return;
+                    this.handlePlayerFacingDirection(client, message.facingDirection);
+                    break;
                 case "updateGameState":
                     if (!gameManager.isPlaying) return;
                     client.send('updateGameState', {
@@ -182,6 +188,16 @@ export class MessageHandler {
             playerId,
             ...data
         });
+    }
+
+    /**
+     * 處理玩家面向角度（滑鼠/手柄控制）
+     */
+    private handlePlayerFacingDirection(client: Client, facingDirection: number): void {
+        const hero = this.state.getHero(client.sessionId);
+        if (hero) {
+            hero.facingDirection = facingDirection;
+        }
     }
 
     /**

@@ -160,9 +160,13 @@ export class PlayerManager {
             hero.hp = hero.maxHp;
             hero.invincibleRemaining = 0;
 
+            // 🗡️ 給英雄裝備起始武器：球棒
+            hero.equipWeapon('baseball_bat');
+
             this.state.allUnits.set(hero.id, hero);
 
             console.log(`👤 Initialized hero with ID: ${hero.id} for player: ${playerId}`);
+            console.log(`⚾ Equipped baseball bat for hero: ${hero.name}`);
         }
     }
 

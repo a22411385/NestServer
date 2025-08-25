@@ -43,6 +43,9 @@ export class ServerGameUnit extends Schema {
     @type("number") attackRange: number = 100; // 攻擊範圍
     @type("number") radius: number = 20; // 體積/碰撞半徑
 
+    //單位面相角度
+    @type("number") facingDirection: number = 0;
+
     @type("boolean") isDead: boolean = false;
     @type({ map: Skill }) skills = new MapSchema<Skill>();
     @type({ map: StatusEffect }) statusEffects = new MapSchema<StatusEffect>();

@@ -13,8 +13,10 @@ import { MiddleRoom } from "./MiddleRoom";
 import { LobbyPlayer, LobbyRoomInfo } from "../Schema/LobbyState";
 import { LobbyRoomBus } from "./LobbyRoom";
 import { ServerBullet } from "@/Colyseus/Schema/Bullet";
-import { Vector2 } from "@/Colyseus/Schema/Unit/GameUnit";
+import { Vector2, ServerGameUnit } from "@/Colyseus/Schema/Unit/GameUnit";
 import { ServerEnemy } from "../Schema/Unit/Enemy";
+import { WeaponAttackResult } from "../Schema/Weapon/Baisc/WeaponBasic";
+import { DamageSystem } from "../Systems/DamageSystem";
 
 export interface GameRoomOptions {
     roomName: string;
@@ -42,6 +44,7 @@ export class GameRoom extends MiddleRoom<GameRoomState> {
     public messageHandler: MessageHandler;
     public movementSystem: MovementSystem;
     public unitManager: UnitManager;
+    public damageSystem: DamageSystem;
 
     public roomInfo: LobbyRoomInfo;
 
@@ -57,6 +60,7 @@ export class GameRoom extends MiddleRoom<GameRoomState> {
         this.messageHandler = new MessageHandler(this);
         this.movementSystem = new MovementSystem(this);
         this.unitManager = new UnitManager(this);
+        this.damageSystem = new DamageSystem(this); // 初始化傷害系統
         this.gameManager = new GameManager(this);
 
         this.onMessage("*", (client, type, message) =>
@@ -191,7 +195,7 @@ export class GameRoom extends MiddleRoom<GameRoomState> {
     }
 
     /**
-     * 更新英雄自動攻擊 - Vampire Survivors 風格
+     * 更新英雄自動攻擊 - 基於武器系統的 Vampire Survivors 風格
      */
     private updateHeroAutoAttacks(): void {
         // 獲取所有存活的敵人
@@ -203,13 +207,134 @@ export class GameRoom extends MiddleRoom<GameRoomState> {
 
             const hero = unit as ServerHero;
 
-            // 嘗試自動攻擊
-            const attackResult = hero.tryAttack(aliveEnemies);
+            // 嘗試用所有武器進行自動攻擊
+            const attackResults = hero.tryAttack(aliveEnemies);
 
-            // if (attackResult.shouldCreateBullet && attackResult.bulletInfo) {
-            //     this.createBullet(attackResult.bulletInfo);
-            // }
+            // 處理每個武器的攻擊結果
+            for (const result of attackResults) {
+                if (result.success) {
+                    this.handleWeaponAttackResult(hero, result);
+                }
+            }
         }
+    }
+
+    /**
+     * 處理武器攻擊結果 - 使用統一的傷害系統
+     */
+    private handleWeaponAttackResult(hero: ServerHero, result: WeaponAttackResult): void {
+        if (!result.targetIds || result.targetIds.length === 0) return;
+
+        // 獲取目標單位
+        const targets = result.targetIds
+            .map(id => this.state.gameCore.allUnits.get(id))
+            .filter(unit => unit && !unit.isDead) as ServerGameUnit[];
+
+        if (targets.length === 0) return;
+
+        // 使用傷害系統處理傷害
+        const damageResults = this.damageSystem.dealDamageToMultipleTargets(
+            hero,
+            targets,
+            result.baseDamage,
+            'physical',
+            result.weaponId
+        );
+
+        // 廣播攻擊結果
+        this.broadcast('weapon_attack', {
+            heroId: hero.id,
+            weaponId: result.weaponId,
+            attackData: result.attackData,
+            damageResults: damageResults,
+            visualEffects: result.visualEffects,
+            timestamp: Date.now()
+        });
+
+        // 處理視覺效果
+        if (result.visualEffects) {
+            for (const visualEffect of result.visualEffects) {
+                this.handleVisualEffect(hero, visualEffect);
+            }
+        }
+
+        // 統計戰報
+        const totalDamage = damageResults.reduce((sum, dr) => sum + dr.actualDamage, 0);
+        const killedCount = damageResults.filter(dr => dr.targetKilled).length;
+
+        if (damageResults.length === 1) {
+            this.broadcastBattleLog(
+                `${hero.name} 對敵人造成 ${totalDamage} 點傷害`,
+                'damage'
+            );
+        } else {
+            this.broadcastBattleLog(
+                `${hero.name} 同時攻擊 ${damageResults.length} 個敵人，總共造成 ${totalDamage} 點傷害`,
+                'damage'
+            );
+        }
+
+        if (killedCount > 0) {
+            this.broadcastBattleLog(
+                `${hero.name} 擊殺了 ${killedCount} 個敵人！`,
+                'kill'
+            );
+        }
+    }
+
+    /**
+     * 處理視覺效果
+     */
+    private handleVisualEffect(hero: ServerHero, visualEffect: import("../Schema/Weapon/Baisc/WeaponBasic").VisualEffect): void {
+        switch (visualEffect.type) {
+            case 'swing':
+                // 近戰武器揮舞效果
+                this.broadcast('melee_swing', {
+                    heroId: hero.id,
+                    position: visualEffect.position,
+                    direction: visualEffect.direction,
+                    weaponData: visualEffect.data
+                });
+                break;
+
+            case 'slash':
+                // 劍氣或斬擊效果
+                this.broadcast('slash_effect', {
+                    heroId: hero.id,
+                    position: visualEffect.position,
+                    direction: visualEffect.direction,
+                    data: visualEffect.data
+                });
+                break;
+
+            case 'projectile':
+                // 遠程投射物效果
+                if (visualEffect.data) {
+                    this.createBullet(visualEffect.data);
+                }
+                break;
+
+            case 'explosion':
+                // 爆炸效果
+                this.broadcast('explosion_effect', {
+                    position: visualEffect.position,
+                    data: visualEffect.data
+                });
+                break;
+        }
+    }
+
+    /**
+     * 廣播戰報
+     */
+    private broadcastBattleLog(message: string, category: 'damage' | 'death' | 'kill' | 'heal' | 'event' = 'event'): void {
+        console.log(`🎯 [${category}] ${message}`);
+        //暫時先不要給client
+        /*  this.broadcast("battleLog", {
+            message,
+            category,
+            timestamp: Date.now()
+        });*/
     }
 
     /**

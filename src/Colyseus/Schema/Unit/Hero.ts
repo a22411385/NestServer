@@ -2,6 +2,7 @@ import { ArraySchema, type } from "@colyseus/schema";
 import { UnitType } from "../GameState";
 import { ServerEnemy } from "./Enemy";
 import { ServerGameUnit } from "./GameUnit";
+import { WeaponAttackResult, WeaponBasic } from "../Weapon/Baisc/WeaponBasic";
 
 export type StatType = 'vit' | 'str' | 'agi' | 'int';
 
@@ -91,11 +92,8 @@ export class ServerHero extends ServerGameUnit {
     //武器插槽
     @type(["string"]) public equippedWeapons = new ArraySchema<string>();
 
-
-
-    // 攻擊計時器 (不同步給客戶端)
-    private lastAttackTime: number = 0;
-    private autoAttackEnabled: boolean = true;
+    // 武器實例管理 (不同步給客戶端)
+    private weaponInstances: Map<string, WeaponBasic> = new Map();
 
     constructor() {
         super();
@@ -407,12 +405,118 @@ export class ServerHero extends ServerGameUnit {
     }
 
     //嘗試進行攻擊
+    public tryAttack(enemies: ServerEnemy[]): WeaponAttackResult[] {
+        const results: WeaponAttackResult[] = [];
 
-    public tryAttack(enemys: ServerEnemy[]) {
         //嘗試呼叫所有武器進行攻擊
         for (const weaponId of this.equippedWeapons) {
-
-
+            const weapon = this.weaponInstances.get(weaponId);
+            if (weapon) {
+                // 使用新的武器接口，傳入攻擊者和潛在目標
+                const result = weapon.tryAttack(this, enemies);
+                if (result.success) {
+                    results.push(result);
+                }
+            }
         }
+
+        return results;
+    }
+
+    /**
+     * 裝備武器
+     */
+    public equipWeapon(weaponId: string): boolean {
+        // 檢查是否已經裝備
+        if (this.equippedWeapons.includes(weaponId)) {
+            return false;
+        }
+
+        // 檢查裝備槽是否已滿（假設最多8個槽位）
+        if (this.equippedWeapons.length >= 8) {
+            return false;
+        }
+
+        // 創建武器實例
+        const WeaponFactory = require('../Weapon/WeaponFactory').WeaponFactory;
+        const weaponInstance = WeaponFactory.createWeapon(weaponId);
+
+        if (!weaponInstance) {
+            console.warn(`Failed to create weapon: ${weaponId}`);
+            return false;
+        }
+
+        // 添加到裝備列表和實例管理
+        this.equippedWeapons.push(weaponId);
+        this.weaponInstances.set(weaponId, weaponInstance);
+
+        console.log(`${this.name} 裝備了武器: ${weaponId}`);
+        return true;
+    }
+
+    /**
+     * 卸下武器
+     */
+    public unequipWeapon(weaponId: string): boolean {
+        const index = this.equippedWeapons.findIndex(id => id === weaponId);
+        if (index === -1) {
+            return false;
+        }
+
+        // 從裝備列表移除
+        this.equippedWeapons.splice(index, 1);
+
+        // 移除武器實例
+        this.weaponInstances.delete(weaponId);
+
+        console.log(`${this.name} 卸下了武器: ${weaponId}`);
+        return true;
+    }
+
+    /**
+     * 計算英雄面向方向
+     */
+    private calculateFacingDirection(enemies: ServerEnemy[]): { x: number, y: number } {
+        if (enemies.length === 0) {
+            return { x: 1, y: 0 }; // 預設向右
+        }
+
+        // 面向最近的敵人
+        let nearestEnemy: ServerEnemy | null = null;
+        let minDistance = Infinity;
+
+        for (const enemy of enemies) {
+            if (enemy.isDead) continue;
+
+            const distance = Math.hypot(
+                enemy.position.x - this.position.x,
+                enemy.position.y - this.position.y
+            );
+
+            if (distance < minDistance) {
+                minDistance = distance;
+                nearestEnemy = enemy;
+            }
+        }
+
+        if (nearestEnemy) {
+            const dx = nearestEnemy.position.x - this.position.x;
+            const dy = nearestEnemy.position.y - this.position.y;
+            const length = Math.hypot(dx, dy);
+
+            return {
+                x: length > 0 ? dx / length : 1,
+                y: length > 0 ? dy / length : 0
+            };
+        }
+
+        return { x: 1, y: 0 };
+    }
+
+    /**
+     * 獲取裝備的武器實例
+     */
+    public getWeaponInstances(): Map<string, any> {
+        return this.weaponInstances;
     }
 }
