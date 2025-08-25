@@ -60,6 +60,13 @@ export class MessageHandler {
                 // 玩家移動向量
                 case "playerMoveVector":
                     if (!gameManager.isPlaying) return;
+
+                    //檢查vx vy是否為合法數值
+                    if (typeof message.vx !== "number" || typeof message.vy !== "number") {
+                        client.send("error", { message: "Invalid movement vector" });
+                        return;
+                    }
+
                     this.room.movementSystem.handlePlayerMoveVector(client, message.vx, message.vy);
                     break;
 

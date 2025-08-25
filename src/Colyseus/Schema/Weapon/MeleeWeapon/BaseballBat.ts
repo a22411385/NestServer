@@ -4,18 +4,18 @@ import { ServerGameUnit } from "../../Unit/GameUnit";
 
 /**
  * 球棒 - 近戰武器範例
- * 特點：扇形攻擊範圍，可擊退敵人，每秒攻擊一次
+ * 特點：自動瞄準最近敵人，扇形攻擊範圍，可擊退敵人，每秒攻擊一次
  */
 export class BaseballBat extends MeleeWeapon {
     constructor() {
         super(
             'baseball_bat',      // weaponId
-            100,                 // 攻擊範圍
+            120,                 // 攻擊範圍 (增加到120)
             25,                  // 基礎傷害
             1000,                // 攻擊間隔 1秒
-            10,                  // 擊退力度
-            Math.PI / 2,         // 攻擊角度 (90度)
-            3                    // 最大攻擊目標數量
+            15,                  // 擊退力度 (增加到15)
+            Math.PI * 0.6,       // 攻擊角度 (108度，比90度稍大)
+            5                    // 最大攻擊目標數量 (增加到5)
         );
     }
 

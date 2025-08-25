@@ -47,10 +47,6 @@ export class ServerHero extends ServerGameUnit {
     @type("number") public str: number = 10;        // 力量點數
     @type("number") public agi: number = 10;        // 敏捷點數
     @type("number") public int: number = 10;        // 智力點數
-
-    // @type("number") bulletSpeed: number = 200; // 子彈速度 (像素/秒)
-    //public bulletType: string = "basic"; // 子彈類型（服務端使用，不需同步）
-
     @type("number") public expToNext: number = 100;     // 升級所需經驗
     @type("number") public skillPoints: number = 0;     // 技能點數
     @type("number") public statPoints: number = 0;      // 屬性點數
@@ -97,9 +93,11 @@ export class ServerHero extends ServerGameUnit {
         super();
 
         // 設置基礎屬性
-        this.hp = 100;
-        this.maxHp = 100;
-        this.moveSpeed = 50; // 每秒移動100像素
+        this.baseHp = 100;
+        this.baseMp = 100;
+        this.baseAttackDamage = 10;
+
+        this.baseMoveSpeed = 50; // 每秒移動50像素
         this.radius = 20;
         this.collisionWidth = 32;
         this.collisionHeight = 40;
@@ -113,10 +111,6 @@ export class ServerHero extends ServerGameUnit {
         this.int = 10;
         this.usedPoints = 0;
 
-        // 初始化基礎數值
-        this.baseHp = 100;
-        this.baseAttackDamage = 10;
-        this.baseMp = 100;
 
         // 初始化加成為0
         this.equipmentHpBonus = 0;
@@ -202,7 +196,7 @@ export class ServerHero extends ServerGameUnit {
         const finalAttack = (this.baseAttackDamage + strBonus + this.equipmentAttackBonus + this.buffAttackBonus) * this.attackMultiplier;
 
         const finalMp = (this.baseMp + intBonus + this.equipmentMpBonus + this.buffMpBonus) * this.mpMultiplier;
-        const finalSpeed = this.agi * 0.1 + this.baseMoveSpeed;
+        const finalSpeed = this.agi * 0.02 + this.baseMoveSpeed;
         // 3. 更新最終屬性
         const oldMaxHp = this.maxHp;
         const oldMaxMp = this.maxMp;
