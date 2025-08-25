@@ -48,7 +48,7 @@ export class MovementSystem {
 
         let unit = this.room.state.allUnits.get(unitId);
         if (unit)
-            return unit.speed || (unit.type === UnitType.hero ? 3 : 3);
+            return unit.moveSpeed || (unit.type === UnitType.hero ? 3 : 3);
 
         return 1; // 預設速度
     }

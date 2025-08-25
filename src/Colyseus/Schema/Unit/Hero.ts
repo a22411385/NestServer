@@ -1,8 +1,9 @@
 import { ArraySchema, type } from "@colyseus/schema";
 import { UnitType } from "../GameState";
-import { ServerEnemy } from "./Enemy";
+
 import { ServerGameUnit } from "./GameUnit";
 import { WeaponAttackResult, WeaponBasic } from "../Weapon/Baisc/WeaponBasic";
+import { WeaponFactory } from "../Weapon/Baisc/WeaponFactory";
 
 export type StatType = 'vit' | 'str' | 'agi' | 'int';
 
@@ -55,9 +56,6 @@ export class ServerHero extends ServerGameUnit {
     @type("number") public statPoints: number = 0;      // 屬性點數
     public usedPoints: number = 0;      // 已使用的屬性點數（不同步）
 
-    // === 基礎數值 (固定，不受裝備影響) - 不需要同步給客戶端 ===
-    public baseHp: number = 100;
-    public baseAttackDamage: number = 10;
     // public baseAttackSpeed: number = 1000;
     // public baseSpeed: number = 3;
     public baseMp: number = 100;
@@ -101,8 +99,10 @@ export class ServerHero extends ServerGameUnit {
         // 設置基礎屬性
         this.hp = 100;
         this.maxHp = 100;
-        this.speed = 50; // 每秒移動100像素
+        this.moveSpeed = 50; // 每秒移動100像素
         this.radius = 20;
+        this.collisionWidth = 32;
+        this.collisionHeight = 40;
         this.type = UnitType.hero;
         this.attackRange = 1000;
 
@@ -202,7 +202,7 @@ export class ServerHero extends ServerGameUnit {
         const finalAttack = (this.baseAttackDamage + strBonus + this.equipmentAttackBonus + this.buffAttackBonus) * this.attackMultiplier;
 
         const finalMp = (this.baseMp + intBonus + this.equipmentMpBonus + this.buffMpBonus) * this.mpMultiplier;
-
+        const finalSpeed = this.agi * 0.1 + this.baseMoveSpeed;
         // 3. 更新最終屬性
         const oldMaxHp = this.maxHp;
         const oldMaxMp = this.maxMp;
@@ -211,7 +211,7 @@ export class ServerHero extends ServerGameUnit {
         this.attackDamage = Math.floor(finalAttack);
 
         this.maxMp = Math.floor(finalMp);
-
+        this.moveSpeed = Math.floor(finalSpeed);
         // 4. 處理當前血量/魔力的變化
         this.adjustCurrentValues(oldMaxHp, oldMaxMp);
     }
@@ -324,65 +324,6 @@ export class ServerHero extends ServerGameUnit {
         // 重新計算最終屬性
         this.recalculateAllStats();
     }
-    /**
-     * 找到射程內的敵人
-     */
-    private findTargetsInRange(enemies: ServerEnemy[], range: number): ServerEnemy[] {
-        const targetsInRange: Array<{ enemy: ServerEnemy, distance: number }> = []
-
-        for (const enemy of enemies) {
-            const distance = Math.hypot(
-                enemy.position.x - this.position.x,
-                enemy.position.y - this.position.y
-            )
-
-            if (distance <= range) {
-                targetsInRange.push({ enemy, distance })
-            }
-        }
-
-        // 按距離排序，優先攻擊最近的敵人
-        targetsInRange.sort((a, b) => a.distance - b.distance)
-
-        return targetsInRange.map(t => t.enemy)
-    }
-
-
-    // 尋找最近的敵人
-    findNearestEnemy(enemies: ServerEnemy[]): ServerEnemy | null {
-        let nearestEnemy: ServerEnemy | null = null;
-        let minDistance = this.attackRange;
-
-        for (const enemy of enemies) {
-            if (enemy.isDead) continue;
-
-            const distance = this.getDistanceTo(enemy);
-            if (distance <= minDistance) {
-                nearestEnemy = enemy;
-                minDistance = distance;
-            }
-        }
-
-        return nearestEnemy;
-    }
-
-    // 計算到目標的距離
-    private getDistanceTo(target: ServerGameUnit): number {
-        const dx = target.position.x - this.position.x;
-        const dy = target.position.y - this.position.y;
-        return Math.hypot(dx, dy);
-    }
-
-    // 計算射向目標的方向向量
-    private getDirectionToTarget(target: ServerGameUnit): { x: number, y: number } {
-        const dx = target.position.x - this.position.x;
-        const dy = target.position.y - this.position.y;
-        const length = Math.hypot(dx, dy);
-
-        if (length === 0) return { x: 1, y: 0 };
-
-        return { x: dx / length, y: dy / length };
-    }
 
     // 覆寫扣血方法，處理無敵時間
     takeDamage(amount: number): boolean {
@@ -405,7 +346,7 @@ export class ServerHero extends ServerGameUnit {
     }
 
     //嘗試進行攻擊
-    public tryAttack(enemies: ServerEnemy[]): WeaponAttackResult[] {
+    public tryAttack(enemies: ServerGameUnit[]): WeaponAttackResult[] {
         const results: WeaponAttackResult[] = [];
 
         //嘗試呼叫所有武器進行攻擊
@@ -438,7 +379,6 @@ export class ServerHero extends ServerGameUnit {
         }
 
         // 創建武器實例
-        const WeaponFactory = require('../Weapon/WeaponFactory').WeaponFactory;
         const weaponInstance = WeaponFactory.createWeapon(weaponId);
 
         if (!weaponInstance) {
@@ -473,45 +413,6 @@ export class ServerHero extends ServerGameUnit {
         return true;
     }
 
-    /**
-     * 計算英雄面向方向
-     */
-    private calculateFacingDirection(enemies: ServerEnemy[]): { x: number, y: number } {
-        if (enemies.length === 0) {
-            return { x: 1, y: 0 }; // 預設向右
-        }
-
-        // 面向最近的敵人
-        let nearestEnemy: ServerEnemy | null = null;
-        let minDistance = Infinity;
-
-        for (const enemy of enemies) {
-            if (enemy.isDead) continue;
-
-            const distance = Math.hypot(
-                enemy.position.x - this.position.x,
-                enemy.position.y - this.position.y
-            );
-
-            if (distance < minDistance) {
-                minDistance = distance;
-                nearestEnemy = enemy;
-            }
-        }
-
-        if (nearestEnemy) {
-            const dx = nearestEnemy.position.x - this.position.x;
-            const dy = nearestEnemy.position.y - this.position.y;
-            const length = Math.hypot(dx, dy);
-
-            return {
-                x: length > 0 ? dx / length : 1,
-                y: length > 0 ? dy / length : 0
-            };
-        }
-
-        return { x: 1, y: 0 };
-    }
 
     /**
      * 獲取裝備的武器實例

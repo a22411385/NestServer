@@ -39,9 +39,13 @@ export class ServerGameUnit extends Schema {
     @type("number") maxHp: number = 10;
     @type("number") attackDamage: number = 10;
     @type("number") attackSpeed: number = 1000;
-    @type("number") speed: number = 1; // 移動速度
+
     @type("number") attackRange: number = 100; // 攻擊範圍
-    @type("number") radius: number = 20; // 體積/碰撞半徑
+    @type("number") radius: number = 20; // 體積/碰撞半徑 (保留向後兼容)
+
+    // 矩形碰撞屬性
+    @type("number") collisionWidth: number = 40; // 碰撞寬度
+    @type("number") collisionHeight: number = 40; // 碰撞高度
 
     //單位面相角度
     @type("number") facingDirection: number = 0;
@@ -52,6 +56,12 @@ export class ServerGameUnit extends Schema {
 
     @type(Vector2) position: Vector2 = new Vector2(0, 0);
     // @type("number") y: number = 0;
+
+    moveSpeed: number = 1; // 移動速度
+    // === 基礎數值 (固定，不受裝備影響) - 不需要同步給客戶端 ===
+    protected baseHp: number = 100;
+    protected baseAttackDamage: number = 10;
+    protected baseMoveSpeed: number = 1;
 
 
 

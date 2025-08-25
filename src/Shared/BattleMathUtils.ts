@@ -66,6 +66,50 @@ export namespace BattleMathUtils {
     }
 
     /**
+     * 矩形碰撞檢查（基於 AABB - Axis-Aligned Bounding Box）
+     */
+    export function isRectCollide(
+        ax: number, ay: number, aw: number, ah: number,
+        bx: number, by: number, bw: number, bh: number
+    ): boolean {
+        // 計算每個矩形的邊界
+        const aLeft = ax - aw / 2;
+        const aRight = ax + aw / 2;
+        const aTop = ay - ah / 2;
+        const aBottom = ay + ah / 2;
+
+        const bLeft = bx - bw / 2;
+        const bRight = bx + bw / 2;
+        const bTop = by - bh / 2;
+        const bBottom = by + bh / 2;
+
+        // AABB 碰撞檢測
+        return !(aRight < bLeft || aLeft > bRight || aBottom < bTop || aTop > bBottom);
+    }
+
+    /**
+     * 混合碰撞檢查：圓形與矩形碰撞
+     */
+    export function isCircleRectCollide(
+        cx: number, cy: number, radius: number,
+        rx: number, ry: number, width: number, height: number
+    ): boolean {
+        // 找到矩形上離圓心最近的點
+        const halfW = width / 2;
+        const halfH = height / 2;
+
+        const closestX = Math.max(rx - halfW, Math.min(cx, rx + halfW));
+        const closestY = Math.max(ry - halfH, Math.min(cy, ry + halfH));
+
+        // 計算圓心到最近點的距離
+        const dx = cx - closestX;
+        const dy = cy - closestY;
+        const distanceSq = dx * dx + dy * dy;
+
+        return distanceSq <= radius * radius;
+    }
+
+    /**
      * 隨機整數（含 min, max）
      */
     export function randInt(min: number, max: number): number {

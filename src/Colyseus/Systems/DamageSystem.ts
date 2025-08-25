@@ -272,12 +272,8 @@ export class DamageSystem {
                     'event'
                 );
             }
+            this.room.state.gameCore.allUnits.delete(enemy.id);
 
-            // 延遲移除敵人（讓客戶端有時間播放死亡動畫）
-            setTimeout(() => {
-                this.room.state.gameCore.allUnits.delete(enemy.id);
-                console.log(`🗑️ 移除死亡敵人: ${enemy.id}`);
-            }, 1500); // 1.5秒後移除
         }
     }
 

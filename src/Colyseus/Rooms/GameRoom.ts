@@ -17,6 +17,7 @@ import { Vector2, ServerGameUnit } from "@/Colyseus/Schema/Unit/GameUnit";
 import { ServerEnemy } from "../Schema/Unit/Enemy";
 import { WeaponAttackResult } from "../Schema/Weapon/Baisc/WeaponBasic";
 import { DamageSystem } from "../Systems/DamageSystem";
+import { BattleMathUtils } from "../../Shared/BattleMathUtils";
 
 export interface GameRoomOptions {
     roomName: string;
@@ -402,15 +403,17 @@ export class GameRoom extends MiddleRoom<GameRoomState> {
             if (unit.type !== UnitType.enemy || unit.isDead) continue;
 
             const enemy = unit as ServerEnemy; // ServerEnemy
-            const distance = Math.hypot(
-                currentPos.x - enemy.position.x,
-                currentPos.y - enemy.position.y
-            );
 
-            // 碰撞檢測 (子彈半徑 + 敵人半徑)
-            const collisionDistance = 5 + enemy.radius; // 子彈半徑假設為 5
+            // 使用矩形碰撞檢測（更準確）
+            const bulletWidth = 10; // 子彈寬度
+            const bulletHeight = 10; // 子彈高度
+            const enemyWidth = enemy.collisionWidth || enemy.radius * 2;
+            const enemyHeight = enemy.collisionHeight || enemy.radius * 2;
 
-            if (distance <= collisionDistance) {
+            if (BattleMathUtils.isRectCollide(
+                currentPos.x, currentPos.y, bulletWidth, bulletHeight,
+                enemy.position.x, enemy.position.y, enemyWidth, enemyHeight
+            )) {
                 // 造成傷害
                 const killed = enemy.takeDamage(bullet.damage);
 

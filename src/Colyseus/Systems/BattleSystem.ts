@@ -166,8 +166,8 @@ export class BattleSystem {
         for (const [unitId, unit] of this.state.allUnits) {
             if (unit.type === UnitType.enemy && !unit.isDead) {
                 const enemy = unit as ServerEnemy;
-                // 呼叫 Enemy 自己的優化 AI 更新
-                enemy.updateAI(heroMapSchema, deltaTime, currentTime);
+                // 呼叫 Enemy 自己的優化 AI 更新，傳遞所有單位信息
+                enemy.updateAI(heroMapSchema, deltaTime, currentTime, this.state.allUnits);
                 //  this.room.movementSystem.addMoveData(enemy.id, moveVector);
             }
         }
