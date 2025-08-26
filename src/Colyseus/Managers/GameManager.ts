@@ -5,6 +5,7 @@ import { GameRoom } from "../Rooms/GameRoom";
 import { BattleSystem } from "../Systems/BattleSystem";
 import { MovementSystem } from "../Systems/MovemnetSystem";
 import { LobbyRoomBus } from "../Rooms/LobbyRoom";
+import { UnitType } from "../Schema/GameState";
 
 const RoundTimeSetting = {
     prepare: 3,
@@ -81,70 +82,61 @@ export class GameManager {
 
         }, ONE_TICK_TIME);
 
-        if (!this.state.isTestMode)
-            // Waves 流程
-            this.gameFlow();
+        if (!this.state.isTestMode) {
+            // 配置並啟動 WaveManager 的遊戲流程
+            this.setupWaveManagerFlow();
+        }
 
         console.log(`✅ Game started - Wave: ${this.state.gameCore.waveNumber}, Heroes: ${this.state.getAllHeroes().size}`);
     }
 
     /**
-     * 遊戲主流程
+     * 配置 WaveManager 流程
      */
-    private async gameFlow(): Promise<void> {
-        while (this.state.state === 'playing') {
-            // 檢查是否所有玩家都死亡 - 這個檢查由外部處理
-
-            // 波次開始準備
-            this.broadcastBattleLog(`第 ${this.state.gameCore.waveNumber} 波準備中...`, 'event');
-            this.state.gameCore.status = 'prepare';
-            this.state.gameCore.roundTime = RoundTimeSetting.prepare;
-            await delay(RoundTimeSetting.prepare);
-
-
-
-            // 使用新的波次管理系統開始波次
-            if (this.battleSystem && this.battleSystem.getWaveManager()) {
-                const started = this.battleSystem.startNewWave(this.state.gameCore.waveNumber);
-                if (!started) {
-                    console.warn(`⚠️ Failed to start wave ${this.state.gameCore.waveNumber}`);
-                } else {
-                    // 波次開始
-                    this.broadcastBattleLog(`第 ${this.state.gameCore.waveNumber} 波開始！殭屍來襲！`, 'event');
-                    this.state.gameCore.status = 'battle';
-                }
-            }
-
-            this.state.gameCore.roundTime = RoundTimeSetting.battle;
-            // 每波30秒
-            await delay(RoundTimeSetting.battle);
-
-            // 通知停止波次（如果仍在進行中）
-            if (this.battleSystem && this.battleSystem.getWaveManager()) {
-                this.battleSystem.getWaveManager().stopWave();
-            }
-
-            // 波次結束
-            this.broadcastBattleLog(`第 ${this.state.gameCore.waveNumber} 波結束，進入休整時間`, 'event');
-            this.state.gameCore.status = 'rest';
-
-            // 清除場上所有敵人
-            this.state.removeAllEnemy();
-            this.state.gameCore.roundTime = RoundTimeSetting.rest;
-            // 修整時間10秒
-            await delay(RoundTimeSetting.rest);
-
-            this.state.gameCore.waveNumber++;
-
-            if (this.state.gameCore.waveNumber > 50) {
-                this.broadcastBattleLog("恭喜！您成功完成了所有 50 波挑戰！", 'event');
-                this.endGame("waveComplete");
-                return;
-            }
+    private setupWaveManagerFlow(): void {
+        if (!this.battleSystem || !this.battleSystem.getWaveManager()) {
+            console.warn('⚠️ BattleSystem or WaveManager not available');
+            return;
         }
+
+        const waveManager = this.battleSystem.getWaveManager();
+
+        // 設置流程配置
+        waveManager.setFlowConfig({
+            prepareTime: RoundTimeSetting.prepare,
+            battleTime: RoundTimeSetting.battle,
+            restTime: RoundTimeSetting.rest,
+            maxWaves: 50
+        });
+
+        // 設置回調函數
+        waveManager.setCallbacks({
+            updateGameCore: (status: string, roundTime: number, waveNumber: number) => {
+                this.state.gameCore.status = status as any; // 類型轉換
+                this.state.gameCore.roundTime = roundTime;
+                this.state.gameCore.waveNumber = waveNumber;
+            },
+            broadcastLog: (message: string, category?: string) => {
+                const validCategory = (category === 'damage' || category === 'death' ||
+                    category === 'kill' || category === 'heal' ||
+                    category === 'event') ? category : 'event';
+                this.broadcastBattleLog(message, validCategory);
+            },
+            endGame: (reason: string) => {
+                this.endGame(reason === "waveComplete" ? "waveComplete" : "allPlayersDead");
+            },
+            removeAllEnemies: () => {
+                this.state.removeAllEnemy();
+            }
+        });
+
+        // 啟動遊戲流程
+        console.log('🚀 Starting WaveManager game flow');
+        waveManager.gameFlow().catch((error) => {
+            console.error('❌ WaveManager flow error:', error);
+            this.endGame("allPlayersDead");
+        });
     }
-
-
     /**
      * 結束遊戲
      */
@@ -158,10 +150,10 @@ export class GameManager {
         const finalWave = this.state.gameCore.waveNumber;
         const survivedTime = this.gameTime;
 
+        // 清理遊戲狀態
+        this.cleanupGameState();
+
         this.state.gameCore.waveNumber = 0;
-
-        // 停止所有計時器
-
 
         // 廣播遊戲結束
         this.room.broadcast("gameOver", {
@@ -172,9 +164,48 @@ export class GameManager {
     }
 
     /**
+     * 清理遊戲狀態
+     */
+    private cleanupGameState(): void {
+        console.log('🧹 Cleaning up game state...');
+
+        // 清理所有敵人
+        const enemiesToRemove = [];
+        for (const [id, unit] of this.state.gameCore.allUnits) {
+            if (unit.type === UnitType.enemy) {
+                enemiesToRemove.push(id);
+            }
+        }
+
+        enemiesToRemove.forEach(id => {
+            this.state.gameCore.allUnits.delete(id);
+        });
+
+        // 清理所有子彈
+        this.state.gameCore.bullets.clear();
+
+        // 重置英雄狀態
+        for (const [, hero] of this.state.getAllHeroes()) {
+            hero.isDead = false;
+            hero.hp = hero.maxHp; // 恢復滿血
+        }
+
+        console.log(`🧹 Cleanup complete: removed ${enemiesToRemove.length} enemies`);
+    }
+
+    /**
      * 停止遊戲循環
      */
     public stopGameLoop(): void {
+        // 停止 WaveManager
+        if (this.battleSystem) {
+            const waveManager = this.battleSystem.getWaveManager();
+            if (waveManager) {
+                console.log('🛑 Stopping WaveManager...');
+                waveManager.stopGameFlow();
+            }
+        }
+
         // 停止所有計時器
         if (this.gameLoop) {
             this.gameLoop.clear();

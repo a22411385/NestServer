@@ -9,6 +9,7 @@ import { GameRoom } from "../Rooms/GameRoom";
 import { Vector2 } from "../Schema/Unit/GameUnit";
 import { WaveManager, WaveState } from "../../Game/Managers/WaveManager";
 import { EnemyType } from "../../Game/Factories/EnemyFactory";
+import { EnemyCoordinationSystem } from "./EnemyCoordinationSystem";
 
 const mapSize = 1000;
 const maxZombies = 50;
@@ -22,10 +23,14 @@ export class BattleSystem {
     private enemySpawnTimer: Delayed | null = null;
     private gameManager: GameManager | null = null;
     private waveManager: WaveManager;
+    private enemyCoordination: EnemyCoordinationSystem;
 
     constructor(room: GameRoom) {
         this.room = room;
         this.state = room.state;
+
+        // 初始化敵人協調系統
+        this.enemyCoordination = new EnemyCoordinationSystem();
 
         // 初始化波次管理器
         this.waveManager = new WaveManager(mapSize, mapSize);
@@ -89,10 +94,17 @@ export class BattleSystem {
     }
 
     /**
-     * 開始新波次
+     * 開始新波次（配合 GameManager 時序）
      */
     public startNewWave(waveNumber?: number): boolean {
         return this.waveManager.startWave(waveNumber);
+    }
+
+    /**
+     * 立即開始波次（由 GameManager 調用）
+     */
+    public startWaveImmediate(waveNumber: number, battleDurationSeconds: number): boolean {
+        return this.waveManager.startWaveImmediate(waveNumber, battleDurationSeconds);
     }
 
     /**
@@ -102,6 +114,12 @@ export class BattleSystem {
         return this.waveManager;
     }
 
+    /**
+     * 🆕 獲取敵人協調系統
+     */
+    public getEnemyCoordination(): EnemyCoordinationSystem {
+        return this.enemyCoordination;
+    }
 
     /**
      * 處理玩家攻擊
@@ -218,39 +236,41 @@ export class BattleSystem {
     /**
      * 更新所有敵人的 AI - 效能優化版本
      */
-    updateEnemyAI(deltaTime: number, currentTime: number): Map<string, { before: number; after: number; hero: ServerHero }> {
-        const heroHealthChanges = new Map<string, { before: number; after: number; hero: ServerHero }>();
+    public updateEnemyAI(deltaTime: number, currentTime: number): void {
+        if (!this.room?.state?.gameCore?.allUnits) return;
 
-        // 記錄攻擊前的英雄血量並創建MapSchema
-        const heroMapSchema = new MapSchema<ServerHero>();
-        for (const [unitId, unit] of this.state.allUnits) {
-            if (unit.type === UnitType.hero && !unit.isDead) {
-                const hero = unit as ServerHero;
-                heroMapSchema.set(unitId, hero);
-                heroHealthChanges.set(unitId, {
-                    before: hero.hp,
-                    after: hero.hp,
-                    hero: hero
-                });
+        //const heroes = this.room.state.allUnits;
+        const allUnits = this.room.state.gameCore.allUnits;
+        const enemies: ServerEnemy[] = [];
+
+        // 收集所有活著的敵人
+        for (const unit of allUnits.values()) {
+            if (unit instanceof ServerEnemy && !unit.isDead) {
+                enemies.push(unit);
             }
         }
 
-        // 更新每個敵人的 AI
-        for (const [unitId, unit] of this.state.allUnits) {
-            if (unit.type === UnitType.enemy && !unit.isDead) {
-                const enemy = unit as ServerEnemy;
-                // 呼叫 Enemy 自己的優化 AI 更新，傳遞所有單位信息
-                enemy.updateAI(heroMapSchema, deltaTime, currentTime, this.state.allUnits);
-                //  this.room.movementSystem.addMoveData(enemy.id, moveVector);
+        // 群體協調
+        if (enemies.length > 1) {
+            this.enemyCoordination.coordinateEnemyMovement(enemies);
+        }
+
+        // 🔧 修改敵人AI更新方式
+        for (const unit of allUnits.values()) {
+            if (unit instanceof ServerEnemy && !unit.isDead) {
+                // 🎯 讓敵人AI更新速度向量，而不是直接移動
+                const heroes = new MapSchema<ServerHero>();
+                for (const unit of allUnits.values()) {
+                    if (unit instanceof ServerHero && !unit.isDead) {
+                        heroes.set(unit.id, unit);
+                    }
+                }
+                unit.updateAI(heroes, deltaTime, currentTime, allUnits);
+
+                // 🎯 AI 只更新速度向量 (vx, vy)，不直接移動位置
+                // 移動由 MovementSystem.MoveAllUnit() 統一處理
             }
         }
-
-        // 更新攻擊後的血量
-        for (const [heroId, healthData] of heroHealthChanges) {
-            healthData.after = healthData.hero.hp;
-        }
-
-        return heroHealthChanges;
     }
 
     /**

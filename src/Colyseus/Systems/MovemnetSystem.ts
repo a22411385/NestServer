@@ -54,16 +54,16 @@ export class MovementSystem {
     }
 
     /**
-     * 🎯 應用移動到服務端單位 - 與客戶端邏輯完全一致
+     * 🔧 修改移動邏輯，讓所有單位都由統一系統處理
      */
     public MoveAllUnit(): void {
-
         for (const [unitId, unit] of this.getAllUnits) {
-
+            // 🎯 跳過速度為0的單位
             if (unit.vx == 0 && unit.vy == 0) {
                 continue;
             }
 
+            // 🎯 移動所有有速度的單位（包含玩家和敵人）
             this.MoveUnit(unit);
         }
     }

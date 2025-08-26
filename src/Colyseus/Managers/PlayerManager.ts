@@ -174,12 +174,21 @@ export class PlayerManager {
      * 檢查所有玩家是否死亡
      */
     checkAllPlayersDead(): boolean {
-        let heros = [];
-        for (const [, hero] of this.state.allUnits) {
-            if (hero.type == UnitType.hero) heros.push(hero);
-            if (!hero.isDead && hero.hp > 0) return false;
+        let heroCount = 0;
+        let aliveCount = 0;
+
+        for (const [, unit] of this.state.allUnits) {
+            if (unit.type == UnitType.hero) {
+                heroCount++;
+                if (!unit.isDead && unit.hp > 0) {
+                    aliveCount++;
+                }
+            }
         }
-        return heros.length > 0; // 確保有玩家存在
+
+        //console.log(`🔍 英雄狀態檢查: ${aliveCount}/${heroCount} 存活`);
+
+        return heroCount > 0 && aliveCount === 0; // 有英雄存在且沒有存活的英雄
     }
 
     /**
@@ -211,7 +220,13 @@ export class PlayerManager {
             }
         }
 
-        const allDead = anyPlayerDied ? this.checkAllPlayersDead() : false;
+        // 檢查是否所有玩家都死亡
+        const allDead = this.checkAllPlayersDead();
+
+        if (allDead) {
+            console.log("🏁 所有英雄已死亡，遊戲應該結束！");
+        }
+
         return { anyPlayerDied, allDead };
     }
 

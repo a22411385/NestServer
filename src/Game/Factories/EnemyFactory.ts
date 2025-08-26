@@ -40,8 +40,8 @@ export class EnemyFactory {
             attackDamage: 15,
             moveSpeed: 60,
             scale: 1.0,
-            collisionWidth: 32,
-            collisionHeight: 32,
+            collisionWidth: 64,
+            collisionHeight: 128,
             experienceReward: 10,
             goldReward: 5
         }],

@@ -111,7 +111,67 @@ export class MessageHandler {
                     client.send("wave_status", waveStats);
                     break;
 
-                // ... 其他 case
+                // 同步狀態檢查
+                case "sync_check":
+                    if (!playerManager.isPlayerHost(client)) {
+                        client.send("error", { message: "Only host can check sync status" });
+                        return;
+                    }
+
+                    if (battleSystem?.getWaveManager()) {
+                        // 導入同步檢查工具（需要在頂部導入）
+                        // GameStateSync.checkSync(this.state.gameCore, battleSystem.getWaveManager());
+
+                        const syncReport = {
+                            gameCore: {
+                                wave: this.state.gameCore.waveNumber,
+                                stage: this.state.gameCore.status,
+                                timeRemaining: this.state.gameCore.roundTime
+                            },
+                            waveManager: battleSystem.getWaveManager().getWaveStats(),
+                            timestamp: Date.now()
+                        };
+
+                        console.log("🔄 Sync check requested:", syncReport);
+                        client.send("sync_report", syncReport);
+                    }
+                    break;
+
+                // 🆕 敵人行為調試
+                case "enemy_debug":
+                    const enemies: any[] = [];
+                    const coordinationStats = battleSystem ?
+                        battleSystem.getEnemyCoordination()?.getCoordinationStats(
+                            Array.from(this.state.allUnits.values())
+                                .filter(unit => unit.type === UnitType.enemy && !unit.isDead) as any[]
+                        ) : null;
+
+                    for (const [, unit] of this.state.allUnits) {
+                        if (unit.type === UnitType.enemy && !unit.isDead) {
+                            const enemy = unit as any;
+                            enemies.push({
+                                id: enemy.id,
+                                position: { x: enemy.position.x, y: enemy.position.y },
+                                stuckCounter: enemy.stuckCounter || 0,
+                                groupPriority: enemy.groupPriority || 0,
+                                aiState: enemy.getAIState?.() || 'unknown',
+                                hp: enemy.hp,
+                                maxHp: enemy.maxHp
+                            });
+                        }
+                    }
+
+                    client.send('enemy_debug_response', {
+                        enemies: enemies,
+                        coordinationStats: coordinationStats,
+                        timestamp: Date.now()
+                    });
+                    break;
+
+                default:
+                    // 未知的消息類型
+                    console.warn(`Unknown message type: ${type}`);
+                    break;
             }
         } catch (error) {
             console.error(`Error handling message ${type}:`, error);

@@ -24,13 +24,20 @@ export class ServerEnemy extends ServerGameUnit {
     private targetCacheTime: number = 0; // 目標快取時間
 
     // 碰撞檢測相關
-    private collisionCheckDistance: number = 40; // 碰撞檢測距離
-    private alternativeRoutes: Vector2[] = []; // 替代路線選項
-    private lastCollisionTime: number = 0; // 上次碰撞時間
 
     private allowOverlapTime: number = 0; // 允許重疊的時間（攻擊用）
     private overlapDuration: number = 500; // 重疊持續時間（毫秒）
     private cachedAllUnits: MapSchema<ServerGameUnit> | undefined; // 快取所有單位
+
+    // 🆕 群體行為相關屬性
+    private lastMovementAttempt: number = 0;
+    private stuckCounter: number = 0;
+    private stuckThreshold: number = 5; // 卡住檢測閾值
+    private lastPosition: { x: number; y: number } = { x: 0, y: 0 };
+    private groupPriority: number = 0; // 群體優先級（用於解決衝突）
+
+    private separationRadius: number = 40; // 分離半徑
+    private cachedAllUnitsArray: ServerGameUnit[] = []; // 快取所有單位陣列
 
     constructor() {
         super();
@@ -39,7 +46,11 @@ export class ServerEnemy extends ServerGameUnit {
         this.moveSpeed = 30; // 每秒移動50像素
         this.scale = 1.0; // 預設縮放為1
         this.type = UnitType.enemy;
-        this.owner = 'enemy'
+        this.owner = 'enemy';
+
+        // 🆕 設置隨機群體優先級（用於打破對稱性）
+        this.groupPriority = Math.random();
+        this.lastPosition = { x: this.position.x, y: this.position.y };
     }
 
     // 尋找最近的目標 - 優化版本使用快取
@@ -73,6 +84,113 @@ export class ServerEnemy extends ServerGameUnit {
         return nearestTarget;
     }
 
+    /**
+     * 🆕 群體分離力計算 - 避免敵人聚集
+     */
+    private calculateSeparationForce(allUnits: ServerGameUnit[]): { x: number; y: number } {
+        let separationForce = { x: 0, y: 0 };
+        let neighborCount = 0;
+
+        for (const other of allUnits) {
+            if (other === this || other.isDead || other.type !== UnitType.enemy) {
+                continue;
+            }
+
+            const distance = Math.hypot(
+                other.position.x - this.position.x,
+                other.position.y - this.position.y
+            );
+
+            // 🎯 只考慮分離半徑內的其他敵人
+            if (distance < this.separationRadius && distance > 0) {
+                // 計算遠離其他敵人的力
+                const avoidX = (this.position.x - other.position.x) / distance;
+                const avoidY = (this.position.y - other.position.y) / distance;
+
+                // 距離越近，分離力越強
+                const strength = (this.separationRadius - distance) / this.separationRadius;
+
+                separationForce.x += avoidX * strength;
+                separationForce.y += avoidY * strength;
+                neighborCount++;
+            }
+        }
+
+        // 歸一化分離力
+        if (neighborCount > 0) {
+            separationForce.x /= neighborCount;
+            separationForce.y /= neighborCount;
+
+            // 限制分離力的最大強度
+            const maxSeparationForce = 0.5;
+            const magnitude = Math.hypot(separationForce.x, separationForce.y);
+            if (magnitude > maxSeparationForce) {
+                separationForce.x = (separationForce.x / magnitude) * maxSeparationForce;
+                separationForce.y = (separationForce.y / magnitude) * maxSeparationForce;
+            }
+        }
+
+        return separationForce;
+    }
+
+    /**
+     * 🆕 卡住檢測和處理
+     */
+    private handleStuckDetection(): boolean {
+        const currentTime = Date.now();
+
+        // 檢查是否移動了足夠距離
+        const distanceMoved = Math.hypot(
+            this.position.x - this.lastPosition.x,
+            this.position.y - this.lastPosition.y
+        );
+
+        // 如果移動距離很小，增加卡住計數器
+        if (distanceMoved < 2 && currentTime - this.lastMovementAttempt > 500) {
+            this.stuckCounter++;
+
+            if (this.stuckCounter >= this.stuckThreshold) {
+                console.log(`🚫 Enemy ${this.id} is stuck, applying unstuck behavior`);
+                return this.applyUnstuckBehavior();
+            }
+        } else {
+            // 移動正常，重置計數器
+            this.stuckCounter = Math.max(0, this.stuckCounter - 1);
+        }
+
+        // 更新位置記錄
+        this.lastPosition = { x: this.position.x, y: this.position.y };
+        this.lastMovementAttempt = currentTime;
+
+        return false;
+    }
+
+    /**
+     * 🆕 脫困行為
+     */
+    private applyUnstuckBehavior(): boolean {
+        // 生成一個強制脫困向量
+        const escapeAngle = Math.random() * Math.PI * 2;
+        const escapeDistance = 50 + Math.random() * 30; // 50-80 像素的逃脫距離
+
+        const escapeX = Math.cos(escapeAngle) * escapeDistance;
+        const escapeY = Math.sin(escapeAngle) * escapeDistance;
+
+        const newX = this.position.x + escapeX;
+        const newY = this.position.y + escapeY;
+
+        // 檢查逃脫位置是否在地圖範圍內
+        if (newX >= 50 && newX <= 750 && newY >= 50 && newY <= 550) {
+            this.position.x = newX;
+            this.position.y = newY;
+            this.stuckCounter = 0;
+            console.log(`🏃 Enemy ${this.id} escaped to (${newX.toFixed(1)}, ${newY.toFixed(1)})`);
+            return true;
+        }
+
+        return false;
+    }
+
     // 獲取到目標的距離
     getDistanceTo(target: ServerGameUnit): number {
         const dx = target.position.x - this.position.x;
@@ -80,10 +198,23 @@ export class ServerEnemy extends ServerGameUnit {
         return Math.hypot(dx, dy);
     }
 
-    // AI 更新邏輯 - 優化版本，包含碰撞檢測
-    updateAI(targets: MapSchema<ServerHero>, deltaTime: number, currentTime: number, allUnits?: MapSchema<ServerGameUnit>): Vector2 {
-        let moveVector = { x: 0, y: 0 };
-        if (this.isDead) return moveVector;
+    /**
+     * 🔧 修改 updateAI 返回速度向量而非位置
+     */
+    public updateAI(targets: MapSchema<ServerHero>, deltaTime: number, currentTime: number, allUnits?: MapSchema<ServerGameUnit>): void {
+        if (this.isDead) {
+            this.vx = 0;
+            this.vy = 0;
+            return;
+        }
+
+        // 🎯 更新快取的所有單位陣列（用於群體協調）
+        this.cachedAllUnitsArray = [];
+        if (allUnits) {
+            for (const unit of allUnits.values()) {
+                this.cachedAllUnitsArray.push(unit);
+            }
+        }
 
         // 儲存所有單位的引用供碰撞檢測使用
         this.cachedAllUnits = allUnits;
@@ -93,12 +224,17 @@ export class ServerEnemy extends ServerGameUnit {
 
         // 減少不必要的計算頻率
         const shouldUpdateAI = currentTime - this.lastAIUpdateTime >= this.aiUpdateInterval;
-        if (!shouldUpdateAI && this.aiState !== "attack") return moveVector;
+        if (!shouldUpdateAI && this.aiState !== "attack") {
+            // 保持當前移動狀態
+            return;
+        }
 
         const target = this.findNearestTarget(targets);
         if (!target) {
             this.aiState = "idle";
-            return moveVector;
+            this.vx = 0;
+            this.vy = 0;
+            return;
         }
 
         const distanceToTarget = this.getDistanceTo(target);
@@ -110,15 +246,100 @@ export class ServerEnemy extends ServerGameUnit {
         // 如果在攻擊範圍內
         if (distanceToTarget <= attackRange) {
             this.aiState = "attack";
+            this.vx = 0;
+            this.vy = 0;
             this.attemptAttack(target, currentTime);
         } else {
-            // 追蹤目標
+            // 🎯 追蹤目標 - 計算理想的移動位置
             this.aiState = "chase";
-            moveVector = this.chaseTarget(target, deltaTime);
+            const idealPosition = this.chaseTargetImproved(target, this.cachedAllUnitsArray);
+
+            // 🎯 將位置差異轉換為正規化的速度向量
+            const dx = idealPosition.x - this.position.x;
+            const dy = idealPosition.y - this.position.y;
+            const distance = Math.hypot(dx, dy);
+
+            if (distance > 0.5) { // 只有當需要移動的距離足夠大時才移動
+                // 正規化速度向量
+                this.vx = dx / distance;
+                this.vy = dy / distance;
+            } else {
+                this.vx = 0;
+                this.vy = 0;
+            }
         }
 
         this.lastAIUpdateTime = currentTime;
-        return moveVector;
+    }
+
+    /**
+     * 🔧 修改 chaseTargetImproved 返回理想位置
+     */
+    private chaseTargetImproved(target: ServerGameUnit, allUnits: ServerGameUnit[]): Vector2 {
+        const distance = Math.hypot(
+            target.position.x - this.position.x,
+            target.position.y - this.position.y
+        );
+
+        // 檢查卡住狀態
+        if (this.handleStuckDetection()) {
+            return { x: this.position.x, y: this.position.y };
+        }
+
+        // 避免除零錯誤
+        if (distance === 0) {
+            return { x: this.position.x, y: this.position.y };
+        }
+
+        // 基本追蹤方向
+        const chaseDirection = {
+            x: (target.position.x - this.position.x) / distance,
+            y: (target.position.y - this.position.y) / distance
+        };
+
+        // 計算群體分離力
+        const separationForce = this.calculateSeparationForce(allUnits);
+
+        // 🎯 計算理想的下一個位置，但不直接設置
+        // 使用小步長來避免瞬移
+        const stepSize = Math.min(this.moveSpeed * 0.1, 5); // 限制每次最大移動距離
+        const combinedDirection = {
+            x: chaseDirection.x + separationForce.x,
+            y: chaseDirection.y + separationForce.y
+        };
+
+        // 歸一化合併後的方向向量
+        const combinedLength = Math.hypot(combinedDirection.x, combinedDirection.y);
+        if (combinedLength > 0) {
+            combinedDirection.x /= combinedLength;
+            combinedDirection.y /= combinedLength;
+        }
+
+        const idealX = this.position.x + combinedDirection.x * stepSize;
+        const idealY = this.position.y + combinedDirection.y * stepSize;
+
+        // 碰撞檢測
+        const wouldCollide = this.checkCollisionAtPosition(idealX, idealY);
+
+        if (!wouldCollide) {
+            return { x: idealX, y: idealY };
+        }
+
+        // 嘗試側向移動
+        const sideMovement = this.calculateSideMovement(chaseDirection);
+        if (sideMovement) {
+            return {
+                x: this.position.x + sideMovement.x * stepSize,
+                y: this.position.y + sideMovement.y * stepSize
+            };
+        }
+
+        // 處理死鎖
+        const deadlockResult = this.handleDeadlock(target);
+        return {
+            x: this.position.x + deadlockResult.x * stepSize,
+            y: this.position.y + deadlockResult.y * stepSize
+        };
     }
 
     // 追蹤目標 - 增強版本，包含碰撞檢測
@@ -164,6 +385,102 @@ export class ServerEnemy extends ServerGameUnit {
         }
 
         return { x: this.vx, y: this.vy };
+    }
+
+    /**
+     * 🆕 檢查指定位置是否會碰撞
+     */
+    private checkCollisionAtPosition(nextX: number, nextY: number): boolean {
+        for (const unit of this.cachedAllUnitsArray) {
+            if (unit === this || unit.isDead || unit.type === UnitType.hero) {
+                continue; // 跳過自己、死亡單位和英雄（可以攻擊英雄）
+            }
+
+            if (this.checkUnitCollision(nextX, nextY, unit)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * 🔄 改進的側向移動計算
+     */
+    private calculateSideMovement(forwardDirection: { x: number; y: number }): { x: number; y: number } | null {
+        const moveSpeed = this.moveSpeed / 60; // 轉換為每幀移動速度
+
+        // 🎯 嘗試左右兩個側向移動方向
+        const sideDirections = [
+            { x: -forwardDirection.y, y: forwardDirection.x }, // 向左90度
+            { x: forwardDirection.y, y: -forwardDirection.x }  // 向右90度
+        ];
+
+        // 🎯 隨機選擇側向，增加不可預測性
+        if (Math.random() < 0.5) {
+            sideDirections.reverse();
+        }
+
+        for (const sideDir of sideDirections) {
+            // 結合前進和側向移動
+            const testX = this.position.x + (forwardDirection.x * 0.3 + sideDir.x * 0.7) * moveSpeed;
+            const testY = this.position.y + (forwardDirection.y * 0.3 + sideDir.y * 0.7) * moveSpeed;
+
+            if (!this.checkCollisionAtPosition(testX, testY)) {
+                return {
+                    x: forwardDirection.x * 0.3 + sideDir.x * 0.7,
+                    y: forwardDirection.y * 0.3 + sideDir.y * 0.7
+                };
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * 🆕 處理死鎖情況
+     */
+    private handleDeadlock(target: ServerGameUnit): { x: number; y: number } {
+        // 找到阻擋的其他敵人
+        const blockingEnemies = this.cachedAllUnitsArray.filter(unit => {
+            if (unit === this || unit.isDead || unit.type !== UnitType.enemy) {
+                return false;
+            }
+
+            const distance = Math.hypot(
+                unit.position.x - this.position.x,
+                unit.position.y - this.position.y
+            );
+
+            return distance < (this.getScaledCollisionWidth() + (unit.collisionWidth * (unit.scale || 1))) / 2 + 5;
+        });
+
+        if (blockingEnemies.length > 0) {
+            // 比較群體優先級，優先級低的讓路
+            const hasHigherPriority = blockingEnemies.every(enemy => {
+                const enemyPriority = (enemy as any).groupPriority || 0;
+                return enemyPriority < this.groupPriority;
+            });
+
+            if (hasHigherPriority) {
+                // 我有優先權，繼續前進
+                const distance = Math.hypot(
+                    target.position.x - this.position.x,
+                    target.position.y - this.position.y
+                );
+
+                return {
+                    x: (target.position.x - this.position.x) / distance * 0.5,
+                    y: (target.position.y - this.position.y) / distance * 0.5
+                };
+            } else {
+                // 我需要讓路，暫停
+                this.stuckCounter++;
+                return { x: 0, y: 0 };
+            }
+        }
+
+        // 沒有其他敵人阻擋，可能是地形問題
+        return { x: 0, y: 0 };
     }
 
     /**

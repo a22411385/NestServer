@@ -170,11 +170,10 @@ export class GameRoom extends MiddleRoom<GameRoomState> {
         // 更新子彈系統
         this.updateBullets(deltaTime);
 
-        // 更新敵人 AI 並獲取傷害報告
-        const heroHealthChanges = this.battleSystem.updateEnemyAI(deltaTime, currentTime);
+        // 🔧 更新敵人 AI（只設置速度向量）
+        this.battleSystem.updateEnemyAI(deltaTime, currentTime);
 
-        // 處理傷害報告
-        this.battleSystem.processDamageReport(heroHealthChanges);
+        // 🔧 攻擊和傷害處理由敵人AI內部處理，不再需要外部傷害報告
 
         // 檢查玩家死亡
         const deathResult = this.playerManager.checkAndHandlePlayerDeaths();
@@ -186,12 +185,13 @@ export class GameRoom extends MiddleRoom<GameRoomState> {
                     this.messageHandler.sendBattleLog(`${(hero as ServerHero).name} 被殭屍群殺死了！`, 'death');
                 }
             }
+        }
 
-            if (deathResult.allDead) {
-                this.messageHandler.sendBattleLog("所有玩家陣亡，遊戲結束！", 'event');
-                this.gameManager.forceEndGame();
-                return;
-            }
+        // 檢查是否所有玩家都死亡（每次都檢查，不只是有人剛死亡時）
+        if (deathResult.allDead) {
+            this.messageHandler.sendBattleLog("所有玩家陣亡，遊戲結束！", 'event');
+            this.gameManager.forceEndGame();
+            return;
         }
     }
 

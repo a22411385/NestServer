@@ -16,6 +16,27 @@ export enum WaveState {
 }
 
 /**
+ * 遊戲流程狀態枚舉
+ */
+export enum GameFlowState {
+    STOPPED = "stopped",
+    PREPARE = "prepare",
+    BATTLE = "battle",
+    REST = "rest",
+    GAME_OVER = "game_over"
+}
+
+/**
+ * 遊戲流程配置
+ */
+export interface GameFlowConfig {
+    prepareTime: number;    // 準備時間（秒）
+    battleTime: number;     // 戰鬥時間（秒）
+    restTime: number;       // 休息時間（秒）
+    maxWaves: number;       // 最大波次數
+}
+
+/**
  * 波次配置介面
  */
 export interface WaveConfig {
@@ -68,12 +89,31 @@ export class WaveManager {
     // 外部依賴注入
     private getCurrentUnitsCallback: (() => ServerGameUnit[]) | null = null;
 
+    // 新增：遊戲流程控制
+    private gameFlowState: GameFlowState = GameFlowState.STOPPED;
+    private flowConfig: GameFlowConfig;
+    private flowRunning: boolean = false;
+    private gameFlowPromise: Promise<void> | null = null;
+    private countdownTimer: NodeJS.Timeout | null = null;
+
+    // 回調函數
+    private updateGameCoreCallback?: (status: string, roundTime: number, waveNumber: number) => void;
+    private broadcastLogCallback?: (message: string, category?: string) => void;
+    private endGameCallback?: (reason: string) => void;
+    private removeAllEnemiesCallback?: () => void;
+
     constructor(mapWidth: number, mapHeight: number) {
         this.spawnManager = new SpawnManager(mapWidth, mapHeight);
         this.initializeEventCallbacks();
-    }
 
-    /**
+        // 初始化流程配置
+        this.flowConfig = {
+            prepareTime: 3,
+            battleTime: 30,
+            restTime: 10,
+            maxWaves: 50
+        };
+    }    /**
      * 初始化事件回調系統
      */
     private initializeEventCallbacks(): void {
@@ -84,7 +124,312 @@ export class WaveManager {
     }
 
     /**
-     * 開始新波次
+     * 設置遊戲流程配置
+     */
+    public setFlowConfig(config: Partial<GameFlowConfig>): void {
+        this.flowConfig = { ...this.flowConfig, ...config };
+        console.log(`⚙️ Wave flow config updated:`, this.flowConfig);
+    }
+
+    /**
+     * 設置回調函數
+     */
+    public setCallbacks(callbacks: {
+        updateGameCore?: (status: string, roundTime: number, waveNumber: number) => void;
+        broadcastLog?: (message: string, category?: string) => void;
+        endGame?: (reason: string) => void;
+        removeAllEnemies?: () => void;
+    }): void {
+        this.updateGameCoreCallback = callbacks.updateGameCore;
+        this.broadcastLogCallback = callbacks.broadcastLog;
+        this.endGameCallback = callbacks.endGame;
+        this.removeAllEnemiesCallback = callbacks.removeAllEnemies;
+        console.log(`🔗 WaveManager callbacks set`);
+    }
+
+    /**
+     * 開始遊戲流程
+     */
+    public async gameFlow(): Promise<void> {
+        if (this.flowRunning) {
+            console.warn(`⚠️ Game flow already running`);
+            return;
+        }
+
+        this.flowRunning = true;
+        this.currentWave = 1;
+        this.gameFlowState = GameFlowState.PREPARE;
+
+        console.log(`🎮 Starting game flow with ${this.flowConfig.maxWaves} waves`);
+
+        try {
+            this.gameFlowPromise = this.runGameFlowLoop();
+            await this.gameFlowPromise;
+        } catch (error) {
+            console.error(`❌ Game flow error:`, error);
+            this.stopGameFlow();
+        }
+    }
+
+    /**
+     * 遊戲流程主循環
+     */
+    private async runGameFlowLoop(): Promise<void> {
+        while (this.flowRunning && this.currentWave <= this.flowConfig.maxWaves) {
+            try {
+                // 準備階段
+                await this.runPrepareStage();
+
+                if (!this.flowRunning) break;
+
+                // 戰鬥階段
+                await this.runBattleStage();
+
+                if (!this.flowRunning) break;
+
+                // 休息階段
+                await this.runRestStage();
+
+                if (!this.flowRunning) break;
+
+                // 進入下一波
+                this.currentWave++;
+
+            } catch (error) {
+                console.error(`❌ Error in wave ${this.currentWave}:`, error);
+                break;
+            }
+        }
+
+        // 遊戲結束
+        if (this.currentWave > this.flowConfig.maxWaves) {
+            this.completeAllWaves();
+        } else {
+            this.stopGameFlow();
+        }
+    }
+
+    /**
+     * 準備階段
+     */
+    private async runPrepareStage(): Promise<void> {
+        this.gameFlowState = GameFlowState.PREPARE;
+        this.waveState = WaveState.PREPARING;
+
+        this.broadcastLog(`第 ${this.currentWave} 波準備中...`, 'event');
+        console.log(`🔄 Wave ${this.currentWave} - Prepare stage`);
+
+        // 更新 GameCore 狀態
+        this.updateGameCore('prepare', this.flowConfig.prepareTime, this.currentWave);
+
+        // 倒數計時
+        await this.countdown(this.flowConfig.prepareTime);
+    }
+
+    /**
+     * 戰鬥階段
+     */
+    private async runBattleStage(): Promise<void> {
+        this.gameFlowState = GameFlowState.BATTLE;
+
+        this.broadcastLog(`第 ${this.currentWave} 波開始！殭屍來襲！`, 'event');
+        console.log(`⚔️ Wave ${this.currentWave} - Battle stage`);
+
+        // 更新 GameCore 狀態
+        this.updateGameCore('battle', this.flowConfig.battleTime, this.currentWave);
+
+        // 開始生成敵人
+        const waveStarted = this.startWaveImmediate(this.currentWave, this.flowConfig.battleTime);
+        if (!waveStarted) {
+            console.warn(`⚠️ Failed to start wave ${this.currentWave}`);
+        }
+
+        // 戰鬥階段倒數
+        await this.countdown(this.flowConfig.battleTime);
+
+        // 強制結束波次
+        this.stopCurrentWave();
+    }
+
+    /**
+     * 休息階段
+     */
+    private async runRestStage(): Promise<void> {
+        this.gameFlowState = GameFlowState.REST;
+
+        this.broadcastLog(`第 ${this.currentWave} 波結束，進入休整時間`, 'event');
+        console.log(`💤 Wave ${this.currentWave} - Rest stage`);
+
+        // 更新 GameCore 狀態
+        this.updateGameCore('rest', this.flowConfig.restTime, this.currentWave);
+
+        // 清除所有敵人
+        this.removeAllEnemies();
+
+        // 休息階段倒數
+        await this.countdown(this.flowConfig.restTime);
+    }
+
+    /**
+     * 倒數計時
+     */
+    private async countdown(seconds: number): Promise<void> {
+        return new Promise((resolve) => {
+            let remaining = seconds;
+
+            const tick = () => {
+                if (!this.flowRunning) {
+                    resolve();
+                    return;
+                }
+
+                if (remaining <= 0) {
+                    resolve();
+                    return;
+                }
+
+                // 更新剩餘時間
+                this.updateGameCore(this.gameFlowState.toLowerCase(), remaining, this.currentWave);
+                remaining--;
+
+                this.countdownTimer = setTimeout(tick, 1000);
+            };
+
+            tick();
+        });
+    }
+
+    /**
+     * 停止當前波次
+     */
+    private stopCurrentWave(): void {
+        if (this.waveState === 'spawning' || this.waveState === 'active') {
+            console.log(`🛑 Force stopping wave ${this.currentWave}`);
+            this.clearTimers();
+            this.waveState = WaveState.COMPLETED;
+            this.prepareForNextWave();
+        }
+    }
+
+    /**
+     * 停止遊戲流程
+     */
+    public stopGameFlow(): void {
+        console.log(`🛑 Stopping game flow at wave ${this.currentWave}`);
+
+        this.flowRunning = false;
+        this.gameFlowState = GameFlowState.STOPPED;
+
+        // 清理所有定時器
+        this.clearAllTimers();
+
+        // 重置狀態
+        this.waveState = WaveState.PREPARING;
+    }
+
+    /**
+     * 完成所有波次
+     */
+    private completeAllWaves(): void {
+        this.gameFlowState = GameFlowState.GAME_OVER;
+        this.flowRunning = false;
+
+        this.broadcastLog("恭喜！您成功完成了所有波次挑戰！", 'event');
+        console.log(`🏆 All ${this.flowConfig.maxWaves} waves completed!`);
+
+        if (this.endGameCallback) {
+            this.endGameCallback("waveComplete");
+        }
+    }
+
+    /**
+     * 清理所有定時器
+     */
+    private clearAllTimers(): void {
+        this.clearTimers(); // 清理波次相關定時器
+
+        if (this.countdownTimer) {
+            clearTimeout(this.countdownTimer);
+            this.countdownTimer = null;
+        }
+    }
+
+    /**
+     * 更新 GameCore 狀態的輔助方法
+     */
+    private updateGameCore(status: string, roundTime: number, waveNumber: number): void {
+        if (this.updateGameCoreCallback) {
+            this.updateGameCoreCallback(status, roundTime, waveNumber);
+        }
+    }
+
+    /**
+     * 廣播日誌的輔助方法
+     */
+    private broadcastLog(message: string, category?: string): void {
+        if (this.broadcastLogCallback) {
+            this.broadcastLogCallback(message, category);
+        }
+    }
+
+    /**
+     * 移除所有敵人的輔助方法
+     */
+    private removeAllEnemies(): void {
+        if (this.removeAllEnemiesCallback) {
+            this.removeAllEnemiesCallback();
+        }
+    }
+
+    /**
+     * 由外部控制開始波次（不包含準備時間）
+     * @param waveNumber 波次編號
+     * @param battleDurationSeconds 戰鬥持續時間（秒）
+     */
+    public startWaveImmediate(waveNumber: number, battleDurationSeconds: number = 30): boolean {
+        if (this.waveState === WaveState.SPAWNING || this.waveState === WaveState.ACTIVE) {
+            console.warn(`⚠️ Cannot start wave while in active state: ${this.waveState}`);
+            return false;
+        }
+
+        // 如果狀態是 FAILED，先重置
+        if (this.waveState === WaveState.FAILED) {
+            console.log(`🔄 Resetting from failed state`);
+            this.prepareForNextWave();
+        }
+
+        this.currentWave = waveNumber;
+        this.waveState = WaveState.SPAWNING;
+        this.activeWaveConfig = this.generateWaveConfig(waveNumber, battleDurationSeconds);
+
+        console.log(`🌊 Starting Wave ${this.currentWave} immediately (${battleDurationSeconds}s battle time)...`);
+        console.log(`📊 Wave Config:`, {
+            enemies: this.activeWaveConfig.enemyCount,
+            types: this.activeWaveConfig.enemyTypes.map(t => EnemyType[t]).join(', '),
+            isBoss: this.activeWaveConfig.isBossWave,
+            spawnInterval: `${this.activeWaveConfig.spawnInterval}ms`
+        });
+
+        // 重置統計
+        this.enemiesSpawned = 0;
+        this.enemiesAlive = 0;
+        this.waveStartTime = Date.now();
+
+        // 觸發波次開始事件
+        this.emitEvent({
+            type: 'wave_start',
+            waveNumber: this.currentWave,
+            data: this.activeWaveConfig
+        });
+
+        // 立即開始生成敵人
+        this.startSpawning();
+
+        return true;
+    }
+
+    /**
+     * 開始新波次 - 包含準備時間（保留原有方法用於測試）
      */
     public startWave(waveNumber?: number): boolean {
         if (this.waveState !== WaveState.PREPARING && this.waveState !== WaveState.COMPLETED) {
@@ -94,7 +439,7 @@ export class WaveManager {
 
         this.currentWave = waveNumber || (this.currentWave + 1);
         this.waveState = WaveState.PREPARING;
-        this.activeWaveConfig = this.generateWaveConfig(this.currentWave);
+        this.activeWaveConfig = this.generateWaveConfig(this.currentWave, 30); // 默認30秒戰鬥時間
 
         console.log(`🌊 Starting Wave ${this.currentWave}...`);
         console.log(`📊 Wave Config:`, {
@@ -269,6 +614,17 @@ export class WaveManager {
     }
 
     /**
+     * 準備下一波次
+     */
+    private prepareForNextWave(): void {
+        this.waveState = WaveState.PREPARING;
+        this.activeWaveConfig = null;
+        this.enemiesSpawned = 0;
+        this.enemiesAlive = 0;
+        console.log(`✅ Prepared for next wave (current: ${this.currentWave})`);
+    }
+
+    /**
      * 完成波次
      */
     private completeWave(): void {
@@ -292,6 +648,9 @@ export class WaveManager {
                 rewards: this.activeWaveConfig?.rewards
             }
         });
+
+        // 立即準備下一波（由 GameManager 控制時序）
+        this.prepareForNextWave();
     }
 
     /**
@@ -311,21 +670,25 @@ export class WaveManager {
     }
 
     /**
-     * 生成波次配置
+     * 生成波次配置 - 配合 GameManager 的時間設置
      */
-    private generateWaveConfig(waveNumber: number): WaveConfig {
+    private generateWaveConfig(waveNumber: number, battleDuration: number = 30): WaveConfig {
         const isBossWave = waveNumber % 5 === 0;
         const enemyTypes = EnemyFactory.getRecommendedEnemyTypes(waveNumber);
         const enemyCount = EnemyFactory.calculateEnemyCount(waveNumber);
+
+        // 根據戰鬥時間動態調整生成間隔
+        const totalBattleTime = battleDuration * 1000; // 轉換為毫秒
+        const spawnInterval = Math.max(1000, Math.floor(totalBattleTime / (enemyCount + 2))); // 確保在戰鬥時間內生成完畢
 
         return {
             waveNumber,
             enemyTypes,
             enemyCount,
             spawnType: isBossWave ? SpawnType.BOSS_CENTER : SpawnType.RANDOM_EDGE,
-            preparationTime: 3000, // 3秒準備時間
-            spawnInterval: isBossWave ? 0 : 1500, // Boss立即生成，其他間隔1.5秒
-            waveTimeout: 120000, // 2分鐘超時
+            preparationTime: 0, // 準備時間由 GameManager 控制
+            spawnInterval: isBossWave ? 0 : spawnInterval,
+            waveTimeout: totalBattleTime + 5000, // 戰鬥時間 + 5秒緩衝
             isBossWave,
             rewards: {
                 experience: waveNumber * 50,
@@ -333,9 +696,7 @@ export class WaveManager {
                 items: isBossWave ? [`boss_loot_${waveNumber}`] : undefined
             }
         };
-    }
-
-    /**
+    }    /**
      * 分發波次獎勵
      */
     private distributeWaveRewards(): void {
@@ -430,8 +791,11 @@ export class WaveManager {
      */
     public stopWave(): void {
         this.clearTimers();
-        this.waveState = WaveState.FAILED;
-        console.log(`🛑 Wave ${this.currentWave} force stopped`);
+        this.waveState = WaveState.COMPLETED; // 改為 COMPLETED 而不是 FAILED
+        console.log(`🛑 Wave ${this.currentWave} force stopped by GameManager`);
+
+        // 立即準備下一波
+        this.prepareForNextWave();
     }
 
     /**
@@ -461,4 +825,26 @@ export class WaveManager {
             duration: this.waveStartTime ? Date.now() - this.waveStartTime : 0
         };
     }
+
+    /**
+     * 獲取遊戲流程狀態
+     */
+    public getGameFlowState(): GameFlowState {
+        return this.gameFlowState;
+    }
+
+    /**
+     * 檢查流程是否運行中
+     */
+    public isFlowRunning(): boolean {
+        return this.flowRunning;
+    }
+
+    /**
+     * 獲取流程配置
+     */
+    public getFlowConfig(): GameFlowConfig {
+        return { ...this.flowConfig };
+    }
+
 }
