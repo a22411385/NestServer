@@ -27,6 +27,7 @@ export class ServerEnemy extends ServerGameUnit {
     private collisionCheckDistance: number = 40; // 碰撞檢測距離
     private alternativeRoutes: Vector2[] = []; // 替代路線選項
     private lastCollisionTime: number = 0; // 上次碰撞時間
+
     private allowOverlapTime: number = 0; // 允許重疊的時間（攻擊用）
     private overlapDuration: number = 500; // 重疊持續時間（毫秒）
     private cachedAllUnits: MapSchema<ServerGameUnit> | undefined; // 快取所有單位
@@ -34,11 +35,9 @@ export class ServerEnemy extends ServerGameUnit {
     constructor() {
         super();
         this.hp = 20;
-        this.maxHp = 20;
-        this.moveSpeed = 50; // 每秒移動50像素
-        this.radius = 15;
-        this.collisionWidth = 24;
-        this.collisionHeight = 30;
+        this.maxHp = 50;
+        this.moveSpeed = 30; // 每秒移動50像素
+        this.scale = 1.0; // 預設縮放為1
         this.type = UnitType.enemy;
         this.owner = 'enemy'
     }
@@ -103,8 +102,10 @@ export class ServerEnemy extends ServerGameUnit {
         }
 
         const distanceToTarget = this.getDistanceTo(target);
-        const attackRange = this.radius + target.radius;
-
+        // 使用矩形碰撞來計算攻擊範圍
+        const myCollisionRadius = Math.max(this.getScaledCollisionWidth(), this.getScaledCollisionHeight()) / 2;
+        const targetCollisionRadius = Math.max(target.collisionWidth || 32, target.collisionHeight || 32) / 2;
+        const attackRange = myCollisionRadius + targetCollisionRadius + 10; // 額外10像素的攻擊範圍
 
         // 如果在攻擊範圍內
         if (distanceToTarget <= attackRange) {
@@ -209,10 +210,10 @@ export class ServerEnemy extends ServerGameUnit {
      * 檢查與單一單位的碰撞
      */
     private checkUnitCollision(nextX: number, nextY: number, other: ServerGameUnit): boolean {
-        const myWidth = this.collisionWidth || this.radius * 2;
-        const myHeight = this.collisionHeight || this.radius * 2;
-        const otherWidth = other.collisionWidth || other.radius * 2;
-        const otherHeight = other.collisionHeight || other.radius * 2;
+        const myWidth = this.getScaledCollisionWidth();
+        const myHeight = this.getScaledCollisionHeight();
+        const otherWidth = other.collisionWidth * (other.scale || 1);
+        const otherHeight = other.collisionHeight * (other.scale || 1);
 
         return BattleMathUtils.isRectCollide(
             nextX, nextY, myWidth, myHeight,
@@ -325,13 +326,41 @@ export class ServerEnemy extends ServerGameUnit {
         return Date.now() < this.allowOverlapTime;
     }
 
+    /**
+     * 獲取考慮縮放的碰撞寬度
+     */
+    public getScaledCollisionWidth(): number {
+        return this.collisionWidth * this.scale;
+    }
+
+    /**
+     * 獲取考慮縮放的碰撞高度
+     */
+    public getScaledCollisionHeight(): number {
+        return this.collisionHeight * this.scale;
+    }
+
+    /**
+     * 檢查目標是否在指定範圍內（使用矩形碰撞）
+     */
+    public isInCollisionRange(target: ServerGameUnit, additionalRange: number = 0): boolean {
+        const distance = this.getDistanceTo(target);
+        const myCollisionRadius = Math.max(this.getScaledCollisionWidth(), this.getScaledCollisionHeight()) / 2;
+        const targetCollisionRadius = Math.max(
+            target.collisionWidth * (target.scale || 1),
+            target.collisionHeight * (target.scale || 1)
+        ) / 2;
+
+        return distance <= (myCollisionRadius + targetCollisionRadius + additionalRange);
+    }
+
     // 嘗試攻擊
     private attemptAttack(target: ServerHero, currentTime: number): boolean {
         if (currentTime - this.lastAttackTime >= this.attackCooldown) {
             this.lastAttackTime = currentTime;
 
             // 開始攻擊時允許重疊移動
-            if (this.getDistanceTo(target) <= this.attackRange) {
+            if (this.isInCollisionRange(target, 15)) { // 使用矩形碰撞檢測攻擊範圍
                 this.allowOverlapTime = currentTime + this.overlapDuration;
                 console.log(`Enemy ${this.id} starting attack sequence on hero ${target.id}`);
             }
@@ -343,7 +372,7 @@ export class ServerEnemy extends ServerGameUnit {
 
     // 攻擊目標
     attackTarget(target: ServerGameUnit): boolean {
-        if (this.isInRange(target, this.radius + target.radius)) {
+        if (this.isInCollisionRange(target, 10)) { // 10像素的額外攻擊範圍
             return target.takeDamage(this.damage);
         }
         return false;

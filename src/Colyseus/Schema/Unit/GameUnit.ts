@@ -41,11 +41,15 @@ export class ServerGameUnit extends Schema {
     @type("number") attackSpeed: number = 1000;
 
     @type("number") attackRange: number = 100; // 攻擊範圍
-    @type("number") radius: number = 20; // 體積/碰撞半徑 (保留向後兼容)
+    // @type("number") radius: number = 20; // 體積/碰撞半徑 (保留向後兼容)
+
+    //體型縮放
+    @type("number") scale: number = 1;
+
 
     // 矩形碰撞屬性
-    @type("number") collisionWidth: number = 40; // 碰撞寬度
-    @type("number") collisionHeight: number = 40; // 碰撞高度
+    @type("number") collisionWidth: number = 64; // 碰撞寬度
+    @type("number") collisionHeight: number = 128; // 碰撞高度
 
     //單位面相角度
     @type("number") facingDirection: number = 0;
@@ -91,6 +95,27 @@ export class ServerGameUnit extends Schema {
         const dy = target.position.y - this.position.y;
         const distance = Math.hypot(dx, dy);
         return distance <= range;
+    }
+
+    /**
+     * 獲取考慮縮放的碰撞寬度
+     */
+    public getScaledCollisionWidth(): number {
+        return this.collisionWidth * this.scale;
+    }
+
+    /**
+     * 獲取考慮縮放的碰撞高度
+     */
+    public getScaledCollisionHeight(): number {
+        return this.collisionHeight * this.scale;
+    }
+
+    /**
+     * 獲取有效的碰撞半徑（用於向後兼容某些範圍計算）
+     */
+    public getEffectiveCollisionRadius(): number {
+        return Math.max(this.getScaledCollisionWidth(), this.getScaledCollisionHeight()) / 2;
     }
 
     // 添加狀態效果

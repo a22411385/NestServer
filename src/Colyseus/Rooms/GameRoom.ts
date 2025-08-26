@@ -404,11 +404,11 @@ export class GameRoom extends MiddleRoom<GameRoomState> {
 
             const enemy = unit as ServerEnemy; // ServerEnemy
 
-            // 使用矩形碰撞檢測（更準確）
+            // 使用矩形碰撞檢測（更準確），考慮縮放
             const bulletWidth = 10; // 子彈寬度
             const bulletHeight = 10; // 子彈高度
-            const enemyWidth = enemy.collisionWidth || enemy.radius * 2;
-            const enemyHeight = enemy.collisionHeight || enemy.radius * 2;
+            const enemyWidth = enemy.collisionWidth * (enemy.scale || 1);
+            const enemyHeight = enemy.collisionHeight * (enemy.scale || 1);
 
             if (BattleMathUtils.isRectCollide(
                 currentPos.x, currentPos.y, bulletWidth, bulletHeight,

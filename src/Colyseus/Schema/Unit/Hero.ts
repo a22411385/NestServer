@@ -98,9 +98,8 @@ export class ServerHero extends ServerGameUnit {
         this.baseAttackDamage = 10;
 
         this.baseMoveSpeed = 50; // 每秒移動50像素
-        this.radius = 20;
-        this.collisionWidth = 32;
-        this.collisionHeight = 40;
+        this.scale = 1.0; // 預設縮放為1
+
         this.type = UnitType.hero;
         this.attackRange = 1000;
 
