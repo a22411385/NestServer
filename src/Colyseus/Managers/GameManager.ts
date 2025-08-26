@@ -101,21 +101,27 @@ export class GameManager {
             this.state.gameCore.roundTime = RoundTimeSetting.prepare;
             await delay(RoundTimeSetting.prepare);
 
-            // 波次開始
-            this.broadcastBattleLog(`第 ${this.state.gameCore.waveNumber} 波開始！殭屍來襲！`, 'event');
-            this.state.gameCore.status = 'battle';
 
-            // 通知外部開始生成敵人 (每秒生成一隻)
-            if (this.battleSystem) {
-                this.battleSystem.startEnemySpawning();
+
+            // 使用新的波次管理系統開始波次
+            if (this.battleSystem && this.battleSystem.getWaveManager()) {
+                const started = this.battleSystem.startNewWave(this.state.gameCore.waveNumber);
+                if (!started) {
+                    console.warn(`⚠️ Failed to start wave ${this.state.gameCore.waveNumber}`);
+                } else {
+                    // 波次開始
+                    this.broadcastBattleLog(`第 ${this.state.gameCore.waveNumber} 波開始！殭屍來襲！`, 'event');
+                    this.state.gameCore.status = 'battle';
+                }
             }
+
             this.state.gameCore.roundTime = RoundTimeSetting.battle;
             // 每波30秒
             await delay(RoundTimeSetting.battle);
 
-            // 通知外部停止生成敵人
-            if (this.battleSystem) {
-                this.battleSystem.stopEnemySpawning();
+            // 通知停止波次（如果仍在進行中）
+            if (this.battleSystem && this.battleSystem.getWaveManager()) {
+                this.battleSystem.getWaveManager().stopWave();
             }
 
             // 波次結束

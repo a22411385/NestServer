@@ -91,6 +91,26 @@ export class MessageHandler {
                     unitManager.handleStatReset(client);
                     break;
 
+                // 波次控制命令
+                case "start_wave":
+                    if (!playerManager.isPlayerHost(client)) {
+                        client.send("error", { message: "Only host can control waves" });
+                        return;
+                    }
+                    const waveNumber = message.waveNumber || undefined;
+                    const started = battleSystem.startNewWave(waveNumber);
+                    if (started) {
+                        this.sendBattleLog(`波次 ${battleSystem.getWaveManager().getCurrentWaveNumber()} 開始！`, 'event');
+                    } else {
+                        this.sendBattleLog('無法開始新波次', 'event');
+                    }
+                    break;
+
+                case "wave_status":
+                    const waveStats = battleSystem.getWaveManager().getWaveStats();
+                    client.send("wave_status", waveStats);
+                    break;
+
                 // ... 其他 case
             }
         } catch (error) {

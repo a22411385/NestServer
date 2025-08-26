@@ -7,6 +7,8 @@ import { ServerEnemy } from "../Schema/Unit/Enemy";
 import { ServerHero } from "../Schema/Unit/Hero";
 import { GameRoom } from "../Rooms/GameRoom";
 import { Vector2 } from "../Schema/Unit/GameUnit";
+import { WaveManager, WaveState } from "../../Game/Managers/WaveManager";
+import { EnemyType } from "../../Game/Factories/EnemyFactory";
 
 const mapSize = 1000;
 const maxZombies = 50;
@@ -19,10 +21,20 @@ export class BattleSystem {
     private state: GameRoomState;
     private enemySpawnTimer: Delayed | null = null;
     private gameManager: GameManager | null = null;
+    private waveManager: WaveManager;
 
     constructor(room: GameRoom) {
         this.room = room;
         this.state = room.state;
+
+        // 初始化波次管理器
+        this.waveManager = new WaveManager(mapSize, mapSize);
+        this.setupWaveManagerEvents();
+
+        // 設置獲取當前單位的回調
+        this.waveManager.setGetCurrentUnitsCallback(() => {
+            return Array.from(this.state.allUnits.values());
+        });
     }
 
     /**
@@ -30,6 +42,64 @@ export class BattleSystem {
      */
     setGameManager(gameManager: GameManager): void {
         this.gameManager = gameManager;
+    }
+
+    /**
+     * 設置波次管理器事件監聽
+     */
+    private setupWaveManagerEvents(): void {
+        // 敵人生成事件
+        this.waveManager.on('enemy_spawned', (event: any) => {
+            const enemy = event.data as ServerEnemy;
+            this.addEnemyToGame(enemy);
+        });
+
+        // 波次開始事件
+        this.waveManager.on('wave_start', (event: any) => {
+            console.log(`🌊 Wave ${event.waveNumber} started!`);
+            // 通知所有客戶端波次開始
+            this.room.broadcast("wave_start", { waveNumber: event.waveNumber, config: event.data });
+        });
+
+        // 波次完成事件
+        this.waveManager.on('wave_complete', (event: any) => {
+            console.log(`🏆 Wave ${event.waveNumber} completed!`);
+            // 通知客戶端波次完成
+            this.room.broadcast("wave_complete", {
+                waveNumber: event.waveNumber,
+                duration: event.data.duration,
+                rewards: event.data.rewards
+            });
+        });
+
+        // 波次失敗事件
+        this.waveManager.on('wave_failed', (event: any) => {
+            console.log(`💀 Wave ${event.waveNumber} failed!`);
+            this.room.broadcast("wave_failed", { waveNumber: event.waveNumber });
+        });
+    }
+
+    /**
+     * 添加敵人到遊戲狀態
+     */
+    private addEnemyToGame(enemy: ServerEnemy): void {
+        enemy.id = IdGenerator.generateEnemyId(enemy.lv);
+        this.state.allUnits.set(enemy.id, enemy);
+        console.log(`➕ Added enemy ${enemy.name} (${enemy.id}) to game state`);
+    }
+
+    /**
+     * 開始新波次
+     */
+    public startNewWave(waveNumber?: number): boolean {
+        return this.waveManager.startWave(waveNumber);
+    }
+
+    /**
+     * 獲取波次管理器
+     */
+    public getWaveManager(): WaveManager {
+        return this.waveManager;
     }
 
 
@@ -77,6 +147,9 @@ export class BattleSystem {
                 if (hero.addExperience(targetEnemy.expReward)) {
                     this.broadcastBattleLog(`${hero.name} 升級至 Lv.${hero.level}！`, 'event');
                 }
+
+                // 通知波次管理器敵人死亡
+                this.waveManager.onEnemyDeath(targetEnemy.id);
 
                 // 移除死亡的敵人
                 this.state.removeEnemy(targetEnemy.id);
