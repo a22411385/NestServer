@@ -2,7 +2,7 @@ import { Delayed } from "colyseus";
 import { RoomStateType, GameRoomState } from "../../Colyseus/Schema/GameState";
 import { delay } from "../../Util/Utils";
 import { GameRoom } from "../../Colyseus/Rooms/GameRoom";
-import { BattleSystem } from "../Systems/BattleSystem";
+import { EnemySystem } from "../Systems/EnemySystem";
 import { MovementSystem } from "../Systems/MovemnetSystem";
 import { LobbyRoomBus } from "../../Colyseus/Rooms/LobbyRoom";
 import { UnitType } from "../../Colyseus/Schema/GameState";
@@ -30,14 +30,14 @@ export class GameManager {
     private roundTime: Delayed | null = null;
     private moveTick: Delayed | null = null;
 
-    private battleSystem: BattleSystem;
+    private enemySystem: EnemySystem;
     private movementSystem: MovementSystem;
     private gameTime: number = 0;
 
     constructor(room: GameRoom) {
         this.room = room;
         this.state = room.state;
-        this.battleSystem = room.battleSystem;
+        this.enemySystem = room.enemySystem;
         this.movementSystem = room.movementSystem;
 
         // 🆕 初始化武器實例管理器
@@ -51,10 +51,10 @@ export class GameManager {
     }
 
     /**
-     * 設置 BattleSystem 引用
+     * 設置 EnemySystem 引用
      */
-    public setBattleSystem(battleSystem: any): void {
-        this.battleSystem = battleSystem;
+    public setEnemySystem(enemySystem: any): void {
+        this.enemySystem = enemySystem;
     }
 
     /**
@@ -99,12 +99,12 @@ export class GameManager {
      * 配置 WaveManager 流程
      */
     private setupWaveManagerFlow(): void {
-        if (!this.battleSystem || !this.battleSystem.getWaveManager()) {
-            console.warn('⚠️ BattleSystem or WaveManager not available');
+        if (!this.enemySystem || !this.enemySystem.getWaveManager()) {
+            console.warn('⚠️ EnemySystem or WaveManager not available');
             return;
         }
 
-        const waveManager = this.battleSystem.getWaveManager();
+        const waveManager = this.enemySystem.getWaveManager();
 
         // 設置流程配置
         waveManager.setFlowConfig({
@@ -125,7 +125,8 @@ export class GameManager {
                 const validCategory = (category === 'damage' || category === 'death' ||
                     category === 'kill' || category === 'heal' ||
                     category === 'event') ? category : 'event';
-                this.broadcastBattleLog(message, validCategory);
+                // 🔧 使用統一的戰鬥日誌系統
+                this.room.combatSystem.getBattleLogSystem().sendBattleLog(message, validCategory);
             },
             endGame: (reason: string) => {
                 this.endGame(reason === "waveComplete" ? "waveComplete" : "allPlayersDead");
@@ -203,8 +204,8 @@ export class GameManager {
      */
     public stopGameLoop(): void {
         // 停止 WaveManager
-        if (this.battleSystem) {
-            const waveManager = this.battleSystem.getWaveManager();
+        if (this.enemySystem) {
+            const waveManager = this.enemySystem.getWaveManager();
             if (waveManager) {
                 console.log('🛑 Stopping WaveManager...');
                 waveManager.stopGameFlow();
@@ -267,18 +268,6 @@ export class GameManager {
      */
     getGameStatus(): string {
         return this.state.gameCore.status;
-    }
-
-    /**
-     * 廣播戰報 - 暫時性方法，應該由外部 MessageHandler 處理
-     */
-    private broadcastBattleLog(message: string, category: 'damage' | 'death' | 'kill' | 'heal' | 'event' = 'event'): void {
-        console.log(`🎯 [${category}] ${message}`);
-        this.room.broadcast("battleLog", {
-            message,
-            category,
-            timestamp: Date.now()
-        });
     }
 
     /**

@@ -6,9 +6,9 @@ import { UnitType } from "../../Colyseus/Schema/GameState";
 import { BattleLogSystem } from "./BattleLogSystem";
 
 /**
- * 攻擊系統 - 負責處理所有攻擊相關邏輯
+ * 戰鬥系統 - 負責處理所有戰鬥相關邏輯（英雄攻擊、敵人攻擊、戰鬥協調）
  */
-export class AttackSystem {
+export class CombatSystem {
     private gameRoom: GameRoom;
     private battleLogSystem: BattleLogSystem;
 
@@ -235,7 +235,7 @@ export class AttackSystem {
     /**
      * 獲取攻擊系統統計
      */
-    public getStats(): AttackSystemStats {
+    public getStats(): CombatSystemStats {
         // 統計攻擊系統的相關數據
         return {
             totalAttacksProcessed: 0, // 可以添加計數器
@@ -251,6 +251,84 @@ export class AttackSystem {
     public getBattleLogSystem(): BattleLogSystem {
         return this.battleLogSystem;
     }
+
+    /**
+     * 處理玩家手動攻擊（點擊攻擊）
+     */
+    public handlePlayerAttack(heroId: string, targetX: number, targetY: number): boolean {
+        const hero = this.gameRoom.state.gameCore.allUnits.get(heroId) as ServerHero;
+        if (!hero || hero.isDead || hero.type !== UnitType.hero) return false;
+
+        // 查找範圍內的敵人
+        let targetEnemy: ServerGameUnit | null = null;
+        let closestDistance = hero.attackRange;
+
+        for (const [unitId, unit] of this.gameRoom.state.gameCore.allUnits) {
+            if (unit.type !== UnitType.enemy || unit.isDead) continue;
+
+            const distance = Math.hypot(
+                unit.position.x - targetX,
+                unit.position.y - targetY
+            );
+
+            if (distance <= closestDistance) {
+                targetEnemy = unit;
+                closestDistance = distance;
+            }
+        }
+
+        if (targetEnemy) {
+            // 使用統一的傷害系統處理傷害
+            const damageResult = this.gameRoom.damageSystem.dealDamageToTarget({
+                attacker: hero,
+                target: targetEnemy,
+                baseDamage: hero.attackDamage,
+                damageType: 'physical',
+                source: 'manual_attack'
+            });
+
+            // 使用統一的戰鬥日誌系統
+            this.battleLogSystem.sendBattleLog(
+                `${hero.name} 手動攻擊造成 ${damageResult.actualDamage} 點傷害`,
+                'damage'
+            );
+
+            if (damageResult.targetKilled) {
+                this.battleLogSystem.sendBattleLog(
+                    `${hero.name} 擊殺了敵人！`,
+                    'kill'
+                );
+            }
+
+            // 廣播攻擊視覺效果
+            this.gameRoom.broadcast("playerAttacked", {
+                heroId: heroId,
+                targetX: targetX,
+                targetY: targetY,
+                damage: damageResult.actualDamage,
+                killed: damageResult.targetKilled
+            });
+
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * 處理戰鬥傷害回報（來自敵人攻擊）
+     */
+    public processDamageReport(heroHealthChanges: Map<string, { before: number; after: number; hero: ServerHero }>): void {
+        for (const [heroId, healthData] of heroHealthChanges) {
+            if (healthData.after < healthData.before) {
+                const damage = healthData.before - healthData.after;
+                this.battleLogSystem.sendBattleLog(
+                    `殭屍對 ${healthData.hero.name} 造成 ${damage} 點傷害`,
+                    'damage'
+                );
+            }
+        }
+    }
 }
 
 /**
@@ -262,9 +340,9 @@ interface AttackProcessResult {
 }
 
 /**
- * 攻擊系統統計接口
+ * 戰鬥系統統計接口
  */
-interface AttackSystemStats {
+interface CombatSystemStats {
     totalAttacksProcessed: number;
     activeHeroes: number;
     averageAttackRate: number;

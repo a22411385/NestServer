@@ -4,7 +4,7 @@ import { GameRoomState as GameRoomState, GameCoreState, UnitType, MapData } from
 // 引入新的管理器和系統
 import { PlayerManager } from "@/Game/Managers/PlayerManager";
 import { GameManager } from "@/Game/Managers/GameManager";
-import { BattleSystem } from "@/Game/Systems/BattleSystem";
+import { EnemySystem } from "@/Game/Systems/EnemySystem";
 import { MessageHandler } from "@/Colyseus/Handlers/MessageHandler";
 import { ServerHero } from "@/Colyseus/Schema/Unit/Hero";
 import { MovementSystem } from "@/Game/Systems/MovemnetSystem";
@@ -21,7 +21,7 @@ import { BulletSystem } from "@/Game/Systems/BulletSystem";
 import { BulletFactory, BulletCreateConfig } from "@/Game/Factories/BulletFactory";
 import { BattleMathUtils } from "../../Shared/BattleMathUtils";
 // 🆕 引入新的系統
-import { AttackSystem } from "@/Game/Systems/AttackSystem";
+import { CombatSystem } from "@/Game/Systems/CombatSystem";
 import { BattleLogSystem } from "@/Game/Systems/BattleLogSystem";
 
 export interface GameRoomOptions {
@@ -46,13 +46,13 @@ export class GameRoom extends MiddleRoom<GameRoomState> {
     public gameManager: GameManager;
 
     public playerManager: PlayerManager;
-    public battleSystem: BattleSystem;
+    public enemySystem: EnemySystem;
     public messageHandler: MessageHandler;
     public movementSystem: MovementSystem;
     public unitManager: UnitManager;
     public damageSystem: DamageSystem;
     public bulletSystem: BulletSystem; // 🆕 添加子彈系統
-    public attackSystem: AttackSystem; // 🆕 攻擊系統
+    public combatSystem: CombatSystem; // 🆕 戰鬥系統
 
     public roomInfo: LobbyRoomInfo;
 
@@ -64,13 +64,13 @@ export class GameRoom extends MiddleRoom<GameRoomState> {
 
         this.playerManager = new PlayerManager(this);
 
-        this.battleSystem = new BattleSystem(this);
+        this.enemySystem = new EnemySystem(this);
         this.messageHandler = new MessageHandler(this);
         this.movementSystem = new MovementSystem(this);
         this.unitManager = new UnitManager(this);
         this.damageSystem = new DamageSystem(this); // 初始化傷害系統
         this.bulletSystem = new BulletSystem(this); // 🆕 初始化子彈系統
-        this.attackSystem = new AttackSystem(this); // 🆕 初始化攻擊系統
+        this.combatSystem = new CombatSystem(this); // 🆕 初始化戰鬥系統
         this.gameManager = new GameManager(this);
 
         this.onMessage("*", (client, type, message) =>
@@ -156,7 +156,7 @@ export class GameRoom extends MiddleRoom<GameRoomState> {
     onDispose() {
         console.log(`GameRoom ${this.roomId} disposed`);
         this.gameManager.stopGameLoop();
-        this.battleSystem.cleanup();
+        this.enemySystem.cleanup();
         this.bulletSystem.cleanup(); // 🆕 清理子彈系統
         this.messageHandler.cleanup();
         LobbyRoomBus.emit("roomDeleted", { roomId: this.roomId });
@@ -175,13 +175,13 @@ export class GameRoom extends MiddleRoom<GameRoomState> {
         this.playerManager.updateHeroesInvincible(deltaTime);
 
         // 處理英雄自動攻擊 (Vampire Survivors 風格)
-        this.attackSystem.updateHeroAutoAttacks();
+        this.combatSystem.updateHeroAutoAttacks();
 
         // 更新子彈系統
         this.bulletSystem.updateBullets(deltaTime);
 
         // 🔧 更新敵人 AI（只設置速度向量）
-        this.battleSystem.updateEnemyAI(deltaTime, currentTime);
+        this.enemySystem.updateEnemyAI(deltaTime, currentTime);
 
         // 🔧 攻擊和傷害處理由敵人AI內部處理，不再需要外部傷害報告
 

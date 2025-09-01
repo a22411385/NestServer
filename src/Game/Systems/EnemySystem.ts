@@ -15,9 +15,9 @@ const mapSize = 1000;
 const maxZombies = 50;
 
 /**
- * 戰鬥系統 - 負責戰鬥邏輯、敵人管理、AI 更新和攻擊處理
+ * 敵人系統 - 負責敵人管理、AI 更新和波次管理
  */
-export class BattleSystem {
+export class EnemySystem {
     private room: GameRoom;
     private state: GameRoomState;
     private enemySpawnTimer: Delayed | null = null;
@@ -122,70 +122,6 @@ export class BattleSystem {
     }
 
     /**
-     * 處理玩家攻擊
-     */
-    handlePlayerAttack(client: Client, targetX: number, targetY: number): void {
-        const player = this.state.players.get(client.sessionId);
-        if (!player) return;
-
-        const hero = this.state.getHero(client.sessionId);
-        if (!hero || hero.isDead) return;
-
-        // 查找範圍內的敵人
-        let targetEnemy: ServerEnemy | null = null;
-        let closestDistance = hero.attackRange;
-
-        for (const [unitId, unit] of this.state.allUnits) {
-            if (unit.type !== UnitType.enemy || unit.isDead) continue;
-
-            const enemy = unit as ServerEnemy;
-            const distance = Math.hypot(
-                enemy.position.x - targetX,
-                enemy.position.y - targetY
-            );
-
-            if (distance <= closestDistance) {
-                targetEnemy = enemy;
-                closestDistance = distance;
-            }
-        }
-
-        if (targetEnemy) {
-            // 執行攻擊
-            const damage = hero.attackDamage;
-            const killed = targetEnemy.takeDamage(damage);
-
-            // 發送戰報
-            this.broadcastBattleLog(`${hero.name} 對 殭屍#${targetEnemy.id.slice(-4)} 造成 ${damage} 點傷害`, 'damage');
-
-            if (killed) {
-                this.broadcastBattleLog(`${hero.name} 擊殺了 殭屍#${targetEnemy.id.slice(-4)}`, 'kill');
-
-                // 給予經驗值
-                if (hero.addExperience(targetEnemy.expReward)) {
-                    this.broadcastBattleLog(`${hero.name} 升級至 Lv.${hero.level}！`, 'event');
-                }
-
-                // 通知波次管理器敵人死亡
-                this.waveManager.onEnemyDeath(targetEnemy.id);
-
-                // 移除死亡的敵人
-                this.state.removeEnemy(targetEnemy.id);
-            }
-
-            // 廣播攻擊視覺效果
-            this.room.broadcast("playerAttacked", {
-                playerId: client.sessionId,
-                targetX: targetX,
-                targetY: targetY,
-                damage: damage,
-                killed: killed
-            });
-        }
-    }
-
-
-    /**
      * 開始敵人生成循環
      */
     startEnemySpawning(): void {
@@ -274,18 +210,6 @@ export class BattleSystem {
     }
 
     /**
-     * 處理戰鬥傷害回報
-     */
-    processDamageReport(heroHealthChanges: Map<string, { before: number; after: number; hero: ServerHero }>): void {
-        for (const [heroId, healthData] of heroHealthChanges) {
-            if (healthData.after < healthData.before) {
-                const damage = healthData.before - healthData.after;
-                this.broadcastBattleLog(`殭屍 對 ${healthData.hero.name} 造成 ${damage} 點傷害`, 'damage');
-            }
-        }
-    }
-
-    /**
      * 清除所有敵人
      */
     clearAllEnemies(): void {
@@ -317,17 +241,5 @@ export class BattleSystem {
      */
     cleanup(): void {
         this.stopEnemySpawning();
-    }
-
-    /**
-     * 廣播戰報 - 暫時性方法，應該由外部 MessageHandler 處理
-     */
-    private broadcastBattleLog(message: string, category: 'damage' | 'death' | 'kill' | 'heal' | 'event' = 'event'): void {
-        console.log(`🎯 [${category}] ${message}`);
-        this.room.broadcast("battleLog", {
-            message,
-            category,
-            timestamp: Date.now()
-        });
     }
 }

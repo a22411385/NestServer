@@ -123,7 +123,7 @@ export class BattleLogSystem {
     /**
      * 發送戰報消息
      */
-    private sendBattleLog(
+    public sendBattleLog(
         message: string,
         type: 'damage' | 'death' | 'kill' | 'heal' | 'event'
     ): void {
