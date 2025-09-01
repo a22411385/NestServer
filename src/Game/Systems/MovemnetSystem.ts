@@ -1,6 +1,6 @@
 import { UnitType } from "@/Colyseus/Schema/GameState";
-import { GameRoom } from "../Rooms/GameRoom";
-import { ServerGameUnit } from "../Schema/Unit/GameUnit";
+import { GameRoom } from "../../Colyseus/Rooms/GameRoom";
+import { ServerGameUnit } from "../../Colyseus/Schema/Unit/GameUnit";
 import { Client } from "colyseus";
 
 

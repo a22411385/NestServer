@@ -2,7 +2,7 @@ import { Room, Client } from "colyseus";
 import { GameRoomState, UnitType } from "../Schema/GameState";
 import { PlayerManager } from "../../Game/Managers/PlayerManager";
 import { GameManager } from "../../Game/Managers/GameManager";
-import { BattleSystem } from "../Systems/BattleSystem";
+import { BattleSystem } from "../../Game/Systems/BattleSystem";
 import { ServerHero } from "../Schema/Unit/Hero";
 import { GameRoom } from "../Rooms/GameRoom";
 import { Vector2 } from "../Schema/Unit/GameUnit";

@@ -2,10 +2,11 @@ import { Delayed } from "colyseus";
 import { RoomStateType, GameRoomState } from "../../Colyseus/Schema/GameState";
 import { delay } from "../../Util/Utils";
 import { GameRoom } from "../../Colyseus/Rooms/GameRoom";
-import { BattleSystem } from "../../Colyseus/Systems/BattleSystem";
-import { MovementSystem } from "../../Colyseus/Systems/MovemnetSystem";
+import { BattleSystem } from "../Systems/BattleSystem";
+import { MovementSystem } from "../Systems/MovemnetSystem";
 import { LobbyRoomBus } from "../../Colyseus/Rooms/LobbyRoom";
 import { UnitType } from "../../Colyseus/Schema/GameState";
+import { WeaponInstanceManager } from "./WeaponInstanceManager";
 
 const RoundTimeSetting = {
     prepare: 3,
@@ -38,6 +39,10 @@ export class GameManager {
         this.state = room.state;
         this.battleSystem = room.battleSystem;
         this.movementSystem = room.movementSystem;
+
+        // 🆕 初始化武器實例管理器
+        WeaponInstanceManager.initialize();
+        console.log("🔧 武器實例管理器已初始化");
     }
 
     public setRoomState(state: RoomStateType) {

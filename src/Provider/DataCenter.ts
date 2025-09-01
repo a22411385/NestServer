@@ -1,5 +1,4 @@
 import { CharacterORM } from "src/ORM/charater.entity"
-import { GamePlayer } from "../Game/GamePlayer";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import { Injectable } from "@nestjs/common";
@@ -10,7 +9,7 @@ export class UserData {
 
     character: CharacterORM | null = null;
     ws: WebSocket;
-    player: GamePlayer | null = null;
+
 }
 @Injectable()
 export class DataCenter {

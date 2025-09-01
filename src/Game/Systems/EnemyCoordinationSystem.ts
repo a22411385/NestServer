@@ -1,4 +1,4 @@
-import { ServerEnemy } from "../Schema/Unit/Enemy";
+import { ServerEnemy } from "../../Colyseus/Schema/Unit/Enemy";
 
 /**
  * 敵人協調系統 - 處理敵人間的群體行為和避免相互干擾

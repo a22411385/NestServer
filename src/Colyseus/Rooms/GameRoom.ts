@@ -4,11 +4,11 @@ import { GameRoomState as GameRoomState, GameCoreState, UnitType, MapData } from
 // 引入新的管理器和系統
 import { PlayerManager } from "@/Game/Managers/PlayerManager";
 import { GameManager } from "@/Game/Managers/GameManager";
-import { BattleSystem } from "@/Colyseus/Systems/BattleSystem";
+import { BattleSystem } from "@/Game/Systems/BattleSystem";
 import { MessageHandler } from "@/Colyseus/Handlers/MessageHandler";
 import { ServerHero } from "@/Colyseus/Schema/Unit/Hero";
-import { MovementSystem } from "@/Colyseus/Systems/MovemnetSystem";
-import { UnitManager } from "../Systems/UnitManager";
+import { MovementSystem } from "@/Game/Systems/MovemnetSystem";
+import { UnitManager } from "../../Game/Managers/UnitManager";
 import { MiddleRoom } from "./MiddleRoom";
 import { LobbyPlayer, LobbyRoomInfo } from "../Schema/LobbyState";
 import { LobbyRoomBus } from "./LobbyRoom";
@@ -16,10 +16,13 @@ import { ServerBullet } from "@/Colyseus/Schema/Bullet";
 import { Vector2, ServerGameUnit } from "@/Colyseus/Schema/Unit/GameUnit";
 import { ServerEnemy } from "../Schema/Unit/Enemy";
 import { WeaponAttackResult } from "../Schema/Weapon/Baisc/WeaponBasic";
-import { DamageSystem } from "../Systems/DamageSystem";
+import { DamageSystem } from "../../Game/Systems/DamageSystem";
 import { BulletSystem } from "@/Game/Systems/BulletSystem";
 import { BulletFactory, BulletCreateConfig } from "@/Game/Factories/BulletFactory";
 import { BattleMathUtils } from "../../Shared/BattleMathUtils";
+// 🆕 引入新的系統
+import { AttackSystem } from "@/Game/Systems/AttackSystem";
+import { BattleLogSystem } from "@/Game/Systems/BattleLogSystem";
 
 export interface GameRoomOptions {
     roomName: string;
@@ -49,6 +52,7 @@ export class GameRoom extends MiddleRoom<GameRoomState> {
     public unitManager: UnitManager;
     public damageSystem: DamageSystem;
     public bulletSystem: BulletSystem; // 🆕 添加子彈系統
+    public attackSystem: AttackSystem; // 🆕 攻擊系統
 
     public roomInfo: LobbyRoomInfo;
 
@@ -66,6 +70,7 @@ export class GameRoom extends MiddleRoom<GameRoomState> {
         this.unitManager = new UnitManager(this);
         this.damageSystem = new DamageSystem(this); // 初始化傷害系統
         this.bulletSystem = new BulletSystem(this); // 🆕 初始化子彈系統
+        this.attackSystem = new AttackSystem(this); // 🆕 初始化攻擊系統
         this.gameManager = new GameManager(this);
 
         this.onMessage("*", (client, type, message) =>
@@ -170,7 +175,7 @@ export class GameRoom extends MiddleRoom<GameRoomState> {
         this.playerManager.updateHeroesInvincible(deltaTime);
 
         // 處理英雄自動攻擊 (Vampire Survivors 風格)
-        this.updateHeroAutoAttacks();
+        this.attackSystem.updateHeroAutoAttacks();
 
         // 更新子彈系統
         this.bulletSystem.updateBullets(deltaTime);
@@ -203,181 +208,4 @@ export class GameRoom extends MiddleRoom<GameRoomState> {
     /**
      * 更新英雄自動攻擊 - 基於武器系統的 Vampire Survivors 風格
      */
-    private updateHeroAutoAttacks(): void {
-        // 獲取所有存活的敵人
-        const aliveEnemies = this.unitManager.getAllAliveEnemies();
-
-        // 遍歷所有英雄
-        for (const [heroId, unit] of this.state.gameCore.allUnits) {
-            if (unit.type !== UnitType.hero || unit.isDead) continue;
-
-            const hero = unit as ServerHero;
-
-            // 嘗試用所有武器進行自動攻擊
-            const attackResults = hero.tryAttack(aliveEnemies);
-
-            // 處理每個武器的攻擊結果
-            for (const result of attackResults) {
-                if (result.success) {
-                    this.handleWeaponAttackResult(hero, result);
-                }
-            }
-        }
-    }
-
-    /**
-     * 處理武器攻擊結果 - 根據武器類型決定傷害處理方式
-     */
-    private handleWeaponAttackResult(hero: ServerHero, result: WeaponAttackResult): void {
-        if (!result.targetIds || result.targetIds.length === 0) return;
-
-        // 獲取武器對象來判斷類型
-        const weapon = hero.equippedWeapons.find(w => w.weaponId === result.weaponId);
-        if (!weapon) return;
-
-        // 獲取目標單位
-        const targets = result.targetIds
-            .map(id => this.state.gameCore.allUnits.get(id))
-            .filter(unit => unit && !unit.isDead) as ServerGameUnit[];
-
-        if (targets.length === 0) return;
-
-        let damageResults: any[] = [];
-
-        // 🎯 根據武器類型決定傷害處理方式
-        if (weapon.weaponType === 'projectile') {
-            // 投射武器：不立即造成傷害，只創建視覺效果（子彈）
-            // 傷害將在子彈擊中時由 BulletSystem 處理
-            console.log(`🏹 投射武器攻擊: ${result.weaponId} - 延遲傷害處理`);
-        } else {
-            // 近戰武器或其他類型：立即造成傷害
-            damageResults = this.damageSystem.dealDamageToMultipleTargets(
-                hero,
-                targets,
-                result.baseDamage,
-                'physical',
-                result.weaponId
-            );
-            console.log(`⚔️ 即時武器攻擊: ${result.weaponId} - 立即傷害處理`);
-        }
-
-        // 廣播攻擊結果
-        this.broadcast('weapon_attack', {
-            heroId: hero.id,
-            weaponId: result.weaponId,
-            attackData: result.attackData,
-            damageResults: damageResults,
-            visualEffects: result.visualEffects,
-            timestamp: Date.now()
-        });
-
-        // 處理視覺效果
-        if (result.visualEffects) {
-            for (const visualEffect of result.visualEffects) {
-                this.handleVisualEffect(hero, visualEffect, result);
-            }
-        }
-
-        // 統計戰報 - 只有非投射武器才有立即的傷害結果
-        if (weapon.weaponType !== 'projectile' && damageResults.length > 0) {
-            const totalDamage = damageResults.reduce((sum, dr) => sum + dr.actualDamage, 0);
-            const killedCount = damageResults.filter(dr => dr.targetKilled).length;
-
-            if (damageResults.length === 1) {
-                this.broadcastBattleLog(
-                    `${hero.name} 對敵人造成 ${totalDamage} 點傷害`,
-                    'damage'
-                );
-            } else {
-                this.broadcastBattleLog(
-                    `${hero.name} 同時攻擊 ${damageResults.length} 個敵人，總共造成 ${totalDamage} 點傷害`,
-                    'damage'
-                );
-            }
-
-            if (killedCount > 0) {
-                this.broadcastBattleLog(
-                    `${hero.name} 擊殺了 ${killedCount} 個敵人！`,
-                    'kill'
-                );
-            }
-        } else if (weapon.weaponType === 'projectile') {
-            // 投射武器的戰報將在子彈擊中時由 BulletSystem 處理
-            this.broadcastBattleLog(
-                `${hero.name} 發射了 ${weapon.weaponId}`,
-                'event'
-            );
-        }
-    }
-
-    /**
-     * 處理視覺效果
-     */
-    private handleVisualEffect(
-        hero: ServerHero,
-        visualEffect: import("../Schema/Weapon/Baisc/WeaponBasic").VisualEffect,
-        attackResult?: import("../Schema/Weapon/Baisc/WeaponBasic").WeaponAttackResult
-    ): void {
-        switch (visualEffect.type) {
-            case 'swing':
-                // 近戰武器揮舞效果
-                this.broadcast('melee_swing', {
-                    heroId: hero.id,
-                    position: visualEffect.position,
-                    direction: visualEffect.direction,
-                    weaponData: visualEffect.data
-                });
-                break;
-
-            case 'slash':
-                // 劍氣或斬擊效果
-                this.broadcast('slash_effect', {
-                    heroId: hero.id,
-                    position: visualEffect.position,
-                    direction: visualEffect.direction,
-                    data: visualEffect.data
-                });
-                break;
-
-            case 'projectile':
-                // 遠程投射物效果
-                if (visualEffect.data) {
-                    // 🔧 使用 BulletSystem 創建子彈，使用攻擊結果中的正確傷害值
-                    const bulletDamage = attackResult?.baseDamage || visualEffect.data.damage || 10;
-
-                    this.bulletSystem.spawnBullet({
-                        ownerId: hero.id,
-                        startPosition: visualEffect.data.startPosition || visualEffect.position,
-                        direction: visualEffect.data.direction || visualEffect.direction,
-                        damage: bulletDamage,
-                        speed: visualEffect.data.speed || 300,
-                        bulletType: visualEffect.data.bulletType,
-                        lifeTime: visualEffect.data.lifeTime || 3000
-                    });
-                }
-                break;
-
-            case 'explosion':
-                // 爆炸效果
-                this.broadcast('explosion_effect', {
-                    position: visualEffect.position,
-                    data: visualEffect.data
-                });
-                break;
-        }
-    }
-
-    /**
-     * 廣播戰報
-     */
-    private broadcastBattleLog(message: string, category: 'damage' | 'death' | 'kill' | 'heal' | 'event' = 'event'): void {
-        console.log(`🎯 [${category}] ${message}`);
-        //暫時先不要給client
-        /*  this.broadcast("battleLog", {
-            message,
-            category,
-            timestamp: Date.now()
-        });*/
-    }
-
 }

@@ -5,6 +5,8 @@ import { ServerGameUnit } from "./GameUnit";
 import { WeaponAttackResult, WeaponBasic } from "../Weapon/Baisc/WeaponBasic";
 import { WeaponFactory } from "../../../Game/Factories/WeaponFactory";
 import { ServerItem } from "../Item/ServerItem";
+import { WeaponData } from "../Weapon/WeaponData";
+import { WeaponInstanceManager } from "../../../Game/Managers/WeaponInstanceManager";
 
 export type StatType = 'vit' | 'str' | 'agi' | 'int';
 
@@ -42,8 +44,13 @@ export class ServerHero extends ServerGameUnit {
     @type("number") invincibleRemaining: number = 0; // 無敵剩餘時間 (ms)
     @type("number") level: number = 1;
     @type("number") exp: number = 0;
-    //武器插槽
-    @type([WeaponBasic]) public equippedWeapons = new ArraySchema<WeaponBasic>();
+
+    // 🆕 武器數據陣列（同步到客戶端）
+    @type([WeaponData]) public weaponInventory = new ArraySchema<WeaponData>();
+
+    // 🆕 當前裝備的武器索引（同步到客戶端）
+    @type(["number"]) public equippedWeaponIndices = new ArraySchema<number>();
+
     //道具欄
     @type([ServerItem]) public inventory = new ArraySchema<ServerItem>();
 
@@ -93,6 +100,10 @@ export class ServerHero extends ServerGameUnit {
 
     //public equippedWeapons: Array<WeaponBasic> = [];
     //public items: Array<Item> = [];
+
+    // 🆕 武器實例快取（不同步，僅服務端使用）
+    private weaponInstances: Map<number, WeaponBasic> = new Map();
+
     constructor() {
         super();
 
@@ -342,13 +353,122 @@ export class ServerHero extends ServerGameUnit {
         }
     }
 
+    // =================== 🆕 新的武器管理系統 ===================
+
+    /**
+     * 🆕 獲取武器實例（懶加載）
+     */
+    private getWeaponInstance(inventoryIndex: number): WeaponBasic | null {
+        if (!this.weaponInstances.has(inventoryIndex)) {
+            const weaponData = this.weaponInventory[inventoryIndex];
+            if (!weaponData) return null;
+
+            const instance = WeaponInstanceManager.getOrCreateInstance(weaponData);
+            if (instance) {
+                this.weaponInstances.set(inventoryIndex, instance);
+            }
+        }
+
+        return this.weaponInstances.get(inventoryIndex) || null;
+    }
+
+    /**
+     * 🆕 獲取當前裝備的武器實例
+     */
+    public getEquippedWeapons(): WeaponBasic[] {
+        const weapons: WeaponBasic[] = [];
+
+        for (const index of this.equippedWeaponIndices) {
+            const weapon = this.getWeaponInstance(index);
+            if (weapon) {
+                weapons.push(weapon);
+            }
+        }
+
+        return weapons;
+    }
+
+    /**
+     * 🆕 添加武器到背包
+     */
+    public addWeaponToInventory(weaponId: string): number {
+        const weaponData = new WeaponData(weaponId);
+        this.weaponInventory.push(weaponData);
+        const newIndex = this.weaponInventory.length - 1;
+
+        console.log(`${this.name} 獲得了武器: ${weaponData.getDisplayName()}`);
+        return newIndex;
+    }
+
+    /**
+     * 🆕 裝備武器（通過背包索引）
+     */
+    public equipWeaponByIndex(inventoryIndex: number): boolean {
+        if (inventoryIndex < 0 || inventoryIndex >= this.weaponInventory.length) {
+            console.warn(`無效的武器索引: ${inventoryIndex}`);
+            return false;
+        }
+
+        const weaponData = this.weaponInventory[inventoryIndex];
+        if (!weaponData || weaponData.isEquipped) {
+            console.warn(`武器無法裝備: ${weaponData?.weaponId} (已裝備: ${weaponData?.isEquipped})`);
+            return false;
+        }
+
+        // 檢查裝備槽
+        if (this.equippedWeaponIndices.length >= 8) {
+            console.warn("裝備槽已滿");
+            return false;
+        }
+
+        // 裝備武器
+        weaponData.isEquipped = true;
+        this.equippedWeaponIndices.push(inventoryIndex);
+
+        // 清除實例快取，強制重新創建（應用最新數據）
+        this.weaponInstances.delete(inventoryIndex);
+
+        console.log(`${this.name} 裝備了武器: ${weaponData.getDisplayName()}`);
+        return true;
+    }
+
+    /**
+     * 🆕 卸下武器（通過裝備槽索引）
+     */
+    public unequipWeaponBySlot(slotIndex: number): boolean {
+        if (slotIndex < 0 || slotIndex >= this.equippedWeaponIndices.length) {
+            console.warn(`無效的裝備槽索引: ${slotIndex}`);
+            return false;
+        }
+
+        const inventoryIndex = this.equippedWeaponIndices[slotIndex];
+        const weaponData = this.weaponInventory[inventoryIndex];
+
+        if (!weaponData) {
+            console.warn(`找不到武器數據，索引: ${inventoryIndex}`);
+            return false;
+        }
+
+        // 卸下武器
+        weaponData.isEquipped = false;
+        this.equippedWeaponIndices.splice(slotIndex, 1);
+
+        // 保留實例快取，避免重複創建
+        // this.weaponInstances.delete(inventoryIndex); // 不刪除
+
+        console.log(`${this.name} 卸下了武器: ${weaponData.getDisplayName()}`);
+        return true;
+    }
+
+    // =================== 🔄 更新現有方法 ===================
+
     //嘗試進行攻擊
     public tryAttack(enemies: ServerGameUnit[]): WeaponAttackResult[] {
         const results: WeaponAttackResult[] = [];
 
-        //嘗試呼叫所有武器進行攻擊
-        for (const weapon of this.equippedWeapons) {
-
+        // 🔄 使用新的武器系統
+        const equippedWeapons = this.getEquippedWeapons();
+        for (const weapon of equippedWeapons) {
             if (weapon) {
                 // 使用新的武器接口，傳入攻擊者和潛在目標
                 const result = weapon.tryAttack(this, enemies);
@@ -362,47 +482,35 @@ export class ServerHero extends ServerGameUnit {
     }
 
     /**
-     * 裝備武器
+     * 裝備武器 (已棄用，使用新的武器管理系統)
+     * @deprecated 使用 addWeaponToInventory + equipWeaponByIndex 代替
      */
     public equipWeapon(weaponId: string): boolean {
-        // 檢查是否已經裝備
-        if (this.equippedWeapons.find(weapon => weapon.weaponId === weaponId)) {
-            return false;
-        }
+        console.warn(`equipWeapon(${weaponId}) 已棄用，請使用新的武器管理系統`);
 
-        // 檢查裝備槽是否已滿（假設最多8個槽位）
-        if (this.equippedWeapons.length >= 8) {
-            return false;
-        }
-
-        // 創建武器實例
-        const weaponInstance = WeaponFactory.createWeapon(weaponId);
-
-        if (!weaponInstance) {
-            console.warn(`Failed to create weapon: ${weaponId}`);
-            return false;
-        }
-
-        // 添加到裝備列表和實例管理
-        this.equippedWeapons.push(weaponInstance);
-
-        console.log(`${this.name} 裝備了武器: ${weaponId}`);
-        return true;
+        // 為了向後兼容，自動添加到背包並裝備
+        const inventoryIndex = this.addWeaponToInventory(weaponId);
+        return this.equipWeaponByIndex(inventoryIndex);
     }
 
     /**
-     * 卸下武器
+     * 卸下武器 (已棄用，使用新的武器管理系統)
+     * @deprecated 使用 unequipWeaponBySlot 代替
      */
     public unequipWeapon(weaponId: string): boolean {
-        const index = this.equippedWeapons.findIndex(weapon => weapon.weaponId === weaponId);
-        if (index === -1) {
-            return false;
+        console.warn(`unequipWeapon(${weaponId}) 已棄用，請使用新的武器管理系統`);
+
+        // 為了向後兼容，找到武器並卸載
+        for (let i = 0; i < this.equippedWeaponIndices.length; i++) {
+            const inventoryIndex = this.equippedWeaponIndices[i];
+            const weaponData = this.weaponInventory[inventoryIndex];
+
+            if (weaponData && weaponData.weaponId === weaponId) {
+                return this.unequipWeaponBySlot(i);
+            }
         }
 
-        // 從裝備列表移除
-        this.equippedWeapons.splice(index, 1);
-
-        console.log(`${this.name} 卸下了武器: ${weaponId}`);
-        return true;
+        console.warn(`找不到已裝備的武器: ${weaponId}`);
+        return false;
     }
 }

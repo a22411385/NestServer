@@ -1,14 +1,14 @@
 import { Room, Client, Delayed } from "colyseus";
 import { MapSchema } from "@colyseus/schema";
-import { GameRoomState, UnitType } from "../Schema/GameState";
-import { GameManager } from "../../Game/Managers/GameManager";
+import { GameRoomState, UnitType } from "../../Colyseus/Schema/GameState";
+import { GameManager } from "../Managers/GameManager";
 import { IdGenerator } from "../../Util/IdGenerator";
-import { ServerEnemy } from "../Schema/Unit/Enemy";
-import { ServerHero } from "../Schema/Unit/Hero";
-import { GameRoom } from "../Rooms/GameRoom";
-import { Vector2 } from "../Schema/Unit/GameUnit";
-import { WaveManager, WaveState } from "../../Game/Managers/WaveManager";
-import { EnemyType } from "../../Game/Factories/EnemyFactory";
+import { ServerEnemy } from "../../Colyseus/Schema/Unit/Enemy";
+import { ServerHero } from "../../Colyseus/Schema/Unit/Hero";
+import { GameRoom } from "../../Colyseus/Rooms/GameRoom";
+import { Vector2 } from "../../Colyseus/Schema/Unit/GameUnit";
+import { WaveManager, WaveState } from "../Managers/WaveManager";
+import { EnemyType } from "../Factories/EnemyFactory";
 import { EnemyCoordinationSystem } from "./EnemyCoordinationSystem";
 
 const mapSize = 1000;

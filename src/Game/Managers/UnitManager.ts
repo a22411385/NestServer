@@ -1,10 +1,10 @@
 import { IdGenerator } from "@/Util/IdGenerator";
 
-import { ServerEnemy } from "../Schema/Unit/Enemy";
+import { ServerEnemy } from "../../Colyseus/Schema/Unit/Enemy";
 import { Client, Room } from "colyseus";
-import { GameRoomState, UnitType } from "../Schema/GameState";
-import { ServerGameUnit, Vector2 } from "../Schema/Unit/GameUnit";
-import { ServerHero, StatType } from "../Schema/Unit/Hero";
+import { GameRoomState, UnitType } from "../../Colyseus/Schema/GameState";
+import { ServerGameUnit, Vector2 } from "../../Colyseus/Schema/Unit/GameUnit";
+import { ServerHero, StatType } from "../../Colyseus/Schema/Unit/Hero";
 import { MapSchema } from "@colyseus/schema";
 
 const MAX_ENEMY_COUNT = 100;

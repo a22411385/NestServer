@@ -1,8 +1,8 @@
-import { GameRoom } from '../Rooms/GameRoom';
-import { ServerHero } from '../Schema/Unit/Hero';
-import { ServerEnemy } from '../Schema/Unit/Enemy';
-import { ServerGameUnit } from '../Schema/Unit/GameUnit';
-import { UnitType } from '../Schema/GameState';
+import { GameRoom } from '../../Colyseus/Rooms/GameRoom';
+import { ServerHero } from '../../Colyseus/Schema/Unit/Hero';
+import { ServerEnemy } from '../../Colyseus/Schema/Unit/Enemy';
+import { ServerGameUnit } from '../../Colyseus/Schema/Unit/GameUnit';
+import { UnitType } from '../../Colyseus/Schema/GameState';
 
 export interface DamageInfo {
     attacker: ServerGameUnit;
