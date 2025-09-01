@@ -1,15 +1,16 @@
-import { WeaponBasic, WeaponAttackResult, AttackFailReason, VisualEffect, WeaponType } from "./WeaponBasic";
+import { WeaponBasic, WeaponAttackResult, AttackFailReason, VisualEffect } from "./WeaponBasic";
 import { ServerGameUnit } from "../../Unit/GameUnit";
+import { type } from "@colyseus/schema";
 
 /**
  * 投射武器抽象類
  * 特點：有彈道、可穿透、需要預測移動、有飛行時間
  */
 export class ProjectileWeapon extends WeaponBasic {
-    protected projectileSpeed: number; // 彈道速度
-    protected pierceCount: number; // 穿透數量
-    protected areaOfEffect: number; // 爆炸半徑 (0表示無AOE)
-    protected accuracy: number; // 命中精確度 (0-1)
+    @type("number") projectileSpeed: number = 0; // 彈道速度
+    @type("number") pierceCount: number = 0; // 穿透數量
+    @type("number") areaOfEffect: number = 0; // 爆炸半徑 (0表示無AOE)
+    @type("number") accuracy: number = 1.0; // 命中精確度 (0-1)
 
     constructor(
         weaponId: string,
@@ -21,7 +22,7 @@ export class ProjectileWeapon extends WeaponBasic {
         areaOfEffect: number = 0,
         accuracy: number = 1.0
     ) {
-        super(weaponId, WeaponType.PROJECTILE, attackRange, baseDamage, attackSpeed);
+        super(weaponId, 'projectile', attackRange, baseDamage, attackSpeed);
         this.projectileSpeed = projectileSpeed;
         this.pierceCount = pierceCount;
         this.areaOfEffect = areaOfEffect;

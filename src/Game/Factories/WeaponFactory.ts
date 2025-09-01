@@ -1,5 +1,7 @@
-import { WeaponBasic } from "./WeaponBasic";
-import { BaseballBat } from "../MeleeWeapon/BaseballBat";
+import { WeaponBasic } from "../../Colyseus/Schema/Weapon/Baisc/WeaponBasic";
+import { BaseballBat } from "../../Colyseus/Schema/Weapon/MeleeWeapon/BaseballBat";
+import { Fireball } from "../../Colyseus/Schema/Weapon/ProjectileWeapon/Fireball";
+import { HealingPotion } from "../../Colyseus/Schema/Weapon/SupportWeapon/HealingPotion";
 
 /**
  * 武器工廠 - 負責創建各種武器實例
@@ -10,6 +12,18 @@ export class WeaponFactory {
             class: BaseballBat,
             name: '球棒',
             type: 'melee',
+            rarity: 'common'
+        }],
+        ['fireball', {
+            class: Fireball,
+            name: '火球',
+            type: 'projectile',
+            rarity: 'rare'
+        }],
+        ['healing_potion', {
+            class: HealingPotion,
+            name: '治療藥水',
+            type: 'support',
             rarity: 'common'
         }]
     ]);
@@ -25,7 +39,11 @@ export class WeaponFactory {
         }
 
         try {
-            return new definition.class();
+
+            const weapon = new definition.class();
+            weapon.name = definition.name;
+            weapon.rarity = definition.rarity;
+            return weapon;
         } catch (error) {
             console.error(`Failed to create weapon ${weaponId}:`, error);
             return null;

@@ -11,23 +11,18 @@ export class ServerEnemy extends ServerGameUnit {
     @type("number") expReward: number = 1; // 擊殺獎勵經驗值
     @type("number") lv: number = 1; // 敵人等級
 
+    @type("number") public attackStartTime: number = 0; // 攻擊開始時間 (用於前端動畫同步)
+    @type("boolean") public isAttacking: boolean = false; // 是否正在攻擊
 
     // AI 狀態 - 不同步，僅伺服器端使用
     private aiState: string = "chase"; // AI 狀態: chase, attack, idle
     private lastAttackTime: number = 0; // 上次攻擊時間
-    private attackCooldown: number = 1000; // 攻擊冷卻 (ms)
 
     // 效能優化屬性 (不需要同步)
     private lastAIUpdateTime: number = 0; // 上次AI更新時間
     private aiUpdateInterval: number = 200; // AI更新間隔 (ms) - 5 FPS
     private targetCache: ServerHero | null = null; // 快取目標
     private targetCacheTime: number = 0; // 目標快取時間
-
-    // 碰撞檢測相關
-
-    private allowOverlapTime: number = 0; // 允許重疊的時間（攻擊用）
-    private overlapDuration: number = 500; // 重疊持續時間（毫秒）
-    private cachedAllUnits: MapSchema<ServerGameUnit> | undefined; // 快取所有單位
 
     // 🆕 群體行為相關屬性
     private lastMovementAttempt: number = 0;
@@ -216,11 +211,10 @@ export class ServerEnemy extends ServerGameUnit {
             }
         }
 
-        // 儲存所有單位的引用供碰撞檢測使用
-        this.cachedAllUnits = allUnits;
-
-        // 清理過期的碰撞狀態
-        this.cleanupCollisionState(currentTime);
+        // 🆕 儲存所有單位的陣列供群體行為使用
+        if (allUnits) {
+            this.cachedAllUnitsArray = Array.from(allUnits.values());
+        }
 
         // 減少不必要的計算頻率
         const shouldUpdateAI = currentTime - this.lastAIUpdateTime >= this.aiUpdateInterval;
@@ -238,31 +232,29 @@ export class ServerEnemy extends ServerGameUnit {
         }
 
         const distanceToTarget = this.getDistanceTo(target);
-        // 使用矩形碰撞來計算攻擊範圍
-        const myCollisionRadius = Math.max(this.getScaledCollisionWidth(), this.getScaledCollisionHeight()) / 2;
-        const targetCollisionRadius = Math.max(target.collisionWidth || 32, target.collisionHeight || 32) / 2;
-        const attackRange = myCollisionRadius + targetCollisionRadius + 10; // 額外10像素的攻擊範圍
 
-        // 如果在攻擊範圍內
-        if (distanceToTarget <= attackRange) {
+        // 🆕 使用標準攻擊距離檢查，不再基於碰撞半徑
+        if (distanceToTarget <= this.attackRange) {
             this.aiState = "attack";
+            // 攻擊時停止移動，設置速度向量為0
             this.vx = 0;
             this.vy = 0;
             this.attemptAttack(target, currentTime);
         } else {
-            // 🎯 追蹤目標 - 計算理想的移動位置
+            // 超出攻擊範圍，繼續追擊
             this.aiState = "chase";
-            const idealPosition = this.chaseTargetImproved(target, this.cachedAllUnitsArray);
+            this.isAttacking = false; // 🆕 清除攻擊狀態
 
-            // 🎯 將位置差異轉換為正規化的速度向量
-            const dx = idealPosition.x - this.position.x;
-            const dy = idealPosition.y - this.position.y;
-            const distance = Math.hypot(dx, dy);
+            // 🆕 簡化追擊邏輯 - 直接朝向目標移動
+            const distance = this.getDistanceTo(target);
+            if (distance > 0) {
+                // 計算朝向目標的單位向量
+                const directionX = (target.position.x - this.position.x) / distance;
+                const directionY = (target.position.y - this.position.y) / distance;
 
-            if (distance > 0.5) { // 只有當需要移動的距離足夠大時才移動
-                // 正規化速度向量
-                this.vx = dx / distance;
-                this.vy = dy / distance;
+                // 設置移動速度向量
+                this.vx = directionX;
+                this.vy = directionY;
             } else {
                 this.vx = 0;
                 this.vy = 0;
@@ -362,6 +354,8 @@ export class ServerEnemy extends ServerGameUnit {
         const nextY = this.position.y + moveY * this.moveSpeed * (deltaTime / 1000);
 
         // 檢查與其他單位的碰撞
+        // TODO: 移除不再需要的碰撞攻擊相關方法
+        /*
         const collisionResult = this.checkCollisionWithOthers(nextX, nextY, target);
 
         if (collisionResult.hasCollision) {
@@ -383,8 +377,9 @@ export class ServerEnemy extends ServerGameUnit {
             this.vx = moveX;
             this.vy = moveY;
         }
+        */
 
-        return { x: this.vx, y: this.vy };
+        return { x: 0, y: 0 }; // 暫時返回值
     }
 
     /**
@@ -497,13 +492,11 @@ export class ServerEnemy extends ServerGameUnit {
             collidingUnits: [] as ServerGameUnit[]
         };
 
-        // 檢查是否在允許重疊時間內（攻擊狀態）
-        if (Date.now() < this.allowOverlapTime) {
-            return result; // 攻擊狀態下不檢查碰撞
-        }
+        // TODO: 移除不再需要的碰撞檢測相關方法
+        /*
 
         // 取得所有單位進行碰撞檢測
-        const allUnits = this.getAllUnitsForCollision();
+        // const allUnits = this.getAllUnitsForCollision(); // TODO: 已移除
 
         for (const unit of allUnits) {
             if (unit.id === this.id || unit.isDead) continue; // 跳過自己和死亡單位
@@ -521,6 +514,14 @@ export class ServerEnemy extends ServerGameUnit {
         }
 
         return result;
+        */
+
+        // 🆕 簡化版本：暫時返回沒有碰撞
+        return {
+            hasCollision: false,
+            isHeroTarget: false,
+            collidingUnits: []
+        };
     }
 
     /**
@@ -573,9 +574,11 @@ export class ServerEnemy extends ServerGameUnit {
             const testY = this.position.y + direction.y * this.moveSpeed * 0.1;
 
             // 檢查這個方向是否會碰撞
-            const allUnits = this.getAllUnitsForCollision();
-            let hasCollision = false;
+            // const allUnits = this.getAllUnitsForCollision(); // TODO: 已移除
+            let hasCollision = false; // TODO: 暫時設為 false
 
+            // TODO: 移除碰撞檢測邏輯
+            /*
             for (const unit of allUnits) {
                 if (unit.id === this.id || unit.isDead) continue;
                 if (unit.id === target.id && unit.type === UnitType.hero) continue; // 允許與目標英雄碰撞
@@ -585,6 +588,7 @@ export class ServerEnemy extends ServerGameUnit {
                     break;
                 }
             }
+            */
 
             if (!hasCollision) {
                 // 計算這個方向與目標方向的相似度
@@ -609,9 +613,8 @@ export class ServerEnemy extends ServerGameUnit {
         return bestDirection;
     }
 
-    /**
-     * 取得所有需要檢查碰撞的單位
-     */
+    // TODO: 移除不再需要的碰撞相關方法
+    /*
     private getAllUnitsForCollision(): ServerGameUnit[] {
         if (!this.cachedAllUnits) {
             return [];
@@ -626,9 +629,6 @@ export class ServerEnemy extends ServerGameUnit {
         return units;
     }
 
-    /**
-     * 清理過期的碰撞狀態
-     */
     private cleanupCollisionState(currentTime: number): void {
         // 重置過期的重疊允許狀態
         if (currentTime > this.allowOverlapTime) {
@@ -636,12 +636,10 @@ export class ServerEnemy extends ServerGameUnit {
         }
     }
 
-    /**
-     * 檢查是否在攻擊狀態中（允許與英雄重疊）
-     */
     public isInAttackMode(): boolean {
         return Date.now() < this.allowOverlapTime;
     }
+    */
 
     /**
      * 獲取考慮縮放的碰撞寬度
@@ -673,25 +671,34 @@ export class ServerEnemy extends ServerGameUnit {
 
     // 嘗試攻擊
     private attemptAttack(target: ServerHero, currentTime: number): boolean {
-        if (currentTime - this.lastAttackTime >= this.attackCooldown) {
+        if (currentTime - this.lastAttackTime >= this.attackSpeed) {
             this.lastAttackTime = currentTime;
+            this.attackStartTime = currentTime; // 🆕 記錄攻擊開始時間
+            this.isAttacking = true; // 🆕 設置攻擊狀態
 
-            // 開始攻擊時允許重疊移動
-            if (this.isInCollisionRange(target, 15)) { // 使用矩形碰撞檢測攻擊範圍
-                this.allowOverlapTime = currentTime + this.overlapDuration;
-                console.log(`Enemy ${this.id} starting attack sequence on hero ${target.id}`);
-            }
+            console.log(`Enemy ${this.id} attacking hero ${target.id} at ${currentTime}`);
 
-            return this.attackTarget(target);
+            // 攻擊並重置狀態（假設攻擊是瞬間的，實際可能需要延遲）
+            const success = this.attackTarget(target);
+
+            // 🆕 設置攻擊結束延遲（可用於前端動畫）
+            setTimeout(() => {
+                this.isAttacking = false;
+            }, 300); // 300ms 後結束攻擊狀態
+
+            return success;
         }
         return false;
     }
 
-    // 攻擊目標
+    // 攻擊目標 - 🆕 使用距離檢查而不是碰撞檢查
     attackTarget(target: ServerGameUnit): boolean {
-        if (this.isInCollisionRange(target, 10)) { // 10像素的額外攻擊範圍
+        const distanceToTarget = this.getDistanceTo(target);
+        if (distanceToTarget <= this.attackRange) {
+            console.log(`Enemy ${this.id} deals ${this.damage} damage to ${target.id}`);
             return target.takeDamage(this.damage);
         }
+        console.log(`Enemy ${this.id} attack missed - target out of range`);
         return false;
     }
 
@@ -704,21 +711,24 @@ export class ServerEnemy extends ServerGameUnit {
                 this.moveSpeed = 50;
                 this.damage = 10;
                 this.expReward = 1;
-                this.attackCooldown = 1000;
+                this.attackSpeed = 1000; // 攻擊間隔
+                this.attackRange = 60; // 攻擊距離
                 break;
             case 2: // 快速殭屍
                 this.hp = this.maxHp = 15;
                 this.moveSpeed = 80;
                 this.damage = 8;
                 this.expReward = 2;
-                this.attackCooldown = 800;
+                this.attackSpeed = 800; // 更快的攻擊速度
+                this.attackRange = 55; // 稍短的攻擊距離
                 break;
             case 3: // 強壯殭屍
                 this.hp = this.maxHp = 40;
                 this.moveSpeed = 30;
                 this.damage = 15;
                 this.expReward = 3;
-                this.attackCooldown = 1500;
+                this.attackSpeed = 1500; // 較慢的攻擊速度
+                this.attackRange = 70; // 較長的攻擊距離
                 break;
         }
     }
@@ -735,7 +745,7 @@ export class ServerEnemy extends ServerGameUnit {
 
     // 檢查是否可以攻擊
     canAttack(currentTime: number): boolean {
-        return currentTime - this.lastAttackTime >= this.attackCooldown;
+        return currentTime - this.lastAttackTime >= this.attackSpeed;
     }
 
     // 設置最後攻擊時間

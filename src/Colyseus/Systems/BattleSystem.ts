@@ -1,7 +1,7 @@
 import { Room, Client, Delayed } from "colyseus";
 import { MapSchema } from "@colyseus/schema";
 import { GameRoomState, UnitType } from "../Schema/GameState";
-import { GameManager } from "../Managers/GameManager";
+import { GameManager } from "../../Game/Managers/GameManager";
 import { IdGenerator } from "../../Util/IdGenerator";
 import { ServerEnemy } from "../Schema/Unit/Enemy";
 import { ServerHero } from "../Schema/Unit/Hero";

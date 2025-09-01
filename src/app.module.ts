@@ -7,7 +7,6 @@ import { DataModule } from './Module/DataModule';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { CacheModule } from '@nestjs/cache-manager';
-import { TestModule } from './Module/TestModule';
 import { HttpModule } from '@nestjs/axios';
 
 @Module({
@@ -31,7 +30,6 @@ import { HttpModule } from '@nestjs/axios';
     AuthModule,
     GameModule,
 
-    TestModule,
     HttpModule,
 
     JwtModule.register({ global: true, secret: process.env.JWT_KEY }),

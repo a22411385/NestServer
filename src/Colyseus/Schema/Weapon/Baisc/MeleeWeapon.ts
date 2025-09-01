@@ -1,14 +1,15 @@
-import { WeaponBasic, WeaponAttackResult, AttackFailReason, VisualEffect, WeaponType } from "./WeaponBasic";
+import { WeaponBasic, WeaponAttackResult, AttackFailReason, VisualEffect } from "./WeaponBasic";
 import { ServerGameUnit } from "../../Unit/GameUnit";
+import { type } from "@colyseus/schema";
 
 /**
  * 近戰武器抽象類
  * 特點：需要靠近目標、通常有擊退效果、可能有範圍攻擊
  */
 export abstract class MeleeWeapon extends WeaponBasic {
-    protected knockbackForce: number = 0; // 擊退力度
-    protected sweepAngle: number = 0; // 攻擊角度 (弧度)
-    protected maxTargets: number = 1; // 最大攻擊目標數量
+    @type("number") knockbackForce: number = 0; // 擊退力度
+    @type("number") sweepAngle: number = 0; // 攻擊角度 (弧度)
+    @type("number") maxTargets: number = 1; // 最大攻擊目標數量
 
     constructor(
         weaponId: string,
@@ -19,7 +20,7 @@ export abstract class MeleeWeapon extends WeaponBasic {
         sweepAngle: number = 0,
         maxTargets: number = 1
     ) {
-        super(weaponId, WeaponType.MELEE, attackRange, baseDamage, attackSpeed);
+        super(weaponId, 'melee', attackRange, baseDamage, attackSpeed);
         this.knockbackForce = knockbackForce;
         this.sweepAngle = sweepAngle;
         this.maxTargets = maxTargets;

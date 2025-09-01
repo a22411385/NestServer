@@ -2,8 +2,8 @@ import { Room, Client } from "colyseus";
 import { GameRoomState as GameRoomState, GameCoreState, UnitType, MapData } from "@/Colyseus/Schema/GameState";
 
 // 引入新的管理器和系統
-import { PlayerManager } from "@/Colyseus/Managers/PlayerManager";
-import { GameManager } from "@/Colyseus/Managers/GameManager";
+import { PlayerManager } from "@/Game/Managers/PlayerManager";
+import { GameManager } from "@/Game/Managers/GameManager";
 import { BattleSystem } from "@/Colyseus/Systems/BattleSystem";
 import { MessageHandler } from "@/Colyseus/Handlers/MessageHandler";
 import { ServerHero } from "@/Colyseus/Schema/Unit/Hero";
@@ -17,6 +17,8 @@ import { Vector2, ServerGameUnit } from "@/Colyseus/Schema/Unit/GameUnit";
 import { ServerEnemy } from "../Schema/Unit/Enemy";
 import { WeaponAttackResult } from "../Schema/Weapon/Baisc/WeaponBasic";
 import { DamageSystem } from "../Systems/DamageSystem";
+import { BulletSystem } from "@/Game/Systems/BulletSystem";
+import { BulletFactory, BulletCreateConfig } from "@/Game/Factories/BulletFactory";
 import { BattleMathUtils } from "../../Shared/BattleMathUtils";
 
 export interface GameRoomOptions {
@@ -46,6 +48,7 @@ export class GameRoom extends MiddleRoom<GameRoomState> {
     public movementSystem: MovementSystem;
     public unitManager: UnitManager;
     public damageSystem: DamageSystem;
+    public bulletSystem: BulletSystem; // 🆕 添加子彈系統
 
     public roomInfo: LobbyRoomInfo;
 
@@ -62,6 +65,7 @@ export class GameRoom extends MiddleRoom<GameRoomState> {
         this.movementSystem = new MovementSystem(this);
         this.unitManager = new UnitManager(this);
         this.damageSystem = new DamageSystem(this); // 初始化傷害系統
+        this.bulletSystem = new BulletSystem(this); // 🆕 初始化子彈系統
         this.gameManager = new GameManager(this);
 
         this.onMessage("*", (client, type, message) =>
@@ -148,6 +152,7 @@ export class GameRoom extends MiddleRoom<GameRoomState> {
         console.log(`GameRoom ${this.roomId} disposed`);
         this.gameManager.stopGameLoop();
         this.battleSystem.cleanup();
+        this.bulletSystem.cleanup(); // 🆕 清理子彈系統
         this.messageHandler.cleanup();
         LobbyRoomBus.emit("roomDeleted", { roomId: this.roomId });
     }
@@ -168,7 +173,7 @@ export class GameRoom extends MiddleRoom<GameRoomState> {
         this.updateHeroAutoAttacks();
 
         // 更新子彈系統
-        this.updateBullets(deltaTime);
+        this.bulletSystem.updateBullets(deltaTime);
 
         // 🔧 更新敵人 AI（只設置速度向量）
         this.battleSystem.updateEnemyAI(deltaTime, currentTime);
@@ -221,10 +226,14 @@ export class GameRoom extends MiddleRoom<GameRoomState> {
     }
 
     /**
-     * 處理武器攻擊結果 - 使用統一的傷害系統
+     * 處理武器攻擊結果 - 根據武器類型決定傷害處理方式
      */
     private handleWeaponAttackResult(hero: ServerHero, result: WeaponAttackResult): void {
         if (!result.targetIds || result.targetIds.length === 0) return;
+
+        // 獲取武器對象來判斷類型
+        const weapon = hero.equippedWeapons.find(w => w.weaponId === result.weaponId);
+        if (!weapon) return;
 
         // 獲取目標單位
         const targets = result.targetIds
@@ -233,14 +242,24 @@ export class GameRoom extends MiddleRoom<GameRoomState> {
 
         if (targets.length === 0) return;
 
-        // 使用傷害系統處理傷害
-        const damageResults = this.damageSystem.dealDamageToMultipleTargets(
-            hero,
-            targets,
-            result.baseDamage,
-            'physical',
-            result.weaponId
-        );
+        let damageResults: any[] = [];
+
+        // 🎯 根據武器類型決定傷害處理方式
+        if (weapon.weaponType === 'projectile') {
+            // 投射武器：不立即造成傷害，只創建視覺效果（子彈）
+            // 傷害將在子彈擊中時由 BulletSystem 處理
+            console.log(`🏹 投射武器攻擊: ${result.weaponId} - 延遲傷害處理`);
+        } else {
+            // 近戰武器或其他類型：立即造成傷害
+            damageResults = this.damageSystem.dealDamageToMultipleTargets(
+                hero,
+                targets,
+                result.baseDamage,
+                'physical',
+                result.weaponId
+            );
+            console.log(`⚔️ 即時武器攻擊: ${result.weaponId} - 立即傷害處理`);
+        }
 
         // 廣播攻擊結果
         this.broadcast('weapon_attack', {
@@ -255,30 +274,38 @@ export class GameRoom extends MiddleRoom<GameRoomState> {
         // 處理視覺效果
         if (result.visualEffects) {
             for (const visualEffect of result.visualEffects) {
-                this.handleVisualEffect(hero, visualEffect);
+                this.handleVisualEffect(hero, visualEffect, result);
             }
         }
 
-        // 統計戰報
-        const totalDamage = damageResults.reduce((sum, dr) => sum + dr.actualDamage, 0);
-        const killedCount = damageResults.filter(dr => dr.targetKilled).length;
+        // 統計戰報 - 只有非投射武器才有立即的傷害結果
+        if (weapon.weaponType !== 'projectile' && damageResults.length > 0) {
+            const totalDamage = damageResults.reduce((sum, dr) => sum + dr.actualDamage, 0);
+            const killedCount = damageResults.filter(dr => dr.targetKilled).length;
 
-        if (damageResults.length === 1) {
-            this.broadcastBattleLog(
-                `${hero.name} 對敵人造成 ${totalDamage} 點傷害`,
-                'damage'
-            );
-        } else {
-            this.broadcastBattleLog(
-                `${hero.name} 同時攻擊 ${damageResults.length} 個敵人，總共造成 ${totalDamage} 點傷害`,
-                'damage'
-            );
-        }
+            if (damageResults.length === 1) {
+                this.broadcastBattleLog(
+                    `${hero.name} 對敵人造成 ${totalDamage} 點傷害`,
+                    'damage'
+                );
+            } else {
+                this.broadcastBattleLog(
+                    `${hero.name} 同時攻擊 ${damageResults.length} 個敵人，總共造成 ${totalDamage} 點傷害`,
+                    'damage'
+                );
+            }
 
-        if (killedCount > 0) {
+            if (killedCount > 0) {
+                this.broadcastBattleLog(
+                    `${hero.name} 擊殺了 ${killedCount} 個敵人！`,
+                    'kill'
+                );
+            }
+        } else if (weapon.weaponType === 'projectile') {
+            // 投射武器的戰報將在子彈擊中時由 BulletSystem 處理
             this.broadcastBattleLog(
-                `${hero.name} 擊殺了 ${killedCount} 個敵人！`,
-                'kill'
+                `${hero.name} 發射了 ${weapon.weaponId}`,
+                'event'
             );
         }
     }
@@ -286,7 +313,11 @@ export class GameRoom extends MiddleRoom<GameRoomState> {
     /**
      * 處理視覺效果
      */
-    private handleVisualEffect(hero: ServerHero, visualEffect: import("../Schema/Weapon/Baisc/WeaponBasic").VisualEffect): void {
+    private handleVisualEffect(
+        hero: ServerHero,
+        visualEffect: import("../Schema/Weapon/Baisc/WeaponBasic").VisualEffect,
+        attackResult?: import("../Schema/Weapon/Baisc/WeaponBasic").WeaponAttackResult
+    ): void {
         switch (visualEffect.type) {
             case 'swing':
                 // 近戰武器揮舞效果
@@ -311,7 +342,18 @@ export class GameRoom extends MiddleRoom<GameRoomState> {
             case 'projectile':
                 // 遠程投射物效果
                 if (visualEffect.data) {
-                    this.createBullet(visualEffect.data);
+                    // 🔧 使用 BulletSystem 創建子彈，使用攻擊結果中的正確傷害值
+                    const bulletDamage = attackResult?.baseDamage || visualEffect.data.damage || 10;
+
+                    this.bulletSystem.spawnBullet({
+                        ownerId: hero.id,
+                        startPosition: visualEffect.data.startPosition || visualEffect.position,
+                        direction: visualEffect.data.direction || visualEffect.direction,
+                        damage: bulletDamage,
+                        speed: visualEffect.data.speed || 300,
+                        bulletType: visualEffect.data.bulletType,
+                        lifeTime: visualEffect.data.lifeTime || 3000
+                    });
                 }
                 break;
 
@@ -338,112 +380,4 @@ export class GameRoom extends MiddleRoom<GameRoomState> {
         });*/
     }
 
-    /**
-     * 創建子彈
-     */
-    private createBullet(bulletInfo: {
-        startPosition: { x: number, y: number },
-        direction: { x: number, y: number },
-        damage: number,
-        //  speed: number,
-        // bulletType: string,
-        ownerId: string
-    }): void {
-        const bullet = new ServerBullet();
-
-        // 生成唯一 ID
-        const bulletId = `bullet_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-
-        bullet.initialize(
-            bulletId,
-            bulletInfo.ownerId,
-            new Vector2(bulletInfo.startPosition.x, bulletInfo.startPosition.y),
-            new Vector2(bulletInfo.direction.x, bulletInfo.direction.y),
-            bulletInfo.damage,
-            //     bulletInfo.speed,
-            //  bulletInfo.bulletType
-        );
-
-        // 添加到遊戲狀態
-        this.state.gameCore.bullets.set(bulletId, bullet);
-    }
-
-    /**
-     * 更新子彈系統
-     */
-    private updateBullets(deltaTime: number): void {
-        const bulletsToRemove: string[] = [];
-
-        // 遍歷所有子彈
-        for (const [bulletId, bullet] of this.state.gameCore.bullets) {
-            // 檢查子彈是否應該被移除
-            if (bullet.shouldDestroy()) {
-                bulletsToRemove.push(bulletId);
-                continue;
-            }
-
-            // 檢查子彈碰撞
-            this.checkBulletCollisions(bullet);
-        }
-
-        // 移除過期的子彈
-        for (const bulletId of bulletsToRemove) {
-            this.state.gameCore.bullets.delete(bulletId);
-        }
-    }
-
-    /**
-     * 檢查子彈碰撞
-     */
-    private checkBulletCollisions(bullet: any): void {
-        const currentPos = bullet.getCurrentPosition();
-
-        // 檢查與敵人的碰撞
-        for (const [enemyId, unit] of this.state.gameCore.allUnits) {
-            if (unit.type !== UnitType.enemy || unit.isDead) continue;
-
-            const enemy = unit as ServerEnemy; // ServerEnemy
-
-            // 使用矩形碰撞檢測（更準確），考慮縮放
-            const bulletWidth = 10; // 子彈寬度
-            const bulletHeight = 10; // 子彈高度
-            const enemyWidth = enemy.collisionWidth * (enemy.scale || 1);
-            const enemyHeight = enemy.collisionHeight * (enemy.scale || 1);
-
-            if (BattleMathUtils.isRectCollide(
-                currentPos.x, currentPos.y, bulletWidth, bulletHeight,
-                enemy.position.x, enemy.position.y, enemyWidth, enemyHeight
-            )) {
-                // 造成傷害
-                const killed = enemy.takeDamage(bullet.damage);
-
-                // 處理命中
-                const shouldContinue = bullet.onHit();
-
-                if (killed) {
-                    // 給子彈擁有者經驗值
-                    const owner = this.state.gameCore.allUnits.get(bullet.ownerId);
-                    if (owner && owner.type === UnitType.hero) {
-                        const hero = owner as ServerHero;
-                        const leveledUp = hero.addExperience(enemy.expReward);
-
-                        if (leveledUp) {
-                            this.messageHandler.sendBattleLog(
-                                `${hero.name} 升級到 ${hero.level} 級！`,
-                                'event'
-                            );
-                        }
-                    }
-                    this.state.gameCore.allUnits.delete(enemyId);
-                }
-
-                // 如果子彈不應該繼續存在，標記為命中
-                if (!shouldContinue) {
-                    bullet.hasHit = true;
-                    break;
-                }
-
-            }
-        }
-    }
 }

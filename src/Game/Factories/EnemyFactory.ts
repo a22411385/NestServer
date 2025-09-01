@@ -40,8 +40,8 @@ export class EnemyFactory {
             attackDamage: 15,
             moveSpeed: 60,
             scale: 1.0,
-            collisionWidth: 64,
-            collisionHeight: 128,
+            collisionWidth: 32,
+            collisionHeight: 64,
             experienceReward: 10,
             goldReward: 5
         }],
@@ -189,7 +189,7 @@ export class EnemyFactory {
             return 1;
         }
 
-        // 普通波次：基礎3個，每波+1個，最多15個
-        return Math.min(3 + waveNumber, 15);
+        // 普通波次：基礎10個，每波+1個，最多100個
+        return Math.min(10 + waveNumber * 5, 100);
     }
 }

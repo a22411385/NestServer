@@ -1,10 +1,11 @@
 
 
-import { Schema, type, MapSchema } from "@colyseus/schema";
+import { Schema, type, MapSchema, ArraySchema } from "@colyseus/schema";
 import { ServerGameUnit, StatusEffect, Vector2 } from "./Unit/GameUnit";
 import { ServerEnemy } from "./Unit/Enemy";
 import { ServerHero } from "./Unit/Hero";
 import { ServerBullet } from "./Bullet";
+import { ServerItem } from "./Item/ServerItem";
 
 export type RoomStateType = "waiting" | 'playing';
 export type gameFlowStatus = "prepare" | 'battle' | 'rest' | 'settlement' | 'test_mode';
@@ -17,15 +18,6 @@ export enum UnitType {
     npc,
     boss
 }
-// --- Item (道具) Schema ---
-export class Item extends Schema {
-    @type("string") id: string = "";
-    @type("number") x: number = 0;
-    @type("number") y: number = 0;
-    @type("string") itemType: string = "exp"; // exp, heal, buff ...
-    @type("number") value: number = 1;
-}
-
 
 export class GamePlayer extends Schema {
     @type("string") id: string = "";
@@ -42,8 +34,8 @@ export class GameCoreState extends Schema {
     @type("number") waveNumber: number = 1;
     @type('string') status: gameFlowStatus = 'prepare'
     @type("number") aliveHeroes: number = 0; // 存活英雄數量
-    @type("number") roundTime: number = 0; // 遊戲秒數
-    @type({ map: Item }) items = new MapSchema<Item>();
+    @type("number") roundTime: number = 0; // 遊戲
+    @type([ServerItem]) mapItems = new ArraySchema<ServerItem>();
 
     //這裡只同步場上所有單位的存活
     @type({ map: ServerGameUnit }) allUnits = new MapSchema<ServerGameUnit>();
@@ -78,6 +70,8 @@ export class GameCoreState extends Schema {
         this.waveNumber = 1;
         this.status = 'prepare';
         this.aliveHeroes = 0;
+        this.mapItems.clear();
+        this.bullets.clear();
     }
 }
 
@@ -87,7 +81,7 @@ export class MapData extends Schema {
     @type("string") name: string = "原型";
     @type("number") width: number = 2000;
     @type("number") height: number = 2000;
-    @type({ map: "string" }) tiles = new MapSchema<string>();
+    //  @type({ map: "string" }) tiles = new MapSchema<string>();
 
 }
 
@@ -262,7 +256,7 @@ export class GameRoomState extends Schema {
     // 重置遊戲狀態
     resetGameState(): void {
         this.allUnits.clear();
-        this.gameCore.items.clear();
+        this.gameCore.mapItems.clear();
         this.gameCore.resetGame();
 
         // 重置玩家準備狀態

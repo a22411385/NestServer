@@ -3,7 +3,8 @@ import { UnitType } from "../GameState";
 
 import { ServerGameUnit } from "./GameUnit";
 import { WeaponAttackResult, WeaponBasic } from "../Weapon/Baisc/WeaponBasic";
-import { WeaponFactory } from "../Weapon/Baisc/WeaponFactory";
+import { WeaponFactory } from "../../../Game/Factories/WeaponFactory";
+import { ServerItem } from "../Item/ServerItem";
 
 export type StatType = 'vit' | 'str' | 'agi' | 'int';
 
@@ -41,6 +42,12 @@ export class ServerHero extends ServerGameUnit {
     @type("number") invincibleRemaining: number = 0; // 無敵剩餘時間 (ms)
     @type("number") level: number = 1;
     @type("number") exp: number = 0;
+    //武器插槽
+    @type([WeaponBasic]) public equippedWeapons = new ArraySchema<WeaponBasic>();
+    //道具欄
+    @type([ServerItem]) public inventory = new ArraySchema<ServerItem>();
+
+    @type("number") public gold: number = 0; // 新增金幣屬性
 
     // === 基礎屬性點 (永久，升級分配) ===
     @type("number") public vit: number = 10;        // 體質點數
@@ -83,12 +90,9 @@ export class ServerHero extends ServerGameUnit {
     public baseCritRate: number = 0; // 暴擊率 (百分比)
     public baseDodgeRate: number = 0; // 閃避率 (百分比)
 
-    //武器插槽
-    @type(["string"]) public equippedWeapons = new ArraySchema<string>();
 
-    // 武器實例管理 (不同步給客戶端)
-    private weaponInstances: Map<string, WeaponBasic> = new Map();
-
+    //public equippedWeapons: Array<WeaponBasic> = [];
+    //public items: Array<Item> = [];
     constructor() {
         super();
 
@@ -343,8 +347,8 @@ export class ServerHero extends ServerGameUnit {
         const results: WeaponAttackResult[] = [];
 
         //嘗試呼叫所有武器進行攻擊
-        for (const weaponId of this.equippedWeapons) {
-            const weapon = this.weaponInstances.get(weaponId);
+        for (const weapon of this.equippedWeapons) {
+
             if (weapon) {
                 // 使用新的武器接口，傳入攻擊者和潛在目標
                 const result = weapon.tryAttack(this, enemies);
@@ -362,7 +366,7 @@ export class ServerHero extends ServerGameUnit {
      */
     public equipWeapon(weaponId: string): boolean {
         // 檢查是否已經裝備
-        if (this.equippedWeapons.includes(weaponId)) {
+        if (this.equippedWeapons.find(weapon => weapon.weaponId === weaponId)) {
             return false;
         }
 
@@ -380,8 +384,7 @@ export class ServerHero extends ServerGameUnit {
         }
 
         // 添加到裝備列表和實例管理
-        this.equippedWeapons.push(weaponId);
-        this.weaponInstances.set(weaponId, weaponInstance);
+        this.equippedWeapons.push(weaponInstance);
 
         console.log(`${this.name} 裝備了武器: ${weaponId}`);
         return true;
@@ -391,7 +394,7 @@ export class ServerHero extends ServerGameUnit {
      * 卸下武器
      */
     public unequipWeapon(weaponId: string): boolean {
-        const index = this.equippedWeapons.findIndex(id => id === weaponId);
+        const index = this.equippedWeapons.findIndex(weapon => weapon.weaponId === weaponId);
         if (index === -1) {
             return false;
         }
@@ -399,18 +402,7 @@ export class ServerHero extends ServerGameUnit {
         // 從裝備列表移除
         this.equippedWeapons.splice(index, 1);
 
-        // 移除武器實例
-        this.weaponInstances.delete(weaponId);
-
         console.log(`${this.name} 卸下了武器: ${weaponId}`);
         return true;
-    }
-
-
-    /**
-     * 獲取裝備的武器實例
-     */
-    public getWeaponInstances(): Map<string, any> {
-        return this.weaponInstances;
     }
 }

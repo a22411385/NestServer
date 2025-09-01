@@ -1,5 +1,7 @@
 import { ServerGameUnit } from "../../Unit/GameUnit";
 import { UnitType } from "../../GameState";
+import { Schema, type } from "@colyseus/schema";
+import { WeaponType } from ".";
 
 export interface WeaponAttackResult {
     success: boolean;
@@ -43,28 +45,26 @@ export interface VisualEffect {
     data?: any;
 }
 
-// 武器類型枚舉
-export enum WeaponType {
-    MELEE = 'melee',
-    PROJECTILE = 'projectile',
-    SUPPORT = 'support'
-}
-
 //武器基類：負責攻擊邏輯和目標選擇，不處理傷害計算
-export abstract class WeaponBasic {
-    public weaponId: string = "";
-    public weaponType: WeaponType = WeaponType.MELEE;
-    protected attackRange: number;
-    protected baseDamage: number; // 基礎傷害
-    protected attackSpeed: number;  // 攻擊間隔 (毫秒)
+export abstract class WeaponBasic extends Schema {
+    @type("string") public weaponId: string = "";
+    @type("string") public weaponType: WeaponType = 'melee';
+    @type("number") public attackRange: number = 0;
+    @type("number") public baseDamage: number = 0; // 基礎傷害
+    @type("number") public attackSpeed: number = 0;  // 攻擊間隔 (毫秒)
+    @type("string") public rarity: string = "common"; // 武器稀有度
+    @type("string") public name: string = "";
+    // 武器屬性加成 - 同步到客戶端用於UI顯示
+    @type("number") public int: number = 0;
+    @type("number") public agi: number = 0;
+    @type("number") public str: number = 0;
+    @type("number") public vit: number = 0;
+
+    // 不同步到客戶端的伺服器端屬性
     protected lastAttackTime: number = 0;
 
-    public int: number = 0;
-    public agi: number = 0;
-    public str: number = 0;
-    public vit: number = 0;
-
     constructor(weaponId: string, weaponType: WeaponType, attackRange: number, baseDamage: number, attackSpeed: number) {
+        super();
         this.weaponId = weaponId;
         this.weaponType = weaponType;
         this.attackRange = attackRange;
