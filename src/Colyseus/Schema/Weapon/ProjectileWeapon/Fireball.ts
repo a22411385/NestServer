@@ -1,5 +1,5 @@
 import { ProjectileWeapon } from "../Baisc/ProjectileWeapon";
-import { WeaponAttackResult } from "../Baisc/WeaponBasic";
+import { WeaponAttackResult } from "@/Types";
 import { ServerGameUnit } from "../../Unit/GameUnit";
 
 /**

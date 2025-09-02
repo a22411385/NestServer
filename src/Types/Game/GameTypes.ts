@@ -3,8 +3,6 @@
  * 整合所有遊戲邏輯相關的接口和枚舉
  */
 
-import { RarityType, LevelRequirement } from "../BaseTypes";
-
 /**
  * 單位類型枚舉
  */

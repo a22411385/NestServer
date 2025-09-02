@@ -1,9 +1,10 @@
 // src/Shared/BattleMathUtils.ts
 
 import seedrandom from 'seedrandom';
+import { Vector2 } from "@/Types";
 
 export type Int = number & { __int__: void };
-export interface Vector2 { x: number, y: number }
+// Vector2 interface 已移動到 Types 資料夾
 export function toInt(n: number): Int {
     return Number((n).toFixed(2)) as Int;
 }

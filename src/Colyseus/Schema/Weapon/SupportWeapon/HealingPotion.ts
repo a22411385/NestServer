@@ -1,5 +1,5 @@
 import { SupportWeapon } from "../Baisc/SupportWeapon";
-import { WeaponAttackResult } from "../Baisc/WeaponBasic";
+import { WeaponAttackResult } from "@/Types";
 import { ServerGameUnit } from "../../Unit/GameUnit";
 
 /**

@@ -1,5 +1,5 @@
 import { MeleeWeapon } from "../Baisc/MeleeWeapon";
-import { WeaponAttackResult } from "../Baisc/WeaponBasic";
+import { WeaponAttackResult } from "@/Types";
 import { ServerGameUnit } from "../../Unit/GameUnit";
 
 /**

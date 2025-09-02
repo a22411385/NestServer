@@ -1,7 +1,8 @@
 import { WeaponBasic } from "../../Colyseus/Schema/Weapon/Baisc/WeaponBasic";
 import { WeaponData } from "../../Colyseus/Schema/Weapon/WeaponData";
 import { WeaponFactory } from "../Factories/WeaponFactory";
-import { WeaponDataService, FinalWeaponStats } from "../Services/WeaponDataService";
+import { WeaponDataService } from "../Services/WeaponDataService";
+import { FinalWeaponStats } from "@/Types";
 import { WeaponInstanceManager } from "../Managers/WeaponInstanceManager";
 
 /**

@@ -1,4 +1,6 @@
-import { ITEM_RATE, ITEM_TYPE, MonsterKind } from "src/Shared/Enum";
+import { ITEM_RATE, ITEM_TYPE, MonsterKind, IItemBase, DropOptions } from "@/Types";
+
+// 移除重複的interface定義，已搬移到Types資料夾
 
 
 export class ItemBase {
@@ -44,13 +46,7 @@ export class ConsumableItem {
     cooldown: number;
 
 }
-export interface IItemBase {
-    name: string;
-    itemId: string;
-    price: number;
-    type: ITEM_TYPE;
-    rate: ITEM_RATE;
-}
+// IItemBase interface 已移動到 Types 資料夾
 export class PlayerItem implements IItemBase {
 
     constructor(
@@ -97,7 +93,7 @@ export class GroupEntrieData {
 
 }
 
-export interface DropOptions { kind: MonsterKind; level: number; }
+// DropOptions interface 已移動到 Types 資料夾
 
 export class RandomAffixData {
     type: string; mainAffix: string; subAffix: string;

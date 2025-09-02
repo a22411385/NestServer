@@ -1,5 +1,6 @@
 import { Schema, type } from "@colyseus/schema";
 import { WEAPON_CONFIGS } from "../../../Game/Factories/WeaponConfig";
+import { WeaponType } from "@/Types";
 
 /**
  * 武器數據類 - 純數據存儲，負責同步武器狀態到客戶端
@@ -58,14 +59,14 @@ export class WeaponData extends Schema {
     /**
      * 簡單的武器類型推斷（最小邏輯）
      */
-    private inferWeaponType(weaponId: string): string {
+    private inferWeaponType(weaponId: string): WeaponType {
         if (weaponId.includes('bow') || weaponId.includes('gun') || weaponId.includes('ball')) {
-            return 'projectile';
+            return WeaponType.PROJECTILE;
         } else if (weaponId.includes('sword') || weaponId.includes('bat') || weaponId.includes('knife')) {
-            return 'melee';
+            return WeaponType.MELEE;
         } else if (weaponId.includes('heal') || weaponId.includes('buff') || weaponId.includes('staff') || weaponId.includes('wand')) {
-            return 'support';
+            return WeaponType.SUPPORT;
         }
-        return 'melee'; // 默認近戰
+        return WeaponType.MELEE; // 默認近戰
     }
 }

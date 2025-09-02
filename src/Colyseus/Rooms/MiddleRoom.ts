@@ -1,7 +1,7 @@
 import { Schema } from "@colyseus/schema";
 import { Client, Room } from "colyseus";
 import { LobbyPlayer } from "../Schema/LobbyState";
-import { JWTPayload } from "@/struct";
+import { JWTPayload } from "@/Types";
 import jwt from 'jsonwebtoken';
 import { getAppContext } from "@/main";
 import { DataSource, Repository } from "typeorm";

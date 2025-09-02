@@ -3,7 +3,7 @@ import { CharacterORM } from 'src/ORM/charater.entity';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNotEmpty } from 'class-validator';
-import { HttpRespone, JWTPayload } from 'src/struct';
+import { HttpResponse, JWTPayload } from '@/Types';
 import { JwtService } from '@nestjs/jwt';
 import { AccountORM } from 'src/ORM/account.entity';
 import { ErrorCode } from './ErrorCode';
@@ -33,11 +33,11 @@ export class CharacterController {
     private accountRepo: Repository<AccountORM>
 
     @Post('/char/create')
-    async create(@Req() req: any, @Body() params: CreateDto): Promise<HttpRespone> {
+    async create(@Req() req: any, @Body() params: CreateDto): Promise<HttpResponse> {
 
         let payload = req.user as JWTPayload;
 
-        let res = { errorCode: ErrorCode.SUCCESS } as HttpRespone;
+        let res = { errorCode: ErrorCode.SUCCESS } as HttpResponse;
 
         const account = await this.accountRepo.findOneOrFail({ where: { id: payload.userId }, relations: { characters: true } });
 
@@ -49,7 +49,7 @@ export class CharacterController {
 
         const p = await this.characterRepo.findOne({ where: { name: params.name } });
         if (p) {
-            res.errorCode = ErrorCode.名稱已被使用
+            res.errorCode = ErrorCode.NAME_ALREADY_USED
             return res;
         }
         let character = new CharacterORM();
@@ -63,11 +63,11 @@ export class CharacterController {
     }
 
     @Get('/char/get')
-    async getPlayers(@Req() req: any): Promise<HttpRespone> {
+    async getPlayers(@Req() req: any): Promise<HttpResponse> {
 
         let payload = req.user as JWTPayload;
 
-        let res = { errorCode: ErrorCode.SUCCESS } as HttpRespone;
+        let res = { errorCode: ErrorCode.SUCCESS } as HttpResponse;
 
         const account = await this.accountRepo.findOneOrFail({
             select: {
@@ -92,10 +92,10 @@ export class CharacterController {
 
     //選擇腳色 (這裡要重新給token)
     @Post('/char/select')
-    async selectPlayer(@Req() req: any, @Body() params: SelectCharParm): Promise<HttpRespone> {
+    async selectPlayer(@Req() req: any, @Body() params: SelectCharParm): Promise<HttpResponse> {
 
         let payload = req.user as JWTPayload;
-        let res = { errorCode: ErrorCode.SUCCESS } as HttpRespone;
+        let res = { errorCode: ErrorCode.SUCCESS } as HttpResponse;
         const char = await this.accountRepo.findOne({ where: { id: payload.userId, characters: { id: params.id } } });
         if (char) {
             //重新簽發token
@@ -110,7 +110,7 @@ export class CharacterController {
 
             return res;
         } else {
-            res.errorCode = ErrorCode.不存在的資料;
+            res.errorCode = ErrorCode.DATA_NOT_EXISTS;
             return res;
         }
     }
@@ -118,7 +118,7 @@ export class CharacterController {
     async PlayerDetail(@Req() req: any) {
         let payload = req.user as JWTPayload;
         console.log('playerId', payload.playerId);
-        let res = { errorCode: ErrorCode.SUCCESS } as HttpRespone;
+        let res = { errorCode: ErrorCode.SUCCESS } as HttpResponse;
         return res;
     }
 

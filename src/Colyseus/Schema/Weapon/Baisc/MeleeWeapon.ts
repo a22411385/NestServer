@@ -1,5 +1,7 @@
-import { WeaponBasic, WeaponAttackResult, AttackFailReason, VisualEffect } from "./WeaponBasic";
+import { WeaponBasic } from "./WeaponBasic";
+import { WeaponAttackResult, AttackFailReason, VisualEffect } from "@/Types";
 import { ServerGameUnit } from "../../Unit/GameUnit";
+import { WeaponType } from "@/Types";
 import { type } from "@colyseus/schema";
 
 /**
@@ -20,7 +22,7 @@ export abstract class MeleeWeapon extends WeaponBasic {
         sweepAngle: number = 0,
         maxTargets: number = 1
     ) {
-        super(weaponId, 'melee', attackRange, baseDamage, attackSpeed);
+        super(weaponId, WeaponType.MELEE, attackRange, baseDamage, attackSpeed);
         this.knockbackForce = knockbackForce;
         this.sweepAngle = sweepAngle;
         this.maxTargets = maxTargets;

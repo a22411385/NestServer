@@ -1,7 +1,13 @@
 import { Client } from "colyseus";
 import { GameRoom } from "../../Rooms/GameRoom";
 import { GameRoomState } from "../../Schema/GameState";
-import { IMessageHandler, PermissionLevel, MessageHandleResult } from "./IMessageHandler";
+import { IMessageHandler, PermissionLevel } from "@/Types";
+
+export interface MessageHandleResult {
+    success: boolean;
+    error?: string;
+    data?: any;
+}
 
 /**
  * 基礎消息處理器抽象類

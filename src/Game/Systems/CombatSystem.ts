@@ -1,7 +1,8 @@
 import { GameRoom } from "../../Colyseus/Rooms/GameRoom";
 import { ServerHero } from "../../Colyseus/Schema/Unit/Hero";
 import { ServerGameUnit } from "../../Colyseus/Schema/Unit/GameUnit";
-import { WeaponAttackResult } from "../../Colyseus/Schema/Weapon/Baisc/WeaponBasic";
+import { WeaponBasic } from "../../Colyseus/Schema/Weapon/Baisc/WeaponBasic";
+import { WeaponAttackResult, WeaponType } from "@/Types";
 import { UnitType } from "../../Colyseus/Schema/GameState";
 import { BattleLogSystem } from "./BattleLogSystem";
 
@@ -86,7 +87,7 @@ export class CombatSystem {
             shouldCreateProjectile: false
         };
 
-        if (weapon.weaponType === 'projectile') {
+        if (weapon.weaponType === WeaponType.PROJECTILE) {
             // 投射武器：延遲傷害處理
             attackData.shouldCreateProjectile = true;
             console.log(`🏹 投射武器攻擊: ${result.weaponId} - 創建投射物`);
@@ -150,7 +151,7 @@ export class CombatSystem {
                 });
                 break;
 
-            case 'projectile':
+            case WeaponType.PROJECTILE:
                 if (visualEffect.data) {
                     const bulletDamage = attackResult.baseDamage || visualEffect.data.damage || 10;
 

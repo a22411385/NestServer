@@ -1,6 +1,7 @@
 import { MapSchema } from "@colyseus/schema";
 import { ServerBullet } from "../../Colyseus/Schema/Bullet";
-import { BulletFactory, BulletCreateConfig, WeaponBulletConfig } from "../Factories/BulletFactory";
+import { BulletCreateConfig, WeaponBulletConfig } from "@/Types";
+import { BulletFactory } from "../Factories/BulletFactory";
 import { GameRoom } from "../../Colyseus/Rooms/GameRoom";
 import { ServerEnemy } from "../../Colyseus/Schema/Unit/Enemy";
 import { ServerHero } from "../../Colyseus/Schema/Unit/Hero";

@@ -31,7 +31,7 @@ async function bootstrap() {
         arr.push(validationErrors[i].property + ":" + Object.values(constraints).join(', '));
       }
       return new BadRequestException({
-        errorCode: ErrorCode.參數錯誤,
+        errorCode: ErrorCode.PARAMETER_ERROR,
         errorMsg: arr,
         content: null
       } as HttpResponse);

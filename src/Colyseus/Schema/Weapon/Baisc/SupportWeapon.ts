@@ -1,5 +1,7 @@
-import { WeaponBasic, WeaponAttackResult, AttackFailReason, VisualEffect } from "./WeaponBasic";
+import { WeaponBasic } from "./WeaponBasic";
+import { WeaponAttackResult, AttackFailReason, VisualEffect } from "@/Types";
 import { ServerGameUnit } from "../../Unit/GameUnit";
+import { WeaponType } from "@/Types";
 import { type } from "@colyseus/schema";
 
 /**
@@ -21,7 +23,7 @@ export abstract class SupportWeapon extends WeaponBasic {
         supportRadius: number = 0,
         canTargetSelf: boolean = true
     ) {
-        super(weaponId, 'support', supportRange, healAmount, attackSpeed);
+        super(weaponId, WeaponType.SUPPORT, supportRange, healAmount, attackSpeed);
         this.healAmount = healAmount;
         this.buffDuration = buffDuration;
         this.supportRadius = supportRadius;

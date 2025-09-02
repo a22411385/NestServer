@@ -1,6 +1,6 @@
 import { Client } from "colyseus";
 import { GameRoom } from "../Rooms/GameRoom";
-import { IMessageHandler } from "./Base/IMessageHandler";
+import { IMessageHandler } from "@/Types";
 import { GameControlHandler } from "./GameControlHandler";
 import { MovementHandler } from "./MovementHandler";
 import { WaveControlHandler } from "./WaveControlHandler";

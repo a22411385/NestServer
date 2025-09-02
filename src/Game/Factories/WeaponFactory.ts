@@ -3,6 +3,7 @@ import { BaseballBat } from "../../Colyseus/Schema/Weapon/MeleeWeapon/BaseballBa
 import { Fireball } from "../../Colyseus/Schema/Weapon/ProjectileWeapon/Fireball";
 import { HealingPotion } from "../../Colyseus/Schema/Weapon/SupportWeapon/HealingPotion";
 import { WEAPON_CONFIGS, WeaponConfig, getWeaponConfig } from "./WeaponConfig";
+import { WeaponType } from "@/Types";
 
 /**
  * 武器工廠 - 負責創建各種武器實例
@@ -65,7 +66,7 @@ export class WeaponFactory {
     /**
      * 根據類型獲取武器
      */
-    public static getWeaponsByType(type: 'melee' | 'projectile' | 'support'): WeaponConfig[] {
+    public static getWeaponsByType(type: WeaponType): WeaponConfig[] {
         return Object.values(WEAPON_CONFIGS).filter(config => config.type === type);
     }
 

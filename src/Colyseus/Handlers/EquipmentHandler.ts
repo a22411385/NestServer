@@ -1,6 +1,6 @@
 import { Client } from "colyseus";
 import { BaseMessageHandler } from "./Base/BaseMessageHandler";
-import { PermissionLevel } from "./Base/IMessageHandler";
+import { PermissionLevel } from "@/Types";
 
 /**
  * 裝備消息處理器

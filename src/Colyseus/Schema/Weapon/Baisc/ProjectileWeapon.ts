@@ -1,5 +1,7 @@
-import { WeaponBasic, WeaponAttackResult, AttackFailReason, VisualEffect } from "./WeaponBasic";
+import { WeaponBasic } from "./WeaponBasic";
+import { WeaponAttackResult, AttackFailReason, VisualEffect } from "@/Types";
 import { ServerGameUnit } from "../../Unit/GameUnit";
+import { WeaponType } from "@/Types";
 import { type } from "@colyseus/schema";
 
 /**
@@ -22,7 +24,7 @@ export class ProjectileWeapon extends WeaponBasic {
         areaOfEffect: number = 0,
         accuracy: number = 1.0
     ) {
-        super(weaponId, 'projectile', attackRange, baseDamage, attackSpeed);
+        super(weaponId, WeaponType.PROJECTILE, attackRange, baseDamage, attackSpeed);
         this.projectileSpeed = projectileSpeed;
         this.pierceCount = pierceCount;
         this.areaOfEffect = areaOfEffect;

@@ -2,20 +2,10 @@
  * 武器配置定義 - 集中管理所有武器的基本信息
  */
 
-export interface WeaponConfig {
-    id: string;
-    name: string;
-    type: 'melee' | 'projectile' | 'support';
-    rarity: 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
-    description?: string;
-    icon?: string;
-    // 基礎屬性
-    baseDamage: number;
-    attackSpeed: number;
-    attackRange: number;
-    // 特殊屬性
-    specialProperties?: Record<string, any>;
-}
+import { ITEM_RATE, WeaponType, WeaponConfigData } from "@/Types";
+
+// 為了向下兼容，保持原來的名稱
+export type WeaponConfig = WeaponConfigData;
 
 /**
  * 武器配置數據庫
@@ -26,8 +16,8 @@ export const WEAPON_CONFIGS: Record<string, WeaponConfig> = {
         id: 'baseball_bat',
 
         name: '球棒',
-        type: 'melee',
-        rarity: 'common',
+        type: WeaponType.MELEE,
+        rarity: ITEM_RATE.COMMON,
         description: '一把普通的球棒，揮擊時有不錯的擊退效果',
         baseDamage: 25,
         attackSpeed: 1200,
@@ -41,8 +31,8 @@ export const WEAPON_CONFIGS: Record<string, WeaponConfig> = {
     iron_sword: {
         id: 'iron_sword',
         name: '鐵劍',
-        type: 'melee',
-        rarity: 'common',
+        type: WeaponType.MELEE,
+        rarity: ITEM_RATE.COMMON,
         description: '堅固的鐵製劍，攻擊速度適中',
         baseDamage: 30,
         attackSpeed: 1000,
@@ -56,8 +46,8 @@ export const WEAPON_CONFIGS: Record<string, WeaponConfig> = {
     flame_sword: {
         id: 'flame_sword',
         name: '烈焰劍',
-        type: 'melee',
-        rarity: 'rare',
+        type: WeaponType.MELEE,
+        rarity: ITEM_RATE.RARE,
         description: '附帶火焰傷害的魔法劍',
         baseDamage: 45,
         attackSpeed: 1100,
@@ -74,8 +64,8 @@ export const WEAPON_CONFIGS: Record<string, WeaponConfig> = {
     fireball: {
         id: 'fireball',
         name: '火球',
-        type: 'projectile',
-        rarity: 'rare',
+        type: WeaponType.PROJECTILE,
+        rarity: ITEM_RATE.RARE,
         description: '發射火球攻擊敵人',
         baseDamage: 35,
         attackSpeed: 1500,
@@ -90,8 +80,8 @@ export const WEAPON_CONFIGS: Record<string, WeaponConfig> = {
     magic_bow: {
         id: 'magic_bow',
         name: '魔法弓',
-        type: 'projectile',
-        rarity: 'uncommon',
+        type: WeaponType.PROJECTILE,
+        rarity: ITEM_RATE.UNCOMMON,
         description: '發射魔法箭矢的弓',
         baseDamage: 28,
         attackSpeed: 800,
@@ -105,8 +95,8 @@ export const WEAPON_CONFIGS: Record<string, WeaponConfig> = {
     lightning_wand: {
         id: 'lightning_wand',
         name: '閃電法杖',
-        type: 'projectile',
-        rarity: 'epic',
+        type: WeaponType.PROJECTILE,
+        rarity: ITEM_RATE.EPIC,
         description: '釋放閃電攻擊多個目標',
         baseDamage: 40,
         attackSpeed: 1200,
@@ -122,8 +112,8 @@ export const WEAPON_CONFIGS: Record<string, WeaponConfig> = {
     healing_potion: {
         id: 'healing_potion',
         name: '治療藥水',
-        type: 'support',
-        rarity: 'common',
+        type: WeaponType.SUPPORT,
+        rarity: ITEM_RATE.COMMON,
         description: '恢復血量的治療藥水',
         baseDamage: 0,
         attackSpeed: 2000,
@@ -138,8 +128,8 @@ export const WEAPON_CONFIGS: Record<string, WeaponConfig> = {
     blessing_staff: {
         id: 'blessing_staff',
         name: '祝福法杖',
-        type: 'support',
-        rarity: 'uncommon',
+        type: WeaponType.SUPPORT,
+        rarity: ITEM_RATE.UNCOMMON,
         description: '為周圍隊友提供屬性增益',
         baseDamage: 0,
         attackSpeed: 3000,
@@ -155,8 +145,8 @@ export const WEAPON_CONFIGS: Record<string, WeaponConfig> = {
     revival_crystal: {
         id: 'revival_crystal',
         name: '復活水晶',
-        type: 'support',
-        rarity: 'legendary',
+        type: WeaponType.SUPPORT,
+        rarity: ITEM_RATE.LEGENDARY,
         description: '能夠復活倒下隊友的神秘水晶',
         baseDamage: 0,
         attackSpeed: 5000,
@@ -180,7 +170,7 @@ export function getWeaponConfig(weaponId: string): WeaponConfig | null {
 /**
  * 獲取指定類型的所有武器
  */
-export function getWeaponsByType(type: 'melee' | 'projectile' | 'support'): WeaponConfig[] {
+export function getWeaponsByType(type: WeaponType): WeaponConfig[] {
     return Object.values(WEAPON_CONFIGS).filter(config => config.type === type);
 }
 

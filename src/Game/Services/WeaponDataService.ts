@@ -1,21 +1,7 @@
 import { WeaponData } from "../../Colyseus/Schema/Weapon/WeaponData";
 import { WeaponBasic } from "../../Colyseus/Schema/Weapon/Baisc/WeaponBasic";
 import { getWeaponConfig } from "../Factories/WeaponConfig";
-
-/**
- * 武器最終屬性結構
- */
-export interface FinalWeaponStats {
-    finalDamage: number;
-    finalRange: number;
-    finalSpeed: number;
-    intBonus: number;
-    agiBonus: number;
-    strBonus: number;
-    vitBonus: number;
-    displayName: string;
-    rarity: string;
-}
+import { FinalWeaponStats } from "@/Types";
 
 /**
  * 武器數據服務 - 專注於武器數據的業務邏輯計算

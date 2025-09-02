@@ -1,39 +1,8 @@
 import { Client } from "colyseus";
+import { IMessageHandler, PermissionLevel } from "@/Types";
 
-/**
- * 消息處理器接口
- */
-export interface IMessageHandler {
-    /**
-     * 處理消息
-     */
-    handle(client: Client, message: any): Promise<void> | void;
-
-    /**
-     * 檢查是否能處理此類型消息
-     */
-    canHandle(type: string): boolean;
-
-    /**
-     * 獲取權限等級
-     */
-    getPermissionLevel(): PermissionLevel;
-
-    /**
-     * 獲取支援的消息類型
-     */
-    getSupportedTypes(): string[];
-}
-
-/**
- * 權限等級枚舉
- */
-export enum PermissionLevel {
-    USER = 'user',
-    HOST = 'host',
-    ADMIN = 'admin',
-    TEST = 'test'
-}
+// IMessageHandler interface 已移動到 Types 資料夾
+// PermissionLevel enum 已移動到 Types 資料夾
 
 /**
  * 消息處理結果

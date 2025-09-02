@@ -8,4 +8,3 @@ export * from './SupportWeapon';
 export * from '../MeleeWeapon/BaseballBat';
 export * from '../ProjectileWeapon/Fireball';
 export * from '../SupportWeapon/HealingPotion';
-export type WeaponType = "melee" | "projectile" | "support";

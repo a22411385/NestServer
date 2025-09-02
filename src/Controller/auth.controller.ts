@@ -4,7 +4,7 @@ import { Repository } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
 import md5 from 'md5';
 import { IsNotEmpty } from 'class-validator';
-import { HttpRespone, JWTPayload } from 'src/struct';
+import { HttpResponse, JWTPayload } from '@/Types';
 
 import { DataCenter, UserData } from 'src/Provider/DataCenter';
 import { AccountORM } from 'src/ORM/account.entity';
@@ -31,10 +31,10 @@ export class AuthController {
     private charRepo: Repository<CharacterORM>
 
     @Post('login')
-    async login(@Body() params: LoginDto): Promise<HttpRespone> {
+    async login(@Body() params: LoginDto): Promise<HttpResponse> {
 
         console.log(params.account, params.password);
-        let res = { errorCode: ErrorCode.SUCCESS } as HttpRespone;
+        let res = { errorCode: ErrorCode.SUCCESS } as HttpResponse;
         const user = await this.usersRepo.findOne({ where: { account: params.account } });
 
         if (!user || user.password !== md5(params.password)) {
@@ -73,7 +73,7 @@ export class AuthController {
     @Post('register')
     async register(@Body() body: { account: string, password: string }) {
 
-        let res = { errorCode: ErrorCode.SUCCESS } as HttpRespone;
+        let res = { errorCode: ErrorCode.SUCCESS } as HttpResponse;
         const user = await this.usersRepo.findOne({ where: { account: body.account } });
 
         if (user) {
@@ -102,6 +102,6 @@ export class AuthController {
     @Post('/game/test')
     async Test() {
 
-        return { errorCode: ErrorCode.SUCCESS } as HttpRespone;
+        return { errorCode: ErrorCode.SUCCESS } as HttpResponse;
     }
 }

@@ -1,45 +1,9 @@
 import { ServerBullet } from "../../Colyseus/Schema/Bullet";
 import { Vector2 } from "../../Colyseus/Schema/Unit/GameUnit";
 import { WeaponBasic } from "../../Colyseus/Schema/Weapon/Baisc/WeaponBasic";
+import { WeaponType, BulletCreateConfig, WeaponBulletConfig, BulletType } from "@/Types";
 
-/**
- * 子彈類型枚舉
- */
-export enum BulletType {
-    BASIC = "basic",
-    PIERCING = "piercing",
-    EXPLOSIVE = "explosive",
-    MAGIC = "magic",
-    ARROW = "arrow",
-    FIREBALL = "fireball"
-}
-
-/**
- * 子彈創建配置
- */
-export interface BulletCreateConfig {
-    ownerId: string;
-    startPosition: { x: number, y: number };
-    direction: { x: number, y: number };
-    damage: number;
-    speed?: number;
-    bulletType?: BulletType;
-    pierceCount?: number;
-    areaOfEffect?: number;
-    lifeTime?: number;
-    scale?: number;
-}
-
-/**
- * 武器子彈配置
- */
-export interface WeaponBulletConfig {
-    weapon: WeaponBasic;
-    startPosition: Vector2;
-    direction: Vector2;
-    ownerId: string;
-    damageMultiplier?: number;
-}
+// 移除重複的interface和enum定義，已搬移到Types資料夾
 
 /**
  * 子彈工廠類 - 負責創建不同類型的子彈
@@ -169,9 +133,9 @@ export class BulletFactory {
     private static getWeaponProjectileSpeed(weapon: WeaponBasic): number {
         // 根據武器類型返回不同的速度
         switch (weapon.weaponType) {
-            case 'projectile': return 400;
-            case 'melee': return 500; // 近戰武器如果有投射物效果
-            case 'support': return 250;
+            case WeaponType.PROJECTILE: return 400;
+            case WeaponType.MELEE: return 500; // 近戰武器如果有投射物效果
+            case WeaponType.SUPPORT: return 250;
             default: return 300;
         }
     }
@@ -181,11 +145,11 @@ export class BulletFactory {
      */
     private static getWeaponBulletType(weapon: WeaponBasic): BulletType {
         switch (weapon.weaponType) {
-            case 'projectile':
+            case WeaponType.PROJECTILE:
                 return BulletType.ARROW;
-            case 'support':
+            case WeaponType.SUPPORT:
                 return BulletType.MAGIC;
-            case 'melee':
+            case WeaponType.MELEE:
                 return BulletType.BASIC;
             default:
                 return BulletType.BASIC;

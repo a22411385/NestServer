@@ -4,7 +4,12 @@
  */
 
 import { RarityType } from "../BaseTypes";
-import { EquipmentBonus } from "./EquipmentTypes";
+import { WeaponAttackResult, AttackEffect, VisualEffect, AttackFailReason } from "../Game/AttackTypes";
+
+/**
+ * 重新導出攻擊相關類型，方便武器系統使用
+ */
+export { WeaponAttackResult, AttackEffect, VisualEffect, AttackFailReason };
 
 /**
  * 武器類型枚舉

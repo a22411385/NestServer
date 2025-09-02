@@ -1,55 +1,13 @@
 import { ServerGameUnit } from "../../Unit/GameUnit";
 import { UnitType } from "../../GameState";
+import { WeaponType, WeaponAttackResult } from "@/Types";
 // 移除 Schema 導入，WeaponBasic 現在是純邏輯層類
-import { WeaponType } from ".";
-
-export interface WeaponAttackResult {
-    success: boolean;
-    weaponId: string;
-    targetIds?: string[];
-    baseDamage: number; // 基礎傷害，實際傷害由 DamageSystem 計算
-    effects?: AttackEffect[];
-    visualEffects?: VisualEffect[];
-    reason?: AttackFailReason;
-    attackData?: {
-        position: { x: number, y: number };
-        direction: { x: number, y: number };
-        range: number;
-        sweepAngle?: number;
-        targetPosition?: { x: number, y: number }; // 投射武器需要目標位置
-        supportRadius?: number; // 支援武器需要支援範圍
-    };
-}
-
-// 攻擊失敗原因
-export enum AttackFailReason {
-    ON_COOLDOWN = 'on_cooldown',
-    NO_TARGET = 'no_target',
-    OUT_OF_RANGE = 'out_of_range'
-}
-
-// 攻擊效果（移除舊的傷害相關邏輯）
-export interface AttackEffect {
-    type: 'knockback' | 'stun' | 'slow';
-    targetId: string;
-    value: number;
-    direction?: { x: number, y: number };
-}
-
-// 視覺效果
-export interface VisualEffect {
-    type: 'swing' | 'slash' | 'explosion' | 'projectile' | 'support' | 'heal';
-    eventType: string; // 對應的廣播事件名稱
-    position: { x: number, y: number };
-    direction?: { x: number, y: number };
-    data?: any;
-}
 
 //武器基類：負責攻擊邏輯和目標選擇，不處理傷害計算
 // 現在是純邏輯層類，不再同步到客戶端
 export abstract class WeaponBasic {
     public weaponId: string = "";
-    public weaponType: WeaponType = 'melee';
+    public weaponType: WeaponType = WeaponType.MELEE;
     public attackRange: number = 0;
     public baseDamage: number = 0; // 基礎傷害
     public attackSpeed: number = 0;  // 攻擊間隔 (毫秒)

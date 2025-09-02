@@ -49,7 +49,7 @@ export class AuthGuard implements CanActivate {
         //player????????????????????
         if (payload.playerId == undefined && (path.startsWith('/player/') || path.startsWith('/game/'))) {
             throw new BadRequestException({
-                errorCode: ErrorCode.??????,
+                errorCode: ErrorCode.NO_CHARACTER_SELECTED,
 
             } as HttpResponse);
         }

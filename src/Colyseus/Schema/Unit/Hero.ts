@@ -2,7 +2,8 @@ import { ArraySchema, type } from "@colyseus/schema";
 import { UnitType } from "../GameState";
 
 import { ServerGameUnit } from "./GameUnit";
-import { WeaponAttackResult, WeaponBasic } from "../Weapon/Baisc/WeaponBasic";
+import { WeaponAttackResult } from "@/Types";
+import { WeaponBasic } from "../Weapon/Baisc/WeaponBasic";
 import { ServerItem } from "../Item/ServerItem";
 import { WeaponData } from "../Weapon/WeaponData";
 import { WeaponSystemFacade } from "../../../Game/Systems/WeaponSystemFacade";
