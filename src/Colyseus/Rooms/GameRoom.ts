@@ -9,6 +9,7 @@ import { MessageHandler } from "@/Colyseus/Handlers/MessageHandler";
 import { ServerHero } from "@/Colyseus/Schema/Unit/Hero";
 import { MovementSystem } from "@/Game/Systems/MovemnetSystem";
 import { UnitManager } from "../../Game/Managers/UnitManager";
+import { EquipmentManager } from "@/Game/Managers/EquipmentManager"; // 🆕 添加裝備管理器
 import { MiddleRoom } from "./MiddleRoom";
 import { LobbyPlayer, LobbyRoomInfo } from "../Schema/LobbyState";
 import { LobbyRoomBus } from "./LobbyRoom";
@@ -53,6 +54,7 @@ export class GameRoom extends MiddleRoom<GameRoomState> {
     public damageSystem: DamageSystem;
     public bulletSystem: BulletSystem; // 🆕 添加子彈系統
     public combatSystem: CombatSystem; // 🆕 戰鬥系統
+    public equipmentManager: EquipmentManager; // 🆕 裝備管理器
 
     public roomInfo: LobbyRoomInfo;
 
@@ -71,6 +73,7 @@ export class GameRoom extends MiddleRoom<GameRoomState> {
         this.damageSystem = new DamageSystem(this); // 初始化傷害系統
         this.bulletSystem = new BulletSystem(this); // 🆕 初始化子彈系統
         this.combatSystem = new CombatSystem(this); // 🆕 初始化戰鬥系統
+        this.equipmentManager = new EquipmentManager(this); // 🆕 初始化裝備管理器
         this.gameManager = new GameManager(this);
 
         this.onMessage("*", (client, type, message) =>

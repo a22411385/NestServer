@@ -1,99 +1,55 @@
 import { Schema, type } from "@colyseus/schema";
 
 /**
- * 武器數據類 - 存儲武器的狀態信息（同步到客戶端）
+ * 武器數據類 - 純數據存儲，負責同步武器狀態到客戶端
+ * 不包含業務邏輯，所有計算委託給 WeaponDataService
  */
 export class WeaponData extends Schema {
-    @type("string") weaponId: string = "";
-    @type("string") weaponType: string = "";
-    @type("number") level: number = 1;
-    @type("number") exp: number = 0;
-    @type("number") enhanceLevel: number = 0;
-    @type("number") durability: number = 100;
-    @type("boolean") isEquipped: boolean = false;
+    // === 唯一識別 ===
+    @type("string") uniqueId: string = "";              // 武器唯一識別碼
 
-    // 武器獲得時間（用於排序）
-    @type("number") obtainedAt: number = 0;
+    // === 基本信息 ===
+    @type("string") weaponId: string = "";              // 武器類型ID
+    @type("string") weaponType: string = "";            // 武器類型
+
+    // === 玩家培養數據 ===
+    @type("number") level: number = 1;                  // 武器等級
+    @type("number") exp: number = 0;                    // 當前經驗
+    @type("number") enhanceLevel: number = 0;           // 強化等級
+    @type("number") durability: number = 100;           // 耐久度
+    @type("boolean") isEquipped: boolean = false;       // 是否裝備中
+
+    // === 獲得信息 ===
+    @type("number") obtainedAt: number = 0;             // 獲得時間（用於排序）
 
     constructor(weaponId: string = "") {
         super();
         this.weaponId = weaponId;
+        this.uniqueId = this.generateUniqueId();
         this.obtainedAt = Date.now();
-
-        // 根據武器ID設置類型
-        this.weaponType = this.getWeaponTypeFromId(weaponId);
+        this.weaponType = this.inferWeaponType(weaponId);
     }
 
     /**
-     * 根據武器ID推斷武器類型
+     * 生成唯一識別碼
      */
-    private getWeaponTypeFromId(weaponId: string): string {
-        if (weaponId.includes('bow') || weaponId.includes('gun') || weaponId.includes('wand')) {
+    private generateUniqueId(): string {
+        const timestamp = Date.now().toString(36);
+        const random = Math.random().toString(36).substring(2, 8);
+        return `weapon_${timestamp}_${random}`;
+    }
+
+    /**
+     * 簡單的武器類型推斷（最小邏輯）
+     */
+    private inferWeaponType(weaponId: string): string {
+        if (weaponId.includes('bow') || weaponId.includes('gun') || weaponId.includes('ball')) {
             return 'projectile';
         } else if (weaponId.includes('sword') || weaponId.includes('bat') || weaponId.includes('knife')) {
             return 'melee';
-        } else if (weaponId.includes('heal') || weaponId.includes('buff')) {
+        } else if (weaponId.includes('heal') || weaponId.includes('buff') || weaponId.includes('staff') || weaponId.includes('wand')) {
             return 'support';
         }
         return 'melee'; // 默認近戰
-    }
-
-    /**
-     * 獲取武器顯示名稱
-     */
-    public getDisplayName(): string {
-        let baseName = this.weaponId.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-
-        if (this.enhanceLevel > 0) {
-            baseName += ` +${this.enhanceLevel}`;
-        }
-
-        if (this.level > 1) {
-            baseName += ` (Lv.${this.level})`;
-        }
-
-        return baseName;
-    }
-
-    /**
-     * 計算武器經驗需求
-     */
-    public getExpRequirement(): number {
-        return this.level * 100 + (this.level - 1) * 50;
-    }
-
-    /**
-     * 增加經驗
-     */
-    public addExp(amount: number): boolean {
-        this.exp += amount;
-        const requiredExp = this.getExpRequirement();
-
-        if (this.exp >= requiredExp && this.level < 100) {
-            this.exp -= requiredExp;
-            this.level += 1;
-            return true; // 升級了
-        }
-
-        return false; // 沒升級
-    }
-
-    /**
-     * 強化武器
-     */
-    public enhance(): boolean {
-        if (this.enhanceLevel >= 15) return false; // 最高強化+15
-
-        this.enhanceLevel += 1;
-        this.durability = Math.min(100, this.durability + 5);
-
-        return true;
-    }
-
-    /**
-     * 修復耐久度
-     */
-    public repair(amount: number = 100): void {
-        this.durability = Math.min(100, this.durability + amount);
     }
 }
