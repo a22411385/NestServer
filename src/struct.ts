@@ -9,6 +9,11 @@ export interface JWTPayload {
 
 }
 
+export interface HttpRespone {
+    content: unknown;
+    errorCode: number;
+
+}
 // export interface WebSocketPayload {
 
 //     userId: number;

@@ -13,27 +13,14 @@ import { EquipmentManager } from "@/Game/Managers/EquipmentManager"; // 🆕 添
 import { MiddleRoom } from "./MiddleRoom";
 import { LobbyPlayer, LobbyRoomInfo } from "../Schema/LobbyState";
 import { LobbyRoomBus } from "./LobbyRoom";
-import { ServerBullet } from "@/Colyseus/Schema/Bullet";
-import { Vector2, ServerGameUnit } from "@/Colyseus/Schema/Unit/GameUnit";
-import { ServerEnemy } from "../Schema/Unit/Enemy";
-import { WeaponAttackResult } from "../Schema/Weapon/Baisc/WeaponBasic";
 import { DamageSystem } from "../../Game/Systems/DamageSystem";
 import { BulletSystem } from "@/Game/Systems/BulletSystem";
-import { BulletFactory, BulletCreateConfig } from "@/Game/Factories/BulletFactory";
-import { BattleMathUtils } from "../../Shared/BattleMathUtils";
+
 // 🆕 引入新的系統
 import { CombatSystem } from "@/Game/Systems/CombatSystem";
-import { BattleLogSystem } from "@/Game/Systems/BattleLogSystem";
 
-export interface GameRoomOptions {
-    roomName: string;
-    maxPlayers: number;
-    hostId: string;
-    hostName: string;
-    hostCharacterId: number;
-    roomType?: "normal" | "test"; // 新增：房間類型
-    isPrivate?: boolean;
-}
+// 🆕 引入統一類型定義
+import { GameRoomOptions } from "@/Types";
 
 export class GameRoom extends MiddleRoom<GameRoomState> {
 

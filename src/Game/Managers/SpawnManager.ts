@@ -1,31 +1,8 @@
 import { Vector2 } from "../../Colyseus/Schema/Unit/GameUnit";
 import { ServerGameUnit } from "../../Colyseus/Schema/Unit/GameUnit";
-import { BattleMathUtils } from "../../Shared/BattleMathUtils";
 
-/**
- * 生成位置類型
- */
-export enum SpawnType {
-    RANDOM_EDGE = "random_edge",    // 隨機邊緣
-    NORTH_EDGE = "north_edge",      // 北邊緣
-    SOUTH_EDGE = "south_edge",      // 南邊緣
-    EAST_EDGE = "east_edge",        // 東邊緣
-    WEST_EDGE = "west_edge",        // 西邊緣
-    CORNERS = "corners",            // 四個角落
-    CIRCLE_FORMATION = "circle",    // 圓形陣型
-    BOSS_CENTER = "boss_center"     // Boss 專用中心位置
-}
-
-/**
- * 生成位置配置
- */
-export interface SpawnConfig {
-    type: SpawnType;
-    count: number;
-    minDistanceFromPlayers: number;
-    minDistanceBetweenEnemies: number;
-    maxAttempts: number;
-}
+// 🆕 使用統一類型定義
+import { SpawnType, SpawnConfig } from "@/Types";
 
 /**
  * 生成位置管理器 - 負責計算和驗證敵人生成位置
@@ -33,8 +10,6 @@ export interface SpawnConfig {
 export class SpawnManager {
     private mapWidth: number;
     private mapHeight: number;
-    private safeZoneRadius: number = 200; // 玩家周圍的安全區域
-
     constructor(mapWidth: number, mapHeight: number) {
         this.mapWidth = mapWidth;
         this.mapHeight = mapHeight;
@@ -303,10 +278,4 @@ export class SpawnManager {
         this.mapHeight = height;
     }
 
-    /**
-     * 設置安全區域半徑
-     */
-    public setSafeZoneRadius(radius: number): void {
-        this.safeZoneRadius = radius;
-    }
 }

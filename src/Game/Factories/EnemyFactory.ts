@@ -2,31 +2,8 @@ import { ServerEnemy } from "../../Colyseus/Schema/Unit/Enemy";
 import { Vector2 } from "../../Colyseus/Schema/Unit/GameUnit";
 import { UnitType } from "../../Colyseus/Schema/GameState";
 
-/**
- * 敵人類型枚舉
- */
-export enum EnemyType {
-    NORMAL_ZOMBIE = 1,
-    FAST_ZOMBIE = 2,
-    STRONG_ZOMBIE = 3,
-    BOSS_ZOMBIE = 4
-}
-
-/**
- * 敵人配置介面
- */
-export interface EnemyConfig {
-    type: EnemyType;
-    hp: number;
-    maxHp: number;
-    attackDamage: number;
-    moveSpeed: number;
-    scale: number;
-    collisionWidth: number;
-    collisionHeight: number;
-    experienceReward: number;
-    goldReward: number;
-}
+// 🆕 使用統一類型定義
+import { EnemyType, EnemyConfig } from "@/Types";
 
 /**
  * 敵人工廠類 - 負責創建不同類型的敵人

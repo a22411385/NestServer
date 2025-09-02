@@ -3,13 +3,10 @@ import { CharacterORM } from 'src/ORM/charater.entity';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNotEmpty } from 'class-validator';
-
-import { JWTPayload } from 'src/struct';
-import { ErrorCode } from 'src/Shared/ErrorCode';
-import { 職業種類 } from 'src/Shared/Enum';
+import { HttpRespone, JWTPayload } from 'src/struct';
 import { JwtService } from '@nestjs/jwt';
-import { HttpRespone } from 'src/Shared/struct';
 import { AccountORM } from 'src/ORM/account.entity';
+import { ErrorCode } from './ErrorCode';
 
 const MAX_CHAR_NUM = 8;
 
@@ -58,7 +55,6 @@ export class CharacterController {
         let character = new CharacterORM();
         character.exp = 0;
 
-        character.type = 職業種類.平民;
         character.name = params.name;
         character.user = account;
         await this.characterRepo.save(character);
@@ -76,7 +72,7 @@ export class CharacterController {
         const account = await this.accountRepo.findOneOrFail({
             select: {
                 characters: {
-                    "exp": true, "name": true, "type": true, "id": true
+                    "exp": true, "name": true, "id": true
                 }
             }, where: { id: payload.userId },
             relations: { characters: true, },
@@ -86,7 +82,7 @@ export class CharacterController {
             id: char.id,
             name: char.name,
             exp: char.exp,
-            type: char.type,
+
             lv: char.Lv, // 使用 getter 計算等級
         }));;
 

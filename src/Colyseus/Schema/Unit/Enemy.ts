@@ -2,7 +2,7 @@ import { MapSchema, type } from "@colyseus/schema";
 import { UnitType } from "../GameState";
 import { ServerHero } from "./Hero";
 import { ServerGameUnit } from "./GameUnit";
-import { Vector2, BattleMathUtils } from "@/Shared/BattleMathUtils";
+import { Vector2, BattleMathUtils } from "@/Util/BattleMathUtils";
 
 // 殭屍 - 伺服器端完整版本
 export class ServerEnemy extends ServerGameUnit {

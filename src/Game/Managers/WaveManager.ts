@@ -1,68 +1,20 @@
-import { EnemyFactory, EnemyType } from "../Factories/EnemyFactory";
-import { SpawnManager, SpawnType, SpawnConfig } from "./SpawnManager";
+import { EnemyFactory } from "../Factories/EnemyFactory";
+import { SpawnManager } from "./SpawnManager";
 import { Vector2 } from "../../Colyseus/Schema/Unit/GameUnit";
 import { ServerEnemy } from "../../Colyseus/Schema/Unit/Enemy";
 import { ServerGameUnit } from "../../Colyseus/Schema/Unit/GameUnit";
 
-/**
- * 波次狀態枚舉
- */
-export enum WaveState {
-    PREPARING = "preparing",    // 準備階段
-    SPAWNING = "spawning",      // 生成階段
-    ACTIVE = "active",          // 戰鬥階段
-    COMPLETED = "completed",    // 完成階段
-    FAILED = "failed"           // 失敗階段
-}
-
-/**
- * 遊戲流程狀態枚舉
- */
-export enum GameFlowState {
-    STOPPED = "stopped",
-    PREPARE = "prepare",
-    BATTLE = "battle",
-    REST = "rest",
-    GAME_OVER = "game_over"
-}
-
-/**
- * 遊戲流程配置
- */
-export interface GameFlowConfig {
-    prepareTime: number;    // 準備時間（秒）
-    battleTime: number;     // 戰鬥時間（秒）
-    restTime: number;       // 休息時間（秒）
-    maxWaves: number;       // 最大波次數
-}
-
-/**
- * 波次配置介面
- */
-export interface WaveConfig {
-    waveNumber: number;
-    enemyTypes: EnemyType[];
-    enemyCount: number;
-    spawnType: SpawnType;
-    preparationTime: number;    // 準備時間（毫秒）
-    spawnInterval: number;      // 生成間隔（毫秒）
-    waveTimeout: number;        // 波次超時時間（毫秒）
-    isBossWave: boolean;
-    rewards: {
-        experience: number;
-        gold: number;
-        items?: string[];
-    };
-}
-
-/**
- * 波次事件介面
- */
-export interface WaveEvent {
-    type: 'wave_start' | 'wave_complete' | 'wave_failed' | 'enemy_spawned' | 'all_enemies_spawned';
-    waveNumber: number;
-    data?: any;
-}
+// 🆕 使用統一類型定義
+import {
+    EnemyType,
+    SpawnType,
+    SpawnConfig,
+    WaveState,
+    GameFlowState,
+    GameFlowConfig,
+    WaveConfig,
+    WaveEvent
+} from "@/Types";
 
 /**
  * 波次管理器 - 負責管理遊戲波次、敵人生成時機和獎勵分發

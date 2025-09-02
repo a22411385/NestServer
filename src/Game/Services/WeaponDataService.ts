@@ -202,6 +202,16 @@ export class WeaponDataService {
     }
 
     /**
+     * 檢查武器是否可以升級
+     */
+    static canLevelUp(weaponData: WeaponData): boolean {
+        if (weaponData.level >= 100) return false; // 最高等級
+
+        const requiredExp = this.getExpRequirement(weaponData.level);
+        return weaponData.exp >= requiredExp;
+    }
+
+    /**
      * 計算武器價值（用於排序等）
      */
     static calculateValue(weaponData: WeaponData): number {

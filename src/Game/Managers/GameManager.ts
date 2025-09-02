@@ -1,12 +1,12 @@
 import { Delayed } from "colyseus";
 import { RoomStateType, GameRoomState } from "../../Colyseus/Schema/GameState";
-import { delay } from "../../Util/Utils";
 import { GameRoom } from "../../Colyseus/Rooms/GameRoom";
 import { EnemySystem } from "../Systems/EnemySystem";
 import { MovementSystem } from "../Systems/MovemnetSystem";
 import { LobbyRoomBus } from "../../Colyseus/Rooms/LobbyRoom";
 import { UnitType } from "../../Colyseus/Schema/GameState";
 import { WeaponInstanceManager } from "./WeaponInstanceManager";
+import { PlayerManager } from "./PlayerManager";
 
 const RoundTimeSetting = {
     prepare: 3,
@@ -32,6 +32,7 @@ export class GameManager {
 
     private enemySystem: EnemySystem;
     private movementSystem: MovementSystem;
+    private playerManager: PlayerManager; // 🆕 添加 PlayerManager 引用
     private gameTime: number = 0;
 
     constructor(room: GameRoom) {
@@ -39,6 +40,7 @@ export class GameManager {
         this.state = room.state;
         this.enemySystem = room.enemySystem;
         this.movementSystem = room.movementSystem;
+        this.playerManager = room.playerManager; // 🆕 獲取 PlayerManager 引用
 
         // 🆕 初始化武器實例管理器
         WeaponInstanceManager.initialize();
@@ -63,6 +65,10 @@ export class GameManager {
     public startGame(): void {
         console.log(`🎮 Game started in room ${this.room.roomId}`);
         this.setRoomState("playing");
+
+        // 🆕 初始化所有玩家的 Hero 單位
+        this.playerManager.initializeAllHeroes();
+
         // 初始化遊戲核心狀態
         this.state.gameCore.waveNumber = 1;
         this.state.gameCore.status = 'prepare';

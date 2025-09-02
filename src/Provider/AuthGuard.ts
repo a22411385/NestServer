@@ -7,9 +7,9 @@ import {
 
 import { JwtService } from '@nestjs/jwt';
 import { Request } from 'express';
-import { ErrorCode } from 'src/Shared/ErrorCode';
-import { HttpRespone } from 'src/Shared/struct';
-import { JWTPayload } from 'src/struct';
+import { ErrorCode } from '@/Controller/ErrorCode';
+// ?? ????????
+import { HttpResponse, JWTPayload } from '@/Types';
 
 
 @Injectable()
@@ -28,7 +28,7 @@ export class AuthGuard implements CanActivate {
             throw new BadRequestException({
                 errorCode: ErrorCode.VERIFICATION_EXPIRED,
 
-            } as HttpRespone);
+            } as HttpResponse);
         }
         let payload: JWTPayload;
         try {
@@ -43,15 +43,15 @@ export class AuthGuard implements CanActivate {
             throw new BadRequestException({
                 errorCode: ErrorCode.VERIFICATION_EXPIRED,
 
-            } as HttpRespone);
+            } as HttpResponse);
         }
 
-        //player路由下要檢查是不是有playerToken
+        //player????????????????????
         if (payload.playerId == undefined && (path.startsWith('/player/') || path.startsWith('/game/'))) {
             throw new BadRequestException({
-                errorCode: ErrorCode.尚未選擇角色,
+                errorCode: ErrorCode.??????,
 
-            } as HttpRespone);
+            } as HttpResponse);
         }
 
 

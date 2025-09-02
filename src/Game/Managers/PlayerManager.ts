@@ -5,8 +5,6 @@ import { ServerHero } from "../../Colyseus/Schema/Unit/Hero";
 import { Vector2 } from "../../Colyseus/Schema/Unit/GameUnit";
 import { LobbyPlayer } from "../../Colyseus/Schema/LobbyState";
 
-const mapSize = 1000;
-
 /**
  * 玩家管理器 - 負責處理玩家的生命週期、狀態管理和 Hero 單位管理
  */

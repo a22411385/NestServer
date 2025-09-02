@@ -1,18 +1,15 @@
-import { Room, Client, Delayed } from "colyseus";
+import { Delayed } from "colyseus";
 import { MapSchema } from "@colyseus/schema";
 import { GameRoomState, UnitType } from "../../Colyseus/Schema/GameState";
-import { GameManager } from "../Managers/GameManager";
 import { IdGenerator } from "../../Util/IdGenerator";
 import { ServerEnemy } from "../../Colyseus/Schema/Unit/Enemy";
 import { ServerHero } from "../../Colyseus/Schema/Unit/Hero";
 import { GameRoom } from "../../Colyseus/Rooms/GameRoom";
 import { Vector2 } from "../../Colyseus/Schema/Unit/GameUnit";
-import { WaveManager, WaveState } from "../Managers/WaveManager";
-import { EnemyType } from "../Factories/EnemyFactory";
+import { WaveManager } from "../Managers/WaveManager";
 import { EnemyCoordinationSystem } from "./EnemyCoordinationSystem";
 
 const mapSize = 1000;
-const maxZombies = 50;
 
 /**
  * 敵人系統 - 負責敵人管理、AI 更新和波次管理
@@ -21,7 +18,6 @@ export class EnemySystem {
     private room: GameRoom;
     private state: GameRoomState;
     private enemySpawnTimer: Delayed | null = null;
-    private gameManager: GameManager | null = null;
     private waveManager: WaveManager;
     private enemyCoordination: EnemyCoordinationSystem;
 
@@ -40,13 +36,6 @@ export class EnemySystem {
         this.waveManager.setGetCurrentUnitsCallback(() => {
             return Array.from(this.state.allUnits.values());
         });
-    }
-
-    /**
-     * 設置 GameManager 引用
-     */
-    setGameManager(gameManager: GameManager): void {
-        this.gameManager = gameManager;
     }
 
     /**

@@ -1,4 +1,5 @@
 import { Schema, type } from "@colyseus/schema";
+import { WEAPON_CONFIGS } from "../../../Game/Factories/WeaponConfig";
 
 /**
  * 武器數據類 - 純數據存儲，負責同步武器狀態到客戶端
@@ -11,6 +12,10 @@ export class WeaponData extends Schema {
     // === 基本信息 ===
     @type("string") weaponId: string = "";              // 武器類型ID
     @type("string") weaponType: string = "";            // 武器類型
+    @type("string") name: string = "";                  // 武器英文名
+    // @type("string") displayName: string = "";           // 武器顯示名稱
+    @type("string") description: string = "";           // 武器描述
+    @type("string") rarity: string = "common";          // 稀有度
 
     // === 玩家培養數據 ===
     @type("number") level: number = 1;                  // 武器等級
@@ -27,7 +32,18 @@ export class WeaponData extends Schema {
         this.weaponId = weaponId;
         this.uniqueId = this.generateUniqueId();
         this.obtainedAt = Date.now();
-        this.weaponType = this.inferWeaponType(weaponId);
+
+        // 從武器配置載入顯示資訊
+        const config = WEAPON_CONFIGS[weaponId];
+        if (config) {
+            this.name = config.name;
+
+            this.description = config.description || "";
+            this.rarity = config.rarity;
+            this.weaponType = config.type;
+        } else {
+            this.weaponType = this.inferWeaponType(weaponId);
+        }
     }
 
     /**

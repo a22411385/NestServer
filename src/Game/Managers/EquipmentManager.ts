@@ -2,68 +2,12 @@ import { GameRoom } from "../../Colyseus/Rooms/GameRoom";
 import { GameRoomState } from "../../Colyseus/Schema/GameState";
 import { ServerHero } from "../../Colyseus/Schema/Unit/Hero";
 import { ServerItem } from "../../Colyseus/Schema/Item/ServerItem";
-import { Client } from "colyseus";
-import { WeaponDataService } from "../Services/WeaponDataService";
+import { WeaponSystemFacade } from "../Systems/WeaponSystemFacade";
 
-/**
- * 裝備類型枚舉
- */
-export enum EquipmentType {
-    WEAPON = "weapon",
-    ARMOR = "armor",
-    ACCESSORY = "accessory",
-    CONSUMABLE = "consumable"
-}
-
-/**
- * 裝備部位枚舉
- */
-export enum EquipmentSlot {
-    MAIN_HAND = "mainHand",
-    OFF_HAND = "offHand",
-    HEAD = "head",
-    CHEST = "chest",
-    LEGS = "legs",
-    FEET = "feet",
-    RING = "ring",
-    NECKLACE = "necklace"
-}
-
-/**
- * 裝備屬性加成接口
- */
-export interface EquipmentBonus {
-    hpBonus?: number;
-    mpBonus?: number;
-    attackBonus?: number;
-    defenseBonus?: number;
-    speedBonus?: number;
-    hpMultiplier?: number;
-    attackMultiplier?: number;
-    speedMultiplier?: number;
-    mpMultiplier?: number;
-}
-
-/**
- * 裝備數據接口
- */
-export interface EquipmentData {
-    id: string;
-    name: string;
-    type: EquipmentType;
-    slot?: EquipmentSlot;
-    level: number;
-    rarity: 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
-    bonus: EquipmentBonus;
-    requirements?: {
-        level?: number;
-        stats?: Record<string, number>;
-    };
-    durability?: {
-        current: number;
-        max: number;
-    };
-}
+// 🆕 使用統一類型定義
+import {
+    EquipmentBonus,
+} from "@/Types";
 
 /**
  * 裝備管理器 - 負責處理裝備穿脫、屬性計算和驗證
@@ -232,7 +176,7 @@ export class EquipmentManager {
                     slotIndex: i,
                     item: weaponData ? {
                         id: weaponData.weaponId,
-                        name: WeaponDataService.generateDisplayName(weaponData),
+                        name: WeaponSystemFacade.getWeaponDisplayName(weaponData),
                         equipped: true
                     } : null
                 });

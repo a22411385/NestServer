@@ -4,14 +4,13 @@ import { Repository } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
 import md5 from 'md5';
 import { IsNotEmpty } from 'class-validator';
-import { JWTPayload } from 'src/struct';
+import { HttpRespone, JWTPayload } from 'src/struct';
 
 import { DataCenter, UserData } from 'src/Provider/DataCenter';
 import { AccountORM } from 'src/ORM/account.entity';
 import { CharacterORM } from 'src/ORM/charater.entity';
 import { InjectRepository } from '@nestjs/typeorm';
-import { ErrorCode } from 'src/Shared/ErrorCode';
-import { HttpRespone } from 'src/Shared/struct';
+import { ErrorCode } from './ErrorCode';
 
 class LoginDto {
     @IsNotEmpty()

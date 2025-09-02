@@ -35,7 +35,7 @@ export class WeaponFactory {
         try {
             const weapon = new weaponClass();
             // 應用配置數據到武器實例
-            weapon.name = config.displayName;
+            weapon.name = config.name;
             weapon.rarity = config.rarity;
             weapon.baseDamage = config.baseDamage;
             weapon.attackSpeed = config.attackSpeed;

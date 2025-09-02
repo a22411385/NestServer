@@ -5,7 +5,6 @@
 export interface WeaponConfig {
     id: string;
     name: string;
-    displayName: string;
     type: 'melee' | 'projectile' | 'support';
     rarity: 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
     description?: string;
@@ -25,8 +24,8 @@ export const WEAPON_CONFIGS: Record<string, WeaponConfig> = {
     // =================== 近戰武器 ===================
     baseball_bat: {
         id: 'baseball_bat',
-        name: 'Baseball Bat',
-        displayName: '球棒',
+
+        name: '球棒',
         type: 'melee',
         rarity: 'common',
         description: '一把普通的球棒，揮擊時有不錯的擊退效果',
@@ -41,8 +40,7 @@ export const WEAPON_CONFIGS: Record<string, WeaponConfig> = {
 
     iron_sword: {
         id: 'iron_sword',
-        name: 'Iron Sword',
-        displayName: '鐵劍',
+        name: '鐵劍',
         type: 'melee',
         rarity: 'common',
         description: '堅固的鐵製劍，攻擊速度適中',
@@ -57,8 +55,7 @@ export const WEAPON_CONFIGS: Record<string, WeaponConfig> = {
 
     flame_sword: {
         id: 'flame_sword',
-        name: 'Flame Sword',
-        displayName: '烈焰劍',
+        name: '烈焰劍',
         type: 'melee',
         rarity: 'rare',
         description: '附帶火焰傷害的魔法劍',
@@ -76,8 +73,7 @@ export const WEAPON_CONFIGS: Record<string, WeaponConfig> = {
     // =================== 遠程武器 ===================
     fireball: {
         id: 'fireball',
-        name: 'Fireball',
-        displayName: '火球',
+        name: '火球',
         type: 'projectile',
         rarity: 'rare',
         description: '發射火球攻擊敵人',
@@ -93,8 +89,7 @@ export const WEAPON_CONFIGS: Record<string, WeaponConfig> = {
 
     magic_bow: {
         id: 'magic_bow',
-        name: 'Magic Bow',
-        displayName: '魔法弓',
+        name: '魔法弓',
         type: 'projectile',
         rarity: 'uncommon',
         description: '發射魔法箭矢的弓',
@@ -109,8 +104,7 @@ export const WEAPON_CONFIGS: Record<string, WeaponConfig> = {
 
     lightning_wand: {
         id: 'lightning_wand',
-        name: 'Lightning Wand',
-        displayName: '閃電法杖',
+        name: '閃電法杖',
         type: 'projectile',
         rarity: 'epic',
         description: '釋放閃電攻擊多個目標',
@@ -127,8 +121,7 @@ export const WEAPON_CONFIGS: Record<string, WeaponConfig> = {
     // =================== 支援武器 ===================
     healing_potion: {
         id: 'healing_potion',
-        name: 'Healing Potion',
-        displayName: '治療藥水',
+        name: '治療藥水',
         type: 'support',
         rarity: 'common',
         description: '恢復血量的治療藥水',
@@ -144,8 +137,7 @@ export const WEAPON_CONFIGS: Record<string, WeaponConfig> = {
 
     blessing_staff: {
         id: 'blessing_staff',
-        name: 'Blessing Staff',
-        displayName: '祝福法杖',
+        name: '祝福法杖',
         type: 'support',
         rarity: 'uncommon',
         description: '為周圍隊友提供屬性增益',
@@ -162,8 +154,7 @@ export const WEAPON_CONFIGS: Record<string, WeaponConfig> = {
 
     revival_crystal: {
         id: 'revival_crystal',
-        name: 'Revival Crystal',
-        displayName: '復活水晶',
+        name: '復活水晶',
         type: 'support',
         rarity: 'legendary',
         description: '能夠復活倒下隊友的神秘水晶',

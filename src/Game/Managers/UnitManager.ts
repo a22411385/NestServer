@@ -3,9 +3,8 @@ import { IdGenerator } from "@/Util/IdGenerator";
 import { ServerEnemy } from "../../Colyseus/Schema/Unit/Enemy";
 import { Client, Room } from "colyseus";
 import { GameRoomState, UnitType } from "../../Colyseus/Schema/GameState";
-import { ServerGameUnit, Vector2 } from "../../Colyseus/Schema/Unit/GameUnit";
-import { ServerHero, StatType } from "../../Colyseus/Schema/Unit/Hero";
-import { MapSchema } from "@colyseus/schema";
+import { Vector2 } from "@/Colyseus/Schema/Unit/GameUnit";
+import { StatType } from "@/Colyseus/Schema/Unit/Hero";
 
 const MAX_ENEMY_COUNT = 100;
 const ZombieName = ["普通殭屍", "快速殭屍", "強壯殭屍"];

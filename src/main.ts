@@ -2,8 +2,9 @@ import { NestFactory, Reflector } from '@nestjs/core';
 import { AppModule } from './app.module';
 import dotenv from 'dotenv';
 import { BadRequestException, INestApplicationContext, ValidationError, ValidationPipe } from '@nestjs/common';
-import { ErrorCode } from './Shared/ErrorCode';
-import { HttpRespone } from './Shared/struct';
+import { ErrorCode } from './Controller/ErrorCode';
+// ?? ????????
+import { HttpResponse } from '@/Types';
 import { SetMetadata } from '@nestjs/common';
 import { ColyseusServer } from './Colyseus/ColyseusServer';
 
@@ -33,22 +34,19 @@ async function bootstrap() {
         errorCode: ErrorCode.參數錯誤,
         errorMsg: arr,
         content: null
-      } as HttpRespone);
+      } as HttpResponse);
     },
   }));
 
 
   await app.listen(process.env.PORT ?? 8000, 'localhost');
 
-  // 啟動 Colyseus 伺服器
+
   const colyseusServer = new ColyseusServer();
   await colyseusServer.listen(3001);
 
-  console.log(`🚀 NestJS server running on: http://localhost:${process.env.PORT ?? 8000}`);
-  console.log(`🎮 Colyseus server running on: http://localhost:3001`);
-
-  //const testSimulator = app.get(TestSimulatorService);
-  //await testSimulator.run();
+  console.log(`NestJS server running on: http://localhost:${process.env.PORT ?? 8000}`);
+  console.log(`Colyseus server running on: http://localhost:3001`);
 
 }
 bootstrap();

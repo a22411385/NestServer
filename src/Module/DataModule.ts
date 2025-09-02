@@ -1,6 +1,5 @@
 import { Module } from "@nestjs/common";
 import { TypeOrmModule } from "@nestjs/typeorm";
-import { ItemEditorController } from "src/Controller/itemEditor.controller";
 
 import { AccountORM } from "src/ORM/account.entity";
 import { DataCenter } from "src/Provider/DataCenter";

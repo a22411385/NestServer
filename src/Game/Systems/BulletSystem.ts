@@ -2,11 +2,10 @@ import { MapSchema } from "@colyseus/schema";
 import { ServerBullet } from "../../Colyseus/Schema/Bullet";
 import { BulletFactory, BulletCreateConfig, WeaponBulletConfig } from "../Factories/BulletFactory";
 import { GameRoom } from "../../Colyseus/Rooms/GameRoom";
-import { ServerGameUnit } from "../../Colyseus/Schema/Unit/GameUnit";
 import { ServerEnemy } from "../../Colyseus/Schema/Unit/Enemy";
 import { ServerHero } from "../../Colyseus/Schema/Unit/Hero";
 import { UnitType } from "../../Colyseus/Schema/GameState";
-import { BattleMathUtils } from "../../Shared/BattleMathUtils";
+import { BattleMathUtils } from "../../Util/BattleMathUtils";
 
 /**
  * 子彈系統 - 負責子彈的創建、更新和碰撞檢測

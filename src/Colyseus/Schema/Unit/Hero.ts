@@ -5,8 +5,7 @@ import { ServerGameUnit } from "./GameUnit";
 import { WeaponAttackResult, WeaponBasic } from "../Weapon/Baisc/WeaponBasic";
 import { ServerItem } from "../Item/ServerItem";
 import { WeaponData } from "../Weapon/WeaponData";
-import { WeaponInstanceManager } from "../../../Game/Managers/WeaponInstanceManager";
-import { WeaponDataService } from "../../../Game/Services/WeaponDataService";
+import { WeaponSystemFacade } from "../../../Game/Systems/WeaponSystemFacade";
 
 export type StatType = 'vit' | 'str' | 'agi' | 'int';
 
@@ -97,10 +96,6 @@ export class ServerHero extends ServerGameUnit {
     public baseCritRate: number = 0; // 暴擊率 (百分比)
     public baseDodgeRate: number = 0; // 閃避率 (百分比)
 
-
-    //public equippedWeapons: Array<WeaponBasic> = [];
-    //public items: Array<Item> = [];
-
     // 🆕 武器實例快取（不同步，僅服務端使用）
     private weaponInstances: Map<string, WeaponBasic> = new Map();
 
@@ -108,7 +103,7 @@ export class ServerHero extends ServerGameUnit {
         super();
 
         // 設置基礎屬性
-        this.baseHp = 100;
+        this.baseHp = 1000000;
         this.baseMp = 100;
         this.baseAttackDamage = 10;
 
@@ -363,15 +358,15 @@ export class ServerHero extends ServerGameUnit {
         const weaponData = this.findWeaponDataById(weaponId);
         if (!weaponData) return null;
 
+        // 🎭 使用 Facade 獲取完整實例
+        const { instance } = WeaponSystemFacade.getCompleteWeaponInstance(weaponData);
+
         // 使用 weaponData 的 uniqueId 作為快取鍵
-        if (!this.weaponInstances.has(weaponData.uniqueId)) {
-            const instance = WeaponInstanceManager.getOrCreateInstance(weaponData);
-            if (instance) {
-                this.weaponInstances.set(weaponData.uniqueId, instance);
-            }
+        if (instance && !this.weaponInstances.has(weaponData.uniqueId)) {
+            this.weaponInstances.set(weaponData.uniqueId, instance);
         }
 
-        return this.weaponInstances.get(weaponData.uniqueId) || null;
+        return instance;
     }
 
     /**
@@ -406,11 +401,12 @@ export class ServerHero extends ServerGameUnit {
      * 🆕 添加武器到背包
      */
     public addWeaponToInventory(weaponId: string): string {
-        const weaponData = new WeaponData(weaponId);
-        this.weaponInventory.push(weaponData);
+        // 🎭 使用 Facade 創建完整武器數據
+        const { data } = WeaponSystemFacade.createAndGetWeapon(weaponId);
+        this.weaponInventory.push(data);
 
-        console.log(`${this.name} 獲得了武器: ${WeaponDataService.generateDisplayName(weaponData)}`);
-        return weaponData.uniqueId;  // 返回唯一ID而不是索引
+        console.log(`${this.name} 獲得了武器: ${data.weaponId} (${data.uniqueId})`);
+        return data.uniqueId;  // 返回唯一ID而不是索引
     }
 
     /**
@@ -424,7 +420,8 @@ export class ServerHero extends ServerGameUnit {
         }
 
         if (weaponData.isEquipped) {
-            console.warn(`武器已經裝備: ${WeaponDataService.generateDisplayName(weaponData)}`);
+            const displayName = WeaponSystemFacade.getWeaponDisplayName(weaponData);
+            console.warn(`武器已經裝備: ${displayName}`);
             return false;
         }
 
@@ -441,7 +438,8 @@ export class ServerHero extends ServerGameUnit {
         // 清除實例快取，強制重新創建（應用最新數據）
         this.weaponInstances.delete(weaponUniqueId);
 
-        console.log(`${this.name} 裝備了武器: ${WeaponDataService.generateDisplayName(weaponData)}`);
+        const displayName = WeaponSystemFacade.getWeaponDisplayName(weaponData);
+        console.log(`${this.name} 裝備了武器: ${displayName}`);
         return true;
     }
 
@@ -487,7 +485,8 @@ export class ServerHero extends ServerGameUnit {
         // 保留實例快取，避免重複創建
         // this.weaponInstances.delete(weaponUniqueId); // 不刪除
 
-        console.log(`${this.name} 卸下了武器: ${WeaponDataService.generateDisplayName(weaponData)}`);
+        const displayName = WeaponSystemFacade.getWeaponDisplayName(weaponData);
+        console.log(`${this.name} 卸下了武器: ${displayName}`);
         return true;
     }
 
@@ -521,7 +520,8 @@ export class ServerHero extends ServerGameUnit {
             // 清理實例快取
             this.weaponInstances.delete(weaponUniqueId);
 
-            console.log(`${this.name} 移除了武器: ${WeaponDataService.generateDisplayName(weaponData)}`);
+            const displayName = WeaponSystemFacade.getWeaponDisplayName(weaponData);
+            console.log(`${this.name} 移除了武器: ${displayName}`);
             return true;
         }
 
