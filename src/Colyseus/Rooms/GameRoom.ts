@@ -18,6 +18,7 @@ import { BulletSystem } from "@/Game/Systems/BulletSystem";
 
 // 🆕 引入新的系統
 import { CombatSystem } from "@/Game/Systems/CombatSystem";
+import { WeaponInstanceManager } from "@/Game/Managers/WeaponInstanceManager";
 
 // 🆕 引入統一類型定義
 import { GameRoomOptions } from "@/Types";
@@ -50,6 +51,9 @@ export class GameRoom extends MiddleRoom<GameRoomState> {
     * 初始化所有管理器
     */
     public initializeManagers(): void {
+        // 🔧 首先初始化武器系統
+        WeaponInstanceManager.initialize();
+        console.log("🔧 武器實例管理器已初始化");
 
         this.playerManager = new PlayerManager(this);
 
@@ -144,11 +148,18 @@ export class GameRoom extends MiddleRoom<GameRoomState> {
     }
 
     onDispose() {
-        console.log(`GameRoom ${this.roomId} disposed`);
+        console.log(`🧹 GameRoom ${this.roomId} 正在銷毀，清理所有資源...`);
+
+        // 清理武器實例管理器
+        WeaponInstanceManager.destroy();
+
+        // 原有的清理邏輯
         this.gameManager.stopGameLoop();
         this.enemySystem.cleanup();
         this.bulletSystem.cleanup(); // 🆕 清理子彈系統
         this.messageHandler.cleanup();
+
+        console.log(`🧹 GameRoom ${this.roomId} 資源清理完成`);
         LobbyRoomBus.emit("roomDeleted", { roomId: this.roomId });
     }
 

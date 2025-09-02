@@ -1,6 +1,7 @@
 import { Schema, type } from "@colyseus/schema";
 import { WEAPON_CONFIGS } from "../../../Game/Factories/WeaponConfig";
 import { WeaponType } from "@/Types";
+import { UniqueIdGenerator } from "../../../Util/UniqueIdGenerator";
 
 /**
  * 武器數據類 - 純數據存儲，負責同步武器狀態到客戶端
@@ -31,7 +32,7 @@ export class WeaponData extends Schema {
     constructor(weaponId: string = "") {
         super();
         this.weaponId = weaponId;
-        this.uniqueId = this.generateUniqueId();
+        this.uniqueId = UniqueIdGenerator.generateWeaponId();
         this.obtainedAt = Date.now();
 
         // 從武器配置載入顯示資訊
@@ -45,15 +46,6 @@ export class WeaponData extends Schema {
         } else {
             this.weaponType = this.inferWeaponType(weaponId);
         }
-    }
-
-    /**
-     * 生成唯一識別碼
-     */
-    private generateUniqueId(): string {
-        const timestamp = Date.now().toString(36);
-        const random = Math.random().toString(36).substring(2, 8);
-        return `weapon_${timestamp}_${random}`;
     }
 
     /**

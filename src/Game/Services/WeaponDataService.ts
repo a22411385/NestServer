@@ -3,6 +3,8 @@ import { WeaponBasic } from "../../Colyseus/Schema/Weapon/Baisc/WeaponBasic";
 import { getWeaponConfig } from "../Factories/WeaponConfig";
 import { FinalWeaponStats } from "@/Types";
 
+// 移除重複的interface定義，已搬移到Types資料夾
+
 /**
  * 武器數據服務 - 專注於武器數據的業務邏輯計算
  * 不負責實例管理和緩存，只處理純計算邏輯
@@ -236,9 +238,10 @@ export class WeaponDataService {
     }
 
     /**
-     * 生成屬性緩存鍵
+     * 生成屬性緩存鍵 - 確保每個武器都有唯一的實例
      */
     static generateStatsKey(weaponData: WeaponData): string {
-        return `${weaponData.weaponId}_lv${weaponData.level}_enh${weaponData.enhanceLevel}_dur${Math.floor(weaponData.durability / 10)}`;
+        // 使用 uniqueId 確保每個武器都有獨立的實例，避免多武器時攻擊衝突
+        return `${weaponData.uniqueId}_${weaponData.weaponId}_lv${weaponData.level}_enh${weaponData.enhanceLevel}`;
     }
 }

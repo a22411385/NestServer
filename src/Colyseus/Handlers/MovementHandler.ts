@@ -60,15 +60,15 @@ export class MovementHandler extends BaseMessageHandler {
         }
     }
 
-    private handlePlayerMoveVector(client: Client, data: any): void {
-        if (!this.validateMessage(data, ['x', 'y'])) {
+    private handlePlayerMoveVector(client: Client, data: { vx: number; vy: number }): void {
+        if (!this.validateMessage(data, ['vx', 'vy'])) {
             throw new Error("無效的移動向量數據");
         }
 
-        const { x, y } = data;
+        const { vx, vy } = data;
 
         // 驗證移動向量範圍
-        if (Math.abs(x) > 1 || Math.abs(y) > 1) {
+        if (Math.abs(vx) > 1 || Math.abs(vy) > 1) {
             throw new Error("移動向量超出範圍");
         }
 
@@ -78,7 +78,7 @@ export class MovementHandler extends BaseMessageHandler {
         }
 
         // 使用MovementSystem處理移動
-        this.room.movementSystem.handlePlayerMoveVector(client, x, y);
+        this.room.movementSystem.handlePlayerMoveVector(client, vx, vy);
     }
 
     private handlePlayerFacingDirection(client: Client, data: any): void {

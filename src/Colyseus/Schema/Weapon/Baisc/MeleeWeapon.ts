@@ -128,9 +128,7 @@ export abstract class MeleeWeapon extends WeaponBasic {
 
         if (targetsInRange.length === 0) {
             return [];
-        }
-
-        // 自動調整攻擊者的面向角度，朝向最近的敵人
+        }        // 自動調整攻擊者的面向角度，朝向最近的敵人
         const closestTarget = targetsInRange[0].unit;
         const targetAngle = Math.atan2(
             closestTarget.position.y - attacker.position.y,

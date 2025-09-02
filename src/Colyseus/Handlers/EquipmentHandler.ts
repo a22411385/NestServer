@@ -10,11 +10,14 @@ export class EquipmentHandler extends BaseMessageHandler {
     private supportedTypes = [
         "equipItem",
         "unequipItem",
-        "equipWeapon",
-        "unequipWeapon",
+        "equip_weapon",        // 🔧 修正為前端使用的消息類型
+        "unequip_weapon",      // 🔧 修正為前端使用的消息類型
         "swapEquipment",
         "getEquipmentSlots",
-        "updateEquipmentStats"
+        "updateEquipmentStats",
+        "addWeapon",           // 🆕 添加武器到背包
+        "removeWeapon",        // 🆕 從背包移除武器
+        "getWeaponInventory"   // 🆕 獲取武器背包
     ];
 
     getPermissionLevel(): PermissionLevel {
@@ -40,10 +43,10 @@ export class EquipmentHandler extends BaseMessageHandler {
                 case "unequipItem":
                     this.handleUnequipItem(client, data);
                     break;
-                case "equipWeapon":
+                case "equip_weapon":      // 🔧 修正消息類型
                     this.handleEquipWeapon(client, data);
                     break;
-                case "unequipWeapon":
+                case "unequip_weapon":    // 🔧 修正消息類型
                     this.handleUnequipWeapon(client, data);
                     break;
                 case "swapEquipment":
@@ -54,6 +57,16 @@ export class EquipmentHandler extends BaseMessageHandler {
                     break;
                 case "updateEquipmentStats":
                     this.handleUpdateEquipmentStats(client, data);
+                    break;
+                case "addWeapon":
+                    this.handleAddWeapon(client, data);
+                    break;
+                case "removeWeapon":
+                    this.handleRemoveWeapon(client, data);
+                    break;
+                case "getWeaponInventory":
+                    this.handleGetWeaponInventory(client, data);
+                    break;
                     break;
                 default:
                     throw new Error(`Unsupported equipment message type: ${type}`);
@@ -149,7 +162,8 @@ export class EquipmentHandler extends BaseMessageHandler {
     }
 
     /**
-     * 處理裝備武器請求 (兼容舊接口)
+     * 處理裝備武器請求
+     * 🎯 使用Schema自動同步，不需要返回詳細狀態
      */
     private handleEquipWeapon(client: Client, data: any): void {
         if (!this.validateMessage(data, ['weaponId'])) {
@@ -164,19 +178,23 @@ export class EquipmentHandler extends BaseMessageHandler {
             throw new Error("玩家不存在");
         }
 
-        const success = hero.equipWeaponById(weaponId);
+        // weaponId 可能是武器類型ID或者uniqueId
+        let success = false;
+
+        // 首先嘗試作為 uniqueId 裝備（已存在的武器實例）
+        if (hero.isWeaponEquipped(weaponId) || hero.weaponInventory.find(w => w.uniqueId === weaponId)) {
+            success = hero.equipWeaponById(weaponId);
+        } else {
+            // 如果不是 uniqueId，則作為新武器類型ID添加到背包並裝備
+            const weaponUniqueId = hero.addWeaponToInventory(weaponId);
+            success = hero.equipWeaponById(weaponUniqueId);
+        }
 
         if (success) {
-            this.sendSuccess(client, {
-                message: `成功裝備武器: ${weaponId}`,
-                weaponId,
-                equippedWeapons: hero.getEquippedWeapons().map(w => ({
-                    weaponId: w.weaponId,
-                    name: w.name
-                }))
-            });
+            // 🎯 簡化回傳，Schema會自動同步狀態到前端
+            console.log(`✅ Player ${playerId} equipped weapon: ${weaponId}`);
 
-            // 更新屬性
+            // 更新屬性（這也會通過Schema同步）
             this.room.equipmentManager.updateEquipmentStats(playerId);
 
         } else {
@@ -185,7 +203,8 @@ export class EquipmentHandler extends BaseMessageHandler {
     }
 
     /**
-     * 處理卸下武器請求 (兼容舊接口)
+     * 處理卸下武器請求
+     * 🎯 使用Schema自動同步，不需要返回詳細狀態
      */
     private handleUnequipWeapon(client: Client, data: any): void {
         if (!this.validateMessage(data, ['weaponId'])) {
@@ -203,16 +222,10 @@ export class EquipmentHandler extends BaseMessageHandler {
         const success = hero.unequipWeaponById(weaponId);
 
         if (success) {
-            this.sendSuccess(client, {
-                message: `成功卸下武器: ${weaponId}`,
-                weaponId,
-                equippedWeapons: hero.getEquippedWeapons().map(w => ({
-                    weaponId: w.weaponId,
-                    name: w.name
-                }))
-            });
+            // 🎯 簡化回傳，Schema會自動同步狀態到前端
+            console.log(`✅ Player ${playerId} unequipped weapon: ${weaponId}`);
 
-            // 更新屬性
+            // 更新屬性（這也會通過Schema同步）
             this.room.equipmentManager.updateEquipmentStats(playerId);
 
         } else {
@@ -250,23 +263,92 @@ export class EquipmentHandler extends BaseMessageHandler {
 
     /**
      * 處理更新裝備屬性請求
+     * 🎯 使用Schema自動同步，屬性更新會自動反映到前端
      */
     private handleUpdateEquipmentStats(client: Client, data: any): void {
         const playerId = client.sessionId;
 
         this.room.equipmentManager.updateEquipmentStats(playerId);
 
-        const hero = this.state.getHero(playerId);
-        if (hero) {
-            this.sendSuccess(client, {
-                message: "裝備屬性更新成功",
-                stats: {
-                    hp: hero.hp,
-                    maxHp: hero.maxHp,
-                    attackDamage: hero.attackDamage,
-                    moveSpeed: hero.moveSpeed
-                }
-            });
+        // 🎯 屬性更新會通過Schema自動同步到前端，無需特別返回
+        console.log(`✅ Updated equipment stats for player: ${playerId}`);
+    }
+
+    /**
+     * 處理添加武器到背包請求
+     * 🎯 使用Schema自動同步武器背包狀態
+     */
+    private handleAddWeapon(client: Client, data: any): void {
+        if (!this.validateMessage(data, ['weaponId'])) {
+            throw new Error("無效的添加武器數據");
         }
+
+        const { weaponId } = data;
+        const playerId = client.sessionId;
+        const hero = this.state.getHero(playerId);
+
+        if (!hero) {
+            throw new Error("玩家不存在");
+        }
+
+        const weaponUniqueId = hero.addWeaponToInventory(weaponId);
+
+        // 🎯 武器添加會通過Schema自動同步到前端
+        console.log(`✅ Added weapon ${weaponId} (${weaponUniqueId}) to player ${playerId}`);
+    }
+
+    /**
+     * 處理從背包移除武器請求
+     * 🎯 使用Schema自動同步武器背包狀態
+     */
+    private handleRemoveWeapon(client: Client, data: any): void {
+        if (!this.validateMessage(data, ['weaponUniqueId'])) {
+            throw new Error("無效的移除武器數據");
+        }
+
+        const { weaponUniqueId } = data;
+        const playerId = client.sessionId;
+        const hero = this.state.getHero(playerId);
+
+        if (!hero) {
+            throw new Error("玩家不存在");
+        }
+
+        const success = hero.removeWeaponFromInventory(weaponUniqueId);
+
+        if (success) {
+            // 🎯 武器移除會通過Schema自動同步到前端
+            console.log(`✅ Removed weapon ${weaponUniqueId} from player ${playerId}`);
+        } else {
+            throw new Error("移除武器失敗");
+        }
+    }
+
+    /**
+     * 處理獲取武器背包請求
+     * 🎯 返回當前武器背包狀態（用於初次載入或重新同步）
+     */
+    private handleGetWeaponInventory(client: Client, data: any): void {
+        const playerId = client.sessionId;
+        const hero = this.state.getHero(playerId);
+
+        if (!hero) {
+            throw new Error("玩家不存在");
+        }
+
+        // 🎯 這個方法主要用於調試或重新同步，正常情況下Schema會自動同步
+        this.sendSuccess(client, {
+            message: "獲取武器背包成功",
+            weaponInventory: hero.weaponInventory.map(w => ({
+                weaponId: w.weaponId,
+                uniqueId: w.uniqueId,
+                name: w.name,
+                level: w.level,
+                exp: w.exp,
+                rarity: w.rarity,
+                weaponType: w.weaponType
+            })),
+            equippedWeaponIds: [...hero.equippedWeaponIds]
+        });
     }
 }
