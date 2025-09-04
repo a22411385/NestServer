@@ -16,7 +16,12 @@
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
-    "test:e2e": "jest --config ./test/jest-e2e.json"
+    "test:e2e": "jest --config ./test/jest-e2e.json",
+    "sync-weapons": "ts-node scripts/sync-weapons.ts",
+    "sync-weapons:sync": "ts-node scripts/sync-weapons.ts sync",
+    "sync-weapons:load": "ts-node scripts/sync-weapons.ts load",
+    "sync-weapons:check": "ts-node scripts/sync-weapons.ts check",
+    "test-weapon-sync": "ts-node scripts/test-weapon-sync.ts"
   },
   "dependencies": {
     "@colyseus/core": "^0.16.19",
@@ -54,7 +59,8 @@
     "seedrandom": "^3.0.5",
     "socket.io": "^4.8.1",
     "socket.io-client": "^4.8.1",
-    "typeorm": "^0.3.22"
+    "typeorm": "^0.3.22",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",
@@ -66,7 +72,7 @@
     "@swc/core": "^1.10.7",
     "@types/express": "^5.0.0",
     "@types/jest": "^29.5.14",
-    "@types/node": "^22.10.7",
+    "@types/node": "^22.18.0",
     "@types/supertest": "^6.0.2",
     "eslint": "^9.18.0",
     "eslint-config-prettier": "^10.0.1",

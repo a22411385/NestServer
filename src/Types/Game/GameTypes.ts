@@ -61,32 +61,48 @@ export interface GameTimeSettings {
 }
 
 /**
- * 屬性類型
+ * 角色主屬性類型 - 供玩家配點使用
  */
-export type StatType = 'hp' | 'mp' | 'attack' | 'defense' | 'speed' | 'int' | 'agi' | 'str' | 'vit';
+export type StatType = 'int' | 'agi' | 'str' | 'vit';
 
 /**
- * 英雄屬性加成接口
+ * 統一的屬性加成接口 - 合併了所有屬性相關的加成
  */
-export interface HeroAttributeBonus {
-    // 固定數值加成
+export interface AttributeBonus {
+    // 基礎數值加成
     hpBonus?: number;
-    attackBonus?: number;
-    speedBonus?: number;
     mpBonus?: number;
+    attackBonus?: number;
     defenseBonus?: number;
+    speedBonus?: number;
 
     // 百分比加成 (0.1 = 10%)
     hpMultiplier?: number;
-    attackMultiplier?: number;
-    speedMultiplier?: number;
     mpMultiplier?: number;
+    attackMultiplier?: number;
     defenseMultiplier?: number;
+    speedMultiplier?: number;
 
-    // 特殊效果
-    critRate?: number;
+    // 角色主屬性加成
+    intBonus?: number;
+    agiBonus?: number;
+    strBonus?: number;
+    vitBonus?: number;
+
+    // 戰鬥特效
+    criticalRate?: number;
+    criticalDamage?: number;
     dodgeRate?: number;
+    blockRate?: number;
     lifeSteal?: number;
+    manaSteal?: number;
+
+    // 抗性
+    physicalResistance?: number;
+    magicalResistance?: number;
+    fireResistance?: number;
+    iceResistance?: number;
+    poisonResistance?: number;
 }
 
 /**

@@ -2,12 +2,12 @@ import { ArraySchema, type } from "@colyseus/schema";
 import { UnitType } from "../GameState";
 
 import { ServerGameUnit } from "./GameUnit";
-import { WeaponAttackResult } from "@/Types";
 import { WeaponBasic } from "../Weapon/Baisc/WeaponBasic";
 import { ServerItem } from "../Item/ServerItem";
 import { WeaponData } from "../Weapon/WeaponData";
 import { WeaponSystemFacade } from "../../../Game/Systems/WeaponSystemFacade";
 import { WeaponInstanceManager } from "../../../Game/Managers/WeaponInstanceManager";
+import { AttackResult } from "@/Types";
 
 export type StatType = 'vit' | 'str' | 'agi' | 'int';
 
@@ -382,21 +382,21 @@ export class ServerHero extends ServerGameUnit {
     public getEquippedWeapons(): WeaponBasic[] {
         const weapons: WeaponBasic[] = [];
 
-        console.log(`[${this.name}] 檢查裝備武器，數量: ${this.equippedWeaponIds.length}`);
+        // console.log(`[${this.name}] 檢查裝備武器，數量: ${this.equippedWeaponIds.length}`);
         for (let i = 0; i < this.equippedWeaponIds.length; i++) {
             const weaponId = this.equippedWeaponIds[i];
-            console.log(`[${this.name}] 處理武器 ${i}: ${weaponId}`);
+            //  console.log(`[${this.name}] 處理武器 ${i}: ${weaponId}`);
 
             const weapon = this.getWeaponInstance(weaponId);
             if (weapon) {
                 weapons.push(weapon);
-                console.log(`[${this.name}] 武器實例獲取成功: ${weaponId}`);
+                //   console.log(`[${this.name}] 武器實例獲取成功: ${weaponId}`);
             } else {
-                console.warn(`[${this.name}] 武器實例獲取失敗: ${weaponId}`);
+                //   console.warn(`[${this.name}] 武器實例獲取失敗: ${weaponId}`);
             }
         }
 
-        console.log(`[${this.name}] 最終可用武器數量: ${weapons.length}`);
+        // console.log(`[${this.name}] 最終可用武器數量: ${weapons.length}`);
         return weapons;
     }
 
@@ -580,8 +580,8 @@ export class ServerHero extends ServerGameUnit {
     }
 
     //嘗試進行攻擊
-    public tryAttack(enemies: ServerGameUnit[]): WeaponAttackResult[] {
-        const results: WeaponAttackResult[] = [];
+    public tryAttack(enemies: ServerGameUnit[]): AttackResult[] {
+        const results: AttackResult[] = [];
 
         // 🔄 使用新的武器系統
         const equippedWeapons = this.getEquippedWeapons();

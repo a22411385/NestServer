@@ -19,6 +19,8 @@ import { BulletSystem } from "@/Game/Systems/BulletSystem";
 // 🆕 引入新的系統
 import { CombatSystem } from "@/Game/Systems/CombatSystem";
 import { WeaponInstanceManager } from "@/Game/Managers/WeaponInstanceManager";
+import { initializeWeaponConfigs } from "@/Game/Factories/WeaponConfig";
+import { WeaponFactory } from "@/Game/Factories/WeaponFactory";
 
 // 🆕 引入統一類型定義
 import { GameRoomOptions } from "@/Types";
@@ -50,8 +52,16 @@ export class GameRoom extends MiddleRoom<GameRoomState> {
     /**
     * 初始化所有管理器
     */
-    public initializeManagers(): void {
-        // 🔧 首先初始化武器系統
+    public async initializeManagers(): Promise<void> {
+        // 🔧 首先初始化武器配置系統
+        await initializeWeaponConfigs();
+        console.log("🎮 武器配置系統已初始化");
+
+        // 🆕 初始化武器工廠（載入動態類別映射）
+        await WeaponFactory.initialize();
+        console.log("🏭 武器工廠已初始化");
+
+        // 🔧 然後初始化武器實例管理器
         WeaponInstanceManager.initialize();
         console.log("🔧 武器實例管理器已初始化");
 
@@ -75,7 +85,7 @@ export class GameRoom extends MiddleRoom<GameRoomState> {
         return this.gameManager.isPlaying;
     }
 
-    onCreate(options: GameRoomOptions) {
+    async onCreate(options: GameRoomOptions) {
         console.log(`GameRoom created: ${options.roomName} by ${options.hostName}, type: ${options.roomType || 'normal'}`);
 
         try {
@@ -104,7 +114,7 @@ export class GameRoom extends MiddleRoom<GameRoomState> {
             this.roomInfo.maxPlayers = this.state.maxPlayers;
             this.roomInfo.state = "waiting";
             this.roomInfo.isPrivate = options.isPrivate || false;
-            this.initializeManagers();
+            await this.initializeManagers();
 
             // 設置消息處理器
             //  this.messageHandler.setupMessageHandlers();

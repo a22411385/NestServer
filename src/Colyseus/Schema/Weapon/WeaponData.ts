@@ -1,6 +1,6 @@
 import { Schema, type } from "@colyseus/schema";
 import { WEAPON_CONFIGS } from "../../../Game/Factories/WeaponConfig";
-import { WeaponType } from "@/Types";
+import { WeaponType } from "../../../Types";
 import { UniqueIdGenerator } from "../../../Util/UniqueIdGenerator";
 
 /**

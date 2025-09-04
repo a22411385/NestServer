@@ -17,6 +17,7 @@ export class ServerBullet extends Schema {
 
     // 子彈類型相關
     @type("string") bulletType: string = "basic"; // 子彈類型: basic, piercing, explosive
+    @type("string") weaponId: string = ""; // 發射武器的ID (用於獲取武器屬性)
     @type("number") pierceCount: number = 1; // 穿透次數 (對於穿透彈)
     @type("boolean") hasHit: boolean = false; // 是否已命中目標
 
@@ -29,10 +30,12 @@ export class ServerBullet extends Schema {
         targetDir: Vector2,
         damage: number,
         speed: number = 200,
-        bulletType: string = "basic"
+        bulletType: string = "basic",
+        weaponId: string = ""
     ): void {
         this.id = id;
         this.ownerId = ownerId;
+        this.weaponId = weaponId;
         this.startPosition.x = startPos.x;
         this.startPosition.y = startPos.y;
         this.direction.x = targetDir.x;

@@ -1,18 +1,31 @@
 /**
  * 戰鬥和攻擊相關的類型定義
  */
+import { WeaponPropertyValue } from "../Equipment/WeaponPropertyTypes";
 
 /**
- * 武器攻擊結果
+ * 統一的攻擊結果接口 - 合併了所有攻擊相關的結果
  */
-export interface WeaponAttackResult {
+export interface AttackResult {
     success: boolean;
-    weaponId: string;
-    targetIds?: string[];
-    baseDamage: number; // 基礎傷害，實際傷害由 DamageSystem 計算
+    attackerId: string;
+    weaponId?: string;
+    targetIds: string[];
+    timestamp: number;
+
+    // 傷害信息
+    baseDamage: number;
+    actualDamage?: number;
+    isCritical?: boolean;
+
+    // 效果和視覺
     effects?: AttackEffect[];
     visualEffects?: VisualEffect[];
+
+    // 失敗原因
     reason?: AttackFailReason;
+
+    // 攻擊數據
     attackData?: {
         position: { x: number, y: number };
         direction: { x: number, y: number };
@@ -20,6 +33,7 @@ export interface WeaponAttackResult {
         sweepAngle?: number;
         targetPosition?: { x: number, y: number }; // 投射武器需要目標位置
         supportRadius?: number; // 支援武器需要支援範圍
+        properties?: WeaponPropertyValue[]; // 武器屬性
     };
 }
 
@@ -33,13 +47,14 @@ export enum AttackFailReason {
 }
 
 /**
- * 攻擊效果（移除舊的傷害相關邏輯）
+ * 攻擊效果
  */
 export interface AttackEffect {
-    type: 'knockback' | 'stun' | 'slow';
+    type: 'knockback' | 'stun' | 'slow' | 'burn' | 'freeze' | 'poison';
     targetId: string;
-    value: number;
-    direction?: { x: number, y: number };
+    value: number | number[]; // 支援複合值
+    duration?: number; // 持續時間（狀態效果用）
+    direction?: { x: number, y: number }; // 方向（擊退用）
 }
 
 /**

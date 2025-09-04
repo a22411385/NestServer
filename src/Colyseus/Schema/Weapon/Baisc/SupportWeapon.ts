@@ -1,18 +1,18 @@
 import { WeaponBasic } from "./WeaponBasic";
-import { WeaponAttackResult, AttackFailReason, VisualEffect } from "@/Types";
+import { WeaponAttackResult, AttackFailReason, VisualEffect, AttackResult } from "@/Types";
 import { ServerGameUnit } from "../../Unit/GameUnit";
 import { WeaponType } from "@/Types";
-import { type } from "@colyseus/schema";
 
 /**
  * 輔助武器抽象類
  * 特點：可以治療友軍、提供增益效果、範圍支援
+ * 移除 Schema 導入，SupportWeapon 現在是純邏輯層類
  */
 export abstract class SupportWeapon extends WeaponBasic {
-    @type("number") healAmount: number = 0; // 治療量
-    @type("number") buffDuration: number = 0; // 增益持續時間
-    @type("number") supportRadius: number = 0; // 支援範圍
-    @type("boolean") canTargetSelf: boolean = true; // 是否可以對自己使用
+    healAmount: number = 0; // 治療量
+    buffDuration: number = 0; // 增益持續時間
+    supportRadius: number = 0; // 支援範圍
+    canTargetSelf: boolean = true; // 是否可以對自己使用
 
     constructor(
         weaponId: string,
@@ -33,7 +33,7 @@ export abstract class SupportWeapon extends WeaponBasic {
     public tryAttack(
         user: ServerGameUnit,
         potentialTargets: ServerGameUnit[]
-    ): WeaponAttackResult {
+    ): AttackResult {
         // 檢查冷卻時間
         if (!this.canAttack()) {
             return {

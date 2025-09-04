@@ -1,37 +1,111 @@
 import { WeaponBasic } from "./WeaponBasic";
-import { WeaponAttackResult, AttackFailReason, VisualEffect } from "@/Types";
+import { WeaponAttackResult, AttackFailReason, VisualEffect, AttackResult } from "@/Types";
 import { ServerGameUnit } from "../../Unit/GameUnit";
 import { WeaponType } from "@/Types";
-import { type } from "@colyseus/schema";
+import { WeaponPropertyType, StatusEffectData } from "@/Types/Equipment/WeaponPropertyTypes";
 
 /**
  * 近戰武器抽象類
  * 特點：需要靠近目標、通常有擊退效果、可能有範圍攻擊
+ * 移除 Schema 導入，MeleeWeapon 現在是純邏輯層類
+ * 使用屬性系統替代硬編碼的 knockbackForce 和 sweepAngle
  */
 export abstract class MeleeWeapon extends WeaponBasic {
-    @type("number") knockbackForce: number = 0; // 擊退力度
-    @type("number") sweepAngle: number = 0; // 攻擊角度 (弧度)
-    @type("number") maxTargets: number = 1; // 最大攻擊目標數量
-
     constructor(
         weaponId: string,
         attackRange: number,
         baseDamage: number,
-        attackSpeed: number,
-        knockbackForce: number = 0,
-        sweepAngle: number = 0,
-        maxTargets: number = 1
+        attackSpeed: number
     ) {
-        super(weaponId, WeaponType.MELEE, attackRange, baseDamage, attackSpeed);
-        this.knockbackForce = knockbackForce;
-        this.sweepAngle = sweepAngle;
-        this.maxTargets = maxTargets;
+        super(weaponId, WeaponType.MELEE_WEAPON, attackRange, baseDamage, attackSpeed);
+    }
+
+    /**
+     * 獲取擊退力度（從屬性系統）
+     */
+    public get knockbackForce(): number {
+        return (this.getPropertyValue(WeaponPropertyType.KNOCKBACK) as number) || 0;
+    }
+
+    /**
+     * 獲取掃射角度（從屬性系統）
+     */
+    public get sweepAngle(): number {
+        const angleInDegrees = (this.getPropertyValue(WeaponPropertyType.SWEEP_ANGLE) as number) || 0;
+        return angleInDegrees * Math.PI / 180; // 轉換為弧度
+    }
+
+    /**
+     * 獲取暈眩效果 [機率, 持續時間]
+     */
+    public get stunEffect(): [number, number] | null {
+        const stunValue = this.getPropertyValue(WeaponPropertyType.STUN);
+        return Array.isArray(stunValue) ? stunValue as [number, number] : null;
+    }
+
+    /**
+     * 獲取所有狀態效果
+     */
+    public getStatusEffects(): StatusEffectData[] {
+        const effects: StatusEffectData[] = [];
+
+        // 暈眩效果
+        const stunValue = this.getPropertyValue(WeaponPropertyType.STUN);
+        if (Array.isArray(stunValue) && stunValue.length >= 2) {
+            effects.push({
+                type: WeaponPropertyType.STUN,
+                chance: stunValue[0],
+                duration: stunValue[1]
+            });
+        }
+
+        // 冰凍效果
+        const freezeValue = this.getPropertyValue(WeaponPropertyType.FREEZE);
+        if (typeof freezeValue === 'number') {
+            effects.push({
+                type: WeaponPropertyType.FREEZE,
+                duration: freezeValue
+            });
+        }
+
+        // 燃燒效果
+        const burnValue = this.getPropertyValue(WeaponPropertyType.BURN);
+        if (Array.isArray(burnValue) && burnValue.length >= 2) {
+            effects.push({
+                type: WeaponPropertyType.BURN,
+                duration: burnValue[0],
+                damagePerSecond: burnValue[1]
+            });
+        }
+
+        // 中毒效果
+        const poisonValue = this.getPropertyValue(WeaponPropertyType.POISON);
+        if (Array.isArray(poisonValue) && poisonValue.length >= 2) {
+            effects.push({
+                type: WeaponPropertyType.POISON,
+                duration: poisonValue[0],
+                damagePerSecond: poisonValue[1]
+            });
+        }
+
+        // 減速效果
+        const slowValue = this.getPropertyValue(WeaponPropertyType.SLOW);
+        if (Array.isArray(slowValue) && slowValue.length >= 3) {
+            effects.push({
+                type: WeaponPropertyType.SLOW,
+                chance: slowValue[0],
+                duration: slowValue[1],
+                slowPercentage: slowValue[2]
+            });
+        }
+
+        return effects;
     }
 
     public tryAttack(
         attacker: ServerGameUnit,
         potentialTargets: ServerGameUnit[]
-    ): WeaponAttackResult {
+    ): AttackResult {
         // 檢查冷卻時間
         if (!this.canAttack()) {
             return {
@@ -72,7 +146,9 @@ export abstract class MeleeWeapon extends WeaponBasic {
                 position: { x: attacker.position.x, y: attacker.position.y },
                 direction: facingDirection,
                 range: this.attackRange,
-                sweepAngle: this.sweepAngle
+                sweepAngle: this.sweepAngle,
+                // 新增：包含所有武器屬性
+                properties: this.getAllProperties()
             },
             visualEffects: this.createMeleeVisualEffects(attacker, facingDirection)
         };
@@ -155,7 +231,7 @@ export abstract class MeleeWeapon extends WeaponBasic {
                 this.attackRange,
                 this.sweepAngle,
                 attacker.facingDirection,
-                this.maxTargets
+
             );
             console.log(`  💥 Fan attack (${(this.sweepAngle * 180 / Math.PI).toFixed(1)}°): ${selectedTargets.length} targets`);
         } else {
@@ -167,7 +243,7 @@ export abstract class MeleeWeapon extends WeaponBasic {
         return selectedTargets;
     }
 
-    // Getter 方法
-    public get knockback(): number { return this.knockbackForce; }
-    public get sweep(): number { return this.sweepAngle; }
+    // 移除舊的 Getter 方法，使用新的屬性系統
+    // public get knockback(): number { return this.knockbackForce; }
+    // public get sweep(): number { return this.sweepAngle; }
 }

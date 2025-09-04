@@ -30,6 +30,7 @@ export interface BulletCreateConfig {
     areaOfEffect?: number;
     lifeTime?: number;
     scale?: number;
+    weaponId?: string; // 武器ID，用於獲取武器屬性
 }
 
 /**

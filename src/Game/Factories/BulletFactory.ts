@@ -24,7 +24,8 @@ export class BulletFactory {
             new Vector2(config.direction.x, config.direction.y),
             config.damage,
             config.speed || 300,
-            config.bulletType?.toString() || BulletType.BASIC
+            config.bulletType?.toString() || BulletType.BASIC,
+            config.weaponId || ""
         );
 
         // 設置額外屬性
@@ -56,7 +57,8 @@ export class BulletFactory {
             pierceCount: this.getWeaponPierceCount(weapon),
             areaOfEffect: this.getWeaponAreaOfEffect(weapon),
             lifeTime: this.getWeaponBulletLifeTime(weapon),
-            scale: this.getWeaponBulletScale(weapon)
+            scale: this.getWeaponBulletScale(weapon),
+            weaponId: weapon.weaponId // 添加武器ID
         };
 
         return this.createBullet(bulletConfig);

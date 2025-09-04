@@ -3,11 +3,7 @@ import { GameRoomState } from "../../Colyseus/Schema/GameState";
 import { ServerHero } from "../../Colyseus/Schema/Unit/Hero";
 import { ServerItem } from "../../Colyseus/Schema/Item/ServerItem";
 import { WeaponSystemFacade } from "../Systems/WeaponSystemFacade";
-
-// 🆕 使用統一類型定義
-import {
-    EquipmentBonus,
-} from "@/Types";
+import { EquipmentBonus } from "@/Types/Equipment/EquipmentTypes";
 
 /**
  * 裝備管理器 - 負責處理裝備穿脫、屬性計算和驗證
