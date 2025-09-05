@@ -19,7 +19,7 @@ export class BaseballBat extends MeleeWeapon {
     protected applyMeleeSpecificConfig(): void {
         // 球棒特有邏輯（如果需要）
         console.log(`🏏 球棒特定配置已應用 - 配置來自: ${this.weaponConfig?.name}`);
-        
+
         // 根據配置的固定屬性進行特殊設置
         const fixedProps = this.getFixedProperties();
         if (fixedProps.includes('knockback')) {

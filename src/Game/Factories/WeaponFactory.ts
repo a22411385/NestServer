@@ -100,7 +100,7 @@ export class WeaponFactory {
         try {
             // 🆕 創建武器實例（無參數構造函數）
             const weapon = new weaponClass();
-            
+
             // 🆕 從配置初始化武器
             const success = weapon.initializeFromConfig(weaponId);
             if (!success) {
@@ -122,14 +122,14 @@ export class WeaponFactory {
      */
     public static createMultipleWeapons(weaponIds: string[]): WeaponBasic[] {
         const weapons: WeaponBasic[] = [];
-        
+
         for (const weaponId of weaponIds) {
             const weapon = this.createWeapon(weaponId);
             if (weapon) {
                 weapons.push(weapon);
             }
         }
-        
+
         console.log(`🔧 批量創建武器: ${weapons.length}/${weaponIds.length} 成功`);
         return weapons;
     }

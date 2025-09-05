@@ -18,13 +18,13 @@ export class ExplosiveArrow extends ProjectileWeapon {
     protected applyProjectileSpecificConfig(): void {
         // 爆裂箭特有配置
         console.log(`💥 爆裂箭特定配置已應用 - 配置來自: ${this.weaponConfig?.name}`);
-        
+
         // 爆裂箭特有的投射物設定
         this.projectileSpeed = 250;  // 中等彈道速度
         this.accuracy = 0.92;        // 中高精確度
         this.pierceCount = 0;        // 不穿透（爆炸消耗）
         this.areaOfEffect = 100;     // 大範圍爆炸
-        
+
         // 根據配置的固定屬性進行特殊設置
         const fixedProps = this.getFixedProperties();
         if (fixedProps.includes('splash_damage')) {

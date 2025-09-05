@@ -18,13 +18,13 @@ export class HealingPotion extends SupportWeapon {
     protected applySupportSpecificConfig(): void {
         // 治療藥劑特有配置
         console.log(`🧪 治療藥劑特定配置已應用 - 配置來自: ${this.weaponConfig?.name}`);
-        
+
         // 治療藥劑特有設定
         this.healAmount = 30;        // 治療量
         this.buffDuration = 5000;    // 增益持續時間 5秒
         this.supportRadius = 100;    // 支援範圍半徑
         this.canTargetSelf = true;   // 可以對自己使用
-        
+
         console.log(`💚 治療藥劑可以治療和提供增益效果`);
     }
 

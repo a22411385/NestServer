@@ -26,7 +26,7 @@ export abstract class WeaponBasic {
 
     // 新增：動態屬性系統
     protected properties: Map<string, PropertyValue> = new Map();
-    
+
     // 🆕 配置相關
     protected weaponConfig: WeaponConfigDefinition | null = null;
 
@@ -42,7 +42,7 @@ export abstract class WeaponBasic {
      */
     public initializeFromConfig(weaponId: string): boolean {
         this.weaponConfig = getWeaponConfig(weaponId);
-        
+
         if (!this.weaponConfig) {
             console.error(`❌ 無法找到武器配置: ${weaponId}`);
             return false;
@@ -94,7 +94,7 @@ export abstract class WeaponBasic {
      */
     public getFixedProperties(): string[] {
         if (!this.weaponConfig) return [];
-        return this.weaponConfig.fixedProperties ? 
+        return this.weaponConfig.fixedProperties ?
             this.weaponConfig.fixedProperties.split(',').map(p => p.trim()).filter(p => p) : [];
     }
 
@@ -103,7 +103,7 @@ export abstract class WeaponBasic {
      */
     public getRandomProperties(): string[] {
         if (!this.weaponConfig) return [];
-        return this.weaponConfig.randomProperties ? 
+        return this.weaponConfig.randomProperties ?
             this.weaponConfig.randomProperties.split(',').map(p => p.trim()).filter(p => p) : [];
     }
 

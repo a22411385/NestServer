@@ -25,7 +25,7 @@ export class ProjectileWeapon extends WeaponBasic {
     protected applyWeaponSpecificConfig(): void {
         // 投射武器的通用配置邏輯
         console.log(`🏹 投射武器配置已應用: ${this.name}`);
-        
+
         // 設置投射武器的預設值
         this.projectileSpeed = 300; // 預設投射物速度
         this.pierceCount = 0;       // 預設無穿透

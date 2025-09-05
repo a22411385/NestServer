@@ -22,7 +22,7 @@ export abstract class MeleeWeapon extends WeaponBasic {
     protected applyWeaponSpecificConfig(): void {
         // 近戰武器的通用配置邏輯
         console.log(`⚔️ 近戰武器配置已應用: ${this.name}`);
-        
+
         // 子類可以覆寫此方法來應用特定配置
         this.applyMeleeSpecificConfig();
     }

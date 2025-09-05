@@ -18,13 +18,13 @@ export class LightningBolt extends ProjectileWeapon {
     protected applyProjectileSpecificConfig(): void {
         // 閃電箭特有配置
         console.log(`⚡ 閃電箭特定配置已應用 - 配置來自: ${this.weaponConfig?.name}`);
-        
+
         // 閃電箭特有的投射物設定
         this.projectileSpeed = 400;  // 極快彈道
         this.accuracy = 0.98;        // 極高精確度
         this.pierceCount = 1;        // 可穿透一個敵人
         this.areaOfEffect = 0;       // 無AOE（使用連鎖攻擊）
-        
+
         // 根據配置的固定屬性進行特殊設置
         const fixedProps = this.getFixedProperties();
         if (fixedProps.includes('chain_attack')) {

@@ -18,11 +18,11 @@ export class Fireball extends ProjectileWeapon {
     protected applyProjectileSpecificConfig(): void {
         // 火球特有配置
         console.log(`🔥 火球特定配置已應用 - 配置來自: ${this.weaponConfig?.name}`);
-        
+
         // 根據配置設定投射武器屬性
         this.projectileSpeed = 200; // 預設投射物速度
         this.accuracy = 0.95;       // 95% 命中率
-        
+
         // 根據配置的固定屬性進行特殊設置
         const fixedProps = this.getFixedProperties();
         if (fixedProps.includes('burn')) {

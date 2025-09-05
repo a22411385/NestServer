@@ -18,7 +18,7 @@ export class PoisonDagger extends MeleeWeapon {
     protected applyMeleeSpecificConfig(): void {
         // 毒刃特有邏輯
         console.log(`🗡️ 毒刃特定配置已應用 - 配置來自: ${this.weaponConfig?.name}`);
-        
+
         // 根據配置的固定屬性進行特殊設置
         const fixedProps = this.getFixedProperties();
         if (fixedProps.includes('poison')) {

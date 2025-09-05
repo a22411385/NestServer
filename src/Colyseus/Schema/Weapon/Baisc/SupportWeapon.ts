@@ -25,7 +25,7 @@ export abstract class SupportWeapon extends WeaponBasic {
     protected applyWeaponSpecificConfig(): void {
         // 輔助武器的通用配置邏輯
         console.log(`🛡️ 輔助武器配置已應用: ${this.name}`);
-        
+
         // 設置輔助武器的預設值
         this.healAmount = 20;        // 預設治療量
         this.buffDuration = 5000;    // 預設增益持續時間 (5秒)
