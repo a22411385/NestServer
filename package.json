@@ -11,20 +11,7 @@
     "dev": "nest start --watch --debug",
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
-    "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
-    "test": "jest",
-    "test:watch": "jest --watch",
-    "test:cov": "jest --coverage",
-    "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
-    "test:e2e": "jest --config ./test/jest-e2e.json",
-    "sync-weapons": "ts-node scripts/sync-weapons.ts",
-    "sync-weapons:sync": "ts-node scripts/sync-weapons.ts sync",
-    "sync-weapons:load": "ts-node scripts/sync-weapons.ts load",
-    "sync-weapons:check": "ts-node scripts/sync-weapons.ts check",
-    "test-weapon-sync": "ts-node scripts/test-weapon-sync.ts",
-    "test-hero-weapons": "ts-node -r tsconfig-paths/register test-scripts/test-hero-weapons.ts",
-    "test-all-weapons": "ts-node -r tsconfig-paths/register test-scripts/test-all-weapons.ts",
-    "simple-ts-test": "ts-node test-scripts/simple-ts-test.ts"
+    "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix"
   },
   "dependencies": {
     "@colyseus/core": "^0.16.19",

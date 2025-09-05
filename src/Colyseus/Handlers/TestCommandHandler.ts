@@ -14,7 +14,8 @@ export class TestCommandHandler extends BaseMessageHandler {
         "testGiveItem",
         "testSetPlayerLevel",
         "testToggleGodMode",
-        "testTeleportPlayer"
+        "testTeleportPlayer",
+        "testDropItems" // 🆕 測試物品掉落
     ];
 
     getPermissionLevel(): PermissionLevel {
@@ -60,6 +61,9 @@ export class TestCommandHandler extends BaseMessageHandler {
                     break;
                 case "testTeleportPlayer":
                     this.handleTestTeleportPlayer(client, data);
+                    break;
+                case "testDropItems":
+                    this.handleTestDropItems(client, data);
                     break;
                 default:
                     throw new Error(`Unsupported test command type: ${type}`);
@@ -215,6 +219,60 @@ export class TestCommandHandler extends BaseMessageHandler {
             message: `傳送玩家 ${playerId} 到 (${x}, ${y})`,
             playerId,
             newPosition: { x, y }
+        });
+    }
+
+    private handleTestDropItems(client: Client, data: any): void {
+        const playerId = client.sessionId;
+        const hero = this.state.getHero(playerId);
+        if (!hero) {
+            throw new Error("玩家英雄不存在");
+        }
+
+        // 獲取物品類型和數量
+        const { itemType = 'all', count = 5 } = data;
+
+        const dropPosition = {
+            x: hero.position.x,
+            y: hero.position.y
+        };
+
+        let droppedCount = 0;
+
+        // 根據類型生成測試物品
+        if (itemType === 'all' || itemType === 'exp') {
+            for (let i = 0; i < count; i++) {
+                this.room.dropSystem.createTestDropItem('exp', dropPosition, 15);
+                droppedCount++;
+            }
+        }
+
+        if (itemType === 'all' || itemType === 'gold') {
+            for (let i = 0; i < count; i++) {
+                this.room.dropSystem.createTestDropItem('gold', dropPosition, 10);
+                droppedCount++;
+            }
+        }
+
+        if (itemType === 'all' || itemType === 'material') {
+            for (let i = 0; i < count; i++) {
+                this.room.dropSystem.createTestDropItem('material', dropPosition, 2);
+                droppedCount++;
+            }
+        }
+
+        if (itemType === 'all' || itemType === 'weapon') {
+            for (let i = 0; i < Math.max(1, Math.floor(count / 2)); i++) {
+                this.room.dropSystem.createTestDropItem('weapon', dropPosition, 1);
+                droppedCount++;
+            }
+        }
+
+        this.sendSuccess(client, {
+            message: `在玩家位置生成了 ${droppedCount} 個測試物品`,
+            itemType,
+            count: droppedCount,
+            position: dropPosition
         });
     }
 }

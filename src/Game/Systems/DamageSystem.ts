@@ -280,6 +280,12 @@ export class DamageSystem {
                     'event'
                 );
             }
+
+            // 🆕 觸發掉落系統
+            if (this.room.dropSystem) {
+                this.room.dropSystem.handleEnemyDeath(enemy, hero);
+            }
+
             this.room.state.gameCore.allUnits.delete(enemy.id);
 
         }

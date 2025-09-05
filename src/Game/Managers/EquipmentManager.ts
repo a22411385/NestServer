@@ -209,7 +209,7 @@ export class EquipmentManager {
 
     private equipGeneralItem(hero: ServerHero, item: ServerItem, inventoryIndex: number): boolean {
         // TODO: 實作一般裝備的穿戴邏輯
-        console.log(`裝備一般物品: ${item.name}`);
+        console.log(`裝備一般物品: ${item.id}`);
 
         // 暫時標記物品為已裝備（需要擴展ServerItem schema）
         // item.equipped = true;

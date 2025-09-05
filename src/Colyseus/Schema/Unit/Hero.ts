@@ -548,6 +548,101 @@ export class ServerHero extends ServerGameUnit {
         console.log(`[${this.name}] === 武器系統檢查結束 ===`);
     }
 
+    /**
+     * 🆕 丟棄武器到地圖（給其他玩家撿起）
+     */
+    public dropWeapon(weaponUniqueId: string, targetX?: number, targetY?: number): import("../Item/ServerItem").ServerItem | null {
+        const { ServerItem } = require("../Item/ServerItem");
+
+        // 找到要丟棄的武器
+        const weaponIndex = this.weaponInventory.findIndex(weapon => weapon.uniqueId === weaponUniqueId);
+
+        if (weaponIndex === -1) {
+            console.warn(`${this.name} 找不到要丟棄的武器: ${weaponUniqueId}`);
+            return null;
+        }
+
+        const weaponData = this.weaponInventory[weaponIndex];
+
+        // 先卸下武器（如果已裝備）
+        if (this.isWeaponEquipped(weaponUniqueId)) {
+            this.unequipWeaponById(weaponUniqueId);
+        }
+
+        // 使用 ServerItem 的轉換方法創建掉落物品
+        const dropX = targetX !== undefined ? targetX : this.position.x + (Math.random() - 0.5) * 100;
+        const dropY = targetY !== undefined ? targetY : this.position.y + (Math.random() - 0.5) * 100;
+
+        const dropItem = ServerItem.createFromWeaponData(weaponData, dropX, dropY);
+
+        // 從背包移除
+        this.weaponInventory.splice(weaponIndex, 1);
+
+        // 清理武器實例快取
+        WeaponInstanceManager.invalidateCache(weaponData);
+
+        console.log(`${this.name} 丟棄了武器: ${weaponData.weaponId} (${weaponData.quality})`);
+        return dropItem;
+    }
+
+    /**
+     * 🆕 賣掉武器（轉為金幣）
+     */
+    public sellWeapon(weaponUniqueId: string): number {
+        const weaponIndex = this.weaponInventory.findIndex(weapon => weapon.uniqueId === weaponUniqueId);
+
+        if (weaponIndex === -1) {
+            console.warn(`${this.name} 找不到要賣掉的武器: ${weaponUniqueId}`);
+            return 0;
+        }
+
+        const weaponData = this.weaponInventory[weaponIndex];
+
+        // 先卸下武器（如果已裝備）
+        if (this.isWeaponEquipped(weaponUniqueId)) {
+            this.unequipWeaponById(weaponUniqueId);
+        }
+
+        // 計算武器價值
+        const sellPrice = this.calculateWeaponSellPrice(weaponData);
+
+        // 從背包移除
+        this.weaponInventory.splice(weaponIndex, 1);
+
+        // 清理武器實例快取
+        WeaponInstanceManager.invalidateCache(weaponData);
+
+        // 增加金幣
+        this.gold += sellPrice;
+
+        console.log(`${this.name} 賣掉了武器: ${weaponData.weaponId}, 獲得 ${sellPrice} 金幣`);
+        return sellPrice;
+    }
+
+    /**
+     * 🆕 計算武器賣價
+     */
+    private calculateWeaponSellPrice(weaponData: WeaponData): number {
+        let basePrice = 100; // 基礎價格
+
+        // 品質加成
+        const qualityMultiplier: Record<string, number> = {
+            'common': 1,
+            'uncommon': 2,
+            'rare': 5,
+            'epic': 15,
+            'legendary': 50
+        };
+
+        const multiplier = qualityMultiplier[weaponData.quality] || 1;
+
+        // 等級和強化加成
+        const levelBonus = weaponData.level * 10;
+        const enhanceBonus = weaponData.enhanceLevel * 50;
+
+        return Math.floor(basePrice * multiplier + levelBonus + enhanceBonus);
+    }
+
     //嘗試進行攻擊
     public tryAttack(enemies: ServerGameUnit[]): AttackResult[] {
         const results: AttackResult[] = [];
