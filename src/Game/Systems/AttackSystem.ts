@@ -37,9 +37,20 @@ export class AttackSystem {
     private processHeroAttacks(hero: ServerHero, enemies: ServerGameUnit[]): void {
         const attackResults = hero.tryAttack(enemies);
 
+        if (attackResults.length === 0) {
+            // 沒有攻擊結果，可能是所有武器都在冷卻中或沒有目標
+            return;
+        }
+
+        console.log(`🎯 ${hero.name} 產生了 ${attackResults.length} 個攻擊結果`);
+
         for (const result of attackResults) {
+            console.log(`📊 攻擊結果: 成功=${result.success}, 武器=${result.weaponId}, 目標數=${result.targetIds?.length || 0}`);
+
             if (result.success) {
                 this.handleAttackResult(hero, result);
+            } else {
+                console.log(`❌ 攻擊失敗: ${result.reason}`);
             }
         }
     }
@@ -48,19 +59,50 @@ export class AttackSystem {
      * 處理攻擊結果
      */
     private handleAttackResult(hero: ServerHero, result: AttackResult): void {
-        if (!result.targetIds || result.targetIds.length === 0) return;
-
-        // 獲取武器對象來判斷類型
-        const equippedWeapons = hero.getEquippedWeapons();
-        const weapon = equippedWeapons.find(w => w.weaponId === result.weaponId);
-        if (!weapon) {
-            console.warn(`找不到武器: ${result.weaponId}`);
+        if (!result.targetIds || result.targetIds.length === 0) {
+            console.log(`⚠️ 攻擊結果無效 - 沒有目標ID`);
             return;
         }
 
+        // 獲取武器對象來判斷類型
+        const equippedWeapons = hero.getEquippedWeapons();
+
+        // 🔧 改進武器查找邏輯 - 添加更多檢查方式
+        let weapon = equippedWeapons.find(w => w.weaponId === result.weaponId);
+
+        // 如果直接匹配失敗，嘗試其他匹配方式
+        if (!weapon && equippedWeapons.length > 0) {
+            console.warn(`⚠️ 直接匹配武器失敗，嘗試其他方式`);
+            console.warn(`🔍 尋找武器: "${result.weaponId}"`);
+            console.warn(`🔍 可用武器: ${equippedWeapons.map(w => `"${w.weaponId}"`).join(', ')}`);
+
+            // 嘗試不區分大小寫匹配
+            weapon = equippedWeapons.find(w =>
+                w.weaponId.toLowerCase() === result.weaponId?.toLowerCase()
+            );
+
+            // 如果還是找不到，使用第一個武器作為備用方案
+            if (!weapon) {
+                console.warn(`⚠️ 無法匹配武器，使用第一個可用武器作為備用`);
+                weapon = equippedWeapons[0];
+            }
+        }
+
+        if (!weapon) {
+            console.warn(`❌ 找不到任何可用武器進行攻擊`);
+            return;
+        }
+
+        console.log(`✅ 使用武器: ${weapon.weaponId}, 類型: ${weapon.weaponType}`);
+
         // 獲取目標單位
         const targets = this.getValidTargets(result.targetIds);
-        if (targets.length === 0) return;
+        if (targets.length === 0) {
+            console.log(`⚠️ 攻擊目標無效 - 沒有存活的目標`);
+            return;
+        }
+
+        console.log(`🎯 攻擊目標數量: ${targets.length}`);
 
         // 根據武器類型處理攻擊
         const attackData = this.processAttackByWeaponType(hero, weapon, targets, result);
@@ -86,12 +128,19 @@ export class AttackSystem {
             shouldCreateProjectile: false
         };
 
+        console.log(`🔍 處理攻擊類型 - 武器: ${weapon.weaponId}, 類型: "${weapon.weaponType}"`);
+        console.log(`🔍 WeaponType 枚舉 - PROJECTILE: "${WeaponType.PROJECTILE_WEAPON}", MELEE: "${WeaponType.MELEE_WEAPON}"`);
+        console.log(`🔍 類型比較結果: ${weapon.weaponType === WeaponType.PROJECTILE_WEAPON ? 'PROJECTILE' : 'MELEE'}`);
+
         if (weapon.weaponType === WeaponType.PROJECTILE_WEAPON) {
             // 投射武器：延遲傷害處理
             attackData.shouldCreateProjectile = true;
             console.log(`🏹 投射武器攻擊: ${result.weaponId} - 創建投射物`);
         } else {
             // 近戰武器：立即造成傷害
+            console.log(`⚔️ 開始處理近戰武器攻擊: ${result.weaponId}`);
+            console.log(`⚔️ 目標數量: ${targets.length}, 基礎傷害: ${result.baseDamage}`);
+
             attackData.damageResults = this.gameRoom.damageSystem.dealDamageToMultipleTargets(
                 hero,
                 targets,
@@ -99,7 +148,8 @@ export class AttackSystem {
                 'physical',
                 result.weaponId
             );
-            console.log(`⚔️ 近戰武器攻擊: ${result.weaponId} - 立即傷害`);
+
+            console.log(`⚔️ 近戰武器攻擊完成: ${result.weaponId} - 傷害結果數: ${attackData.damageResults.length}`);
 
             // 處理戰報
             this.handleBattleLog(hero, attackData.damageResults);

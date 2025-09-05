@@ -87,7 +87,8 @@ export abstract class BaseMessageHandler implements IMessageHandler {
     protected logHandle(type: string, clientId: string, success: boolean, error?: string): void {
         const status = success ? '✅' : '❌';
         const errorMsg = error ? ` - ${error}` : '';
-        console.log(`${status} [${this.constructor.name}] ${type} from ${clientId}${errorMsg}`);
+        if (this.constructor.name != "MovementHandler")
+            console.log(`${status} [${this.constructor.name}] ${type} from ${clientId}${errorMsg}`);
     }
 
     /**
