@@ -1,37 +1,51 @@
 import { WeaponBasic } from "./WeaponBasic";
-import { WeaponAttackResult, AttackFailReason, VisualEffect, AttackResult } from "@/Types";
+import { AttackFailReason, VisualEffect, AttackResult, PropertyType } from "@/Types";
 import { ServerGameUnit } from "../../Unit/GameUnit";
 import { WeaponType } from "@/Types";
-import { WeaponPropertyType, StatusEffectData } from "@/Types/Equipment/WeaponPropertyTypes";
+import { StatusEffectData } from "@/Types/Equipment/WeaponPropertyTypes";
 
 /**
  * 近戰武器抽象類
  * 特點：需要靠近目標、通常有擊退效果、可能有範圍攻擊
  * 移除 Schema 導入，MeleeWeapon 現在是純邏輯層類
  * 使用屬性系統替代硬編碼的 knockbackForce 和 sweepAngle
+ * 🆕 支持配置驅動的初始化
  */
 export abstract class MeleeWeapon extends WeaponBasic {
-    constructor(
-        weaponId: string,
-        attackRange: number,
-        baseDamage: number,
-        attackSpeed: number
-    ) {
-        super(weaponId, WeaponType.MELEE_WEAPON, attackRange, baseDamage, attackSpeed);
+    constructor() {
+        super(); // 🆕 調用無參數的父類構造函數
+    }
+
+    /**
+     * 🆕 實現基類的配置應用方法
+     */
+    protected applyWeaponSpecificConfig(): void {
+        // 近戰武器的通用配置邏輯
+        console.log(`⚔️ 近戰武器配置已應用: ${this.name}`);
+        
+        // 子類可以覆寫此方法來應用特定配置
+        this.applyMeleeSpecificConfig();
+    }
+
+    /**
+     * 🆕 子類可覆寫的近戰武器特定配置方法
+     */
+    protected applyMeleeSpecificConfig(): void {
+        // 預設實現，子類可覆寫
     }
 
     /**
      * 獲取擊退力度（從屬性系統）
      */
     public get knockbackForce(): number {
-        return (this.getPropertyValue(WeaponPropertyType.KNOCKBACK) as number) || 0;
+        return (this.getPropertyValue(PropertyType.KNOCKBACK) as number) || 0;
     }
 
     /**
      * 獲取掃射角度（從屬性系統）
      */
     public get sweepAngle(): number {
-        const angleInDegrees = (this.getPropertyValue(WeaponPropertyType.SWEEP_ANGLE) as number) || 0;
+        const angleInDegrees = (this.getPropertyValue(PropertyType.SWEEP_ANGLE) as number) || 0;
         return angleInDegrees * Math.PI / 180; // 轉換為弧度
     }
 
@@ -39,7 +53,7 @@ export abstract class MeleeWeapon extends WeaponBasic {
      * 獲取暈眩效果 [機率, 持續時間]
      */
     public get stunEffect(): [number, number] | null {
-        const stunValue = this.getPropertyValue(WeaponPropertyType.STUN);
+        const stunValue = this.getPropertyValue(PropertyType.STUN);
         return Array.isArray(stunValue) ? stunValue as [number, number] : null;
     }
 
@@ -50,49 +64,49 @@ export abstract class MeleeWeapon extends WeaponBasic {
         const effects: StatusEffectData[] = [];
 
         // 暈眩效果
-        const stunValue = this.getPropertyValue(WeaponPropertyType.STUN);
+        const stunValue = this.getPropertyValue(PropertyType.STUN);
         if (Array.isArray(stunValue) && stunValue.length >= 2) {
             effects.push({
-                type: WeaponPropertyType.STUN,
+                type: PropertyType.STUN,
                 chance: stunValue[0],
                 duration: stunValue[1]
             });
         }
 
         // 冰凍效果
-        const freezeValue = this.getPropertyValue(WeaponPropertyType.FREEZE);
+        const freezeValue = this.getPropertyValue(PropertyType.FREEZE);
         if (typeof freezeValue === 'number') {
             effects.push({
-                type: WeaponPropertyType.FREEZE,
+                type: PropertyType.FREEZE,
                 duration: freezeValue
             });
         }
 
         // 燃燒效果
-        const burnValue = this.getPropertyValue(WeaponPropertyType.BURN);
+        const burnValue = this.getPropertyValue(PropertyType.BURN);
         if (Array.isArray(burnValue) && burnValue.length >= 2) {
             effects.push({
-                type: WeaponPropertyType.BURN,
+                type: PropertyType.BURN,
                 duration: burnValue[0],
                 damagePerSecond: burnValue[1]
             });
         }
 
         // 中毒效果
-        const poisonValue = this.getPropertyValue(WeaponPropertyType.POISON);
+        const poisonValue = this.getPropertyValue(PropertyType.POISON);
         if (Array.isArray(poisonValue) && poisonValue.length >= 2) {
             effects.push({
-                type: WeaponPropertyType.POISON,
+                type: PropertyType.POISON,
                 duration: poisonValue[0],
                 damagePerSecond: poisonValue[1]
             });
         }
 
         // 減速效果
-        const slowValue = this.getPropertyValue(WeaponPropertyType.SLOW);
+        const slowValue = this.getPropertyValue(PropertyType.SLOW);
         if (Array.isArray(slowValue) && slowValue.length >= 3) {
             effects.push({
-                type: WeaponPropertyType.SLOW,
+                type: PropertyType.SLOW,
                 chance: slowValue[0],
                 duration: slowValue[1],
                 slowPercentage: slowValue[2]
@@ -148,7 +162,7 @@ export abstract class MeleeWeapon extends WeaponBasic {
                 range: this.attackRange,
                 sweepAngle: this.sweepAngle,
                 // 新增：包含所有武器屬性
-                properties: this.getAllProperties()
+                //properties: this.getAllProperties()
             },
             visualEffects: this.createMeleeVisualEffects(attacker, facingDirection)
         };

@@ -1,4 +1,5 @@
-import { WeaponPropertyType, WeaponPropertyValue, WeaponQuality, WeaponPropertyDefinition } from "../../Types/Equipment/WeaponPropertyTypes";
+
+import { PropertyType, PropertyValue, WeaponQuality } from "@/Types/Equipment/WeaponPropertyTypes";
 import { GoogleSheetCache } from "../../Tasks/GoogleSheetCache";
 
 /**
@@ -60,7 +61,7 @@ export class WeaponPropertyService {
         weaponId: string,
         quality: WeaponQuality,
         seed: number
-    ): WeaponPropertyValue[] {
+    ): PropertyValue[] {
         if (!this.isInitialized) {
             throw new Error('WeaponPropertyService 未初始化');
         }
@@ -73,7 +74,7 @@ export class WeaponPropertyService {
                 return [];
             }
 
-            const properties: WeaponPropertyValue[] = [];
+            const properties: PropertyValue[] = [];
 
             // 1. 解析固定屬性
             const fixedProperties = this.parseFixedProperties(weaponConfig.fixedProperties);
@@ -101,11 +102,11 @@ export class WeaponPropertyService {
      * @param fixedPropsString 固定屬性字符串，如 "knockback,stun,sweep_angle"
      * @returns 屬性值列表
      */
-    private parseFixedProperties(fixedPropsString: string): WeaponPropertyValue[] {
+    private parseFixedProperties(fixedPropsString: string): PropertyValue[] {
         if (!fixedPropsString) return [];
 
         const propTypes = fixedPropsString.split(',').map(s => s.trim());
-        const properties: WeaponPropertyValue[] = [];
+        const properties: PropertyValue[] = [];
 
         for (const propType of propTypes) {
             const propertyDef = this.weaponProperties.get(propType);
@@ -117,7 +118,7 @@ export class WeaponPropertyService {
             // 固定屬性使用最大值
             const value = this.generatePropertyValue(propertyDef, true);
             properties.push({
-                type: propType as WeaponPropertyType,
+                type: propType as PropertyType,
                 value: value,
                 isPercentage: this.isPercentageProperty(propType),
                 description: propertyDef.displayName,
@@ -139,7 +140,7 @@ export class WeaponPropertyService {
         randomPropsString: string,
         quality: WeaponQuality,
         seed: number
-    ): WeaponPropertyValue[] {
+    ): PropertyValue[] {
         if (!randomPropsString) return [];
 
         const propPool = randomPropsString.split(',').map(s => s.trim());
@@ -151,7 +152,7 @@ export class WeaponPropertyService {
         const rng = this.createSeededRNG(seed);
         const selectedProps = this.selectRandomProperties(propPool, randomCount, rng);
 
-        const properties: WeaponPropertyValue[] = [];
+        const properties: PropertyValue[] = [];
 
         for (const propType of selectedProps) {
             const propertyDef = this.weaponProperties.get(propType);
@@ -160,7 +161,7 @@ export class WeaponPropertyService {
             // 隨機屬性使用隨機值
             const value = this.generatePropertyValue(propertyDef, false, rng);
             properties.push({
-                type: propType as WeaponPropertyType,
+                type: propType as PropertyType,
                 value: value,
                 isPercentage: this.isPercentageProperty(propType),
                 description: propertyDef.displayName,
@@ -426,7 +427,7 @@ export function generateWeaponProperties(
     weaponId: string,
     quality: WeaponQuality,
     seed: number
-): WeaponPropertyValue[] {
+): PropertyValue[] {
     return weaponPropertyService.generateWeaponProperties(weaponId, quality, seed);
 }
 

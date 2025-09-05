@@ -3,7 +3,7 @@ import { GameRoomState } from "../../Colyseus/Schema/GameState";
 import { ServerHero } from "../../Colyseus/Schema/Unit/Hero";
 import { ServerItem } from "../../Colyseus/Schema/Item/ServerItem";
 import { WeaponSystemFacade } from "../Systems/WeaponSystemFacade";
-import { EquipmentBonus } from "@/Types/Equipment/EquipmentTypes";
+import { AttributeBonus } from "@/Types";
 
 /**
  * 裝備管理器 - 負責處理裝備穿脫、屬性計算和驗證
@@ -117,13 +117,13 @@ export class EquipmentManager {
     }
 
     /**
-     * 獲取玩家所有裝備加成
+     * 獲取玩家所有裝備屬性加成
      */
-    public getEquipmentBonuses(playerId: string): EquipmentBonus[] {
+    public getEquipmentBonuses(playerId: string): AttributeBonus[] {
         const hero = this.state.getHero(playerId);
         if (!hero) return [];
 
-        const bonuses: EquipmentBonus[] = [];
+        const bonuses: AttributeBonus[] = [];
 
         // 獲取武器加成
         const equippedWeapons = hero.getEquippedWeapons();

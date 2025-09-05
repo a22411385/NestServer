@@ -1,9 +1,9 @@
+import { WeaponQuality } from "@/Types/Equipment/WeaponPropertyTypes";
 import { WeaponBasic } from "../../Colyseus/Schema/Weapon/Baisc/WeaponBasic";
 import { WeaponData } from "../../Colyseus/Schema/Weapon/WeaponData";
 import { WeaponFactory } from "../Factories/WeaponFactory";
 import { WeaponDataService } from "../Services/WeaponDataService";
 import { WeaponPropertyService } from "../Services/WeaponPropertyService";
-import { WeaponQuality } from "../../Types/Equipment/WeaponPropertyTypes";
 
 /**
  * 武器實例管理器 - 專注於實例的創建、緩存和生命周期管理
@@ -15,10 +15,18 @@ export class WeaponInstanceManager {
     private static cleanupInterval: NodeJS.Timeout | null = null;
 
     /**
-     * 初始化管理器
+     * 🆕 初始化管理器 - 確保武器工廠已初始化
      */
     public static async initialize(): Promise<void> {
         if (!this.cleanupInterval) {
+            // 🆕 首先初始化武器工廠
+            try {
+                await WeaponFactory.initialize();
+                console.log('✅ WeaponFactory 初始化完成');
+            } catch (error) {
+                console.error('❌ WeaponFactory 初始化失敗:', error);
+            }
+
             // 初始化屬性系統
             try {
                 await WeaponPropertyService.getInstance().initialize();
@@ -87,6 +95,11 @@ export class WeaponInstanceManager {
             // 4. 應用屬性到實例
             if (properties.length > 0) {
                 instance.applyProperties(properties);
+
+                // 🆕 同時更新 WeaponData 中的屬性信息供客戶端使用
+                weaponData.setProperties(properties);
+                weaponData.quality = quality;
+                console.log(`🔧 ${weaponData.weaponId} 應用屬性: ${properties.length} 個，品質: ${quality}`);
             }
         } catch (error) {
             console.warn(`⚠️ 應用屬性失敗 ${weaponData.weaponId}:`, error);

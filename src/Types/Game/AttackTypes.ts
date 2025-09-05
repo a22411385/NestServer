@@ -1,17 +1,18 @@
 /**
  * 戰鬥和攻擊相關的類型定義
  */
-import { WeaponPropertyValue } from "../Equipment/WeaponPropertyTypes";
+
+import { PropertyValue } from "../Equipment/WeaponPropertyTypes";
 
 /**
  * 統一的攻擊結果接口 - 合併了所有攻擊相關的結果
  */
 export interface AttackResult {
     success: boolean;
-    attackerId: string;
+    attackerId?: string;  // 改為可選，保持向下相容
     weaponId?: string;
-    targetIds: string[];
-    timestamp: number;
+    targetIds?: string[]; // 改為可選，失敗時可能沒有目標
+    timestamp?: number;   // 改為可選，保持向下相容
 
     // 傷害信息
     baseDamage: number;
@@ -33,7 +34,7 @@ export interface AttackResult {
         sweepAngle?: number;
         targetPosition?: { x: number, y: number }; // 投射武器需要目標位置
         supportRadius?: number; // 支援武器需要支援範圍
-        properties?: WeaponPropertyValue[]; // 武器屬性
+        properties?: PropertyValue[]; // 武器屬性
     };
 }
 

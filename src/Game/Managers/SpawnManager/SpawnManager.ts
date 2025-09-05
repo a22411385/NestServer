@@ -1,8 +1,8 @@
-import { Vector2 } from "../../Colyseus/Schema/Unit/GameUnit";
-import { ServerGameUnit } from "../../Colyseus/Schema/Unit/GameUnit";
+import { Vector2 } from "../../../Colyseus/Schema/Unit/GameUnit";
+import { ServerGameUnit } from "../../../Colyseus/Schema/Unit/GameUnit";
 
 // 🆕 使用統一類型定義
-import { SpawnType, SpawnConfig } from "@/Types";
+import { SpawnType, SpawnConfig } from "./types";
 
 /**
  * 生成位置管理器 - 負責計算和驗證敵人生成位置

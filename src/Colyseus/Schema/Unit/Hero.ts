@@ -7,38 +7,7 @@ import { ServerItem } from "../Item/ServerItem";
 import { WeaponData } from "../Weapon/WeaponData";
 import { WeaponSystemFacade } from "../../../Game/Systems/WeaponSystemFacade";
 import { WeaponInstanceManager } from "../../../Game/Managers/WeaponInstanceManager";
-import { AttackResult } from "@/Types";
-
-export type StatType = 'vit' | 'str' | 'agi' | 'int';
-
-// 裝備加成接口
-export interface EquipmentBonus {
-    // 固定數值加成
-    hpBonus?: number;
-    attackBonus?: number;
-    speedBonus?: number;
-    mpBonus?: number;
-
-    // 百分比加成 (0.1 = 10%)
-    hpMultiplier?: number;
-    attackMultiplier?: number;
-    speedMultiplier?: number;
-    mpMultiplier?: number;
-
-    // 特殊效果
-    critRate?: number;
-    dodgeRate?: number;
-    lifeSteal?: number;
-}
-
-// Buff 效果接口
-export interface BuffEffect {
-    id: string;
-    type: 'hp_boost' | 'attack_boost' | 'speed_boost' | 'damage_reduction';
-    value: number;
-    duration: number;
-    remaining: number;
-}
+import { AttackResult, AttributeBonus, BuffEffect, StatType } from "@/Types";
 // 玩家操控的主要單位
 export class ServerHero extends ServerGameUnit {
 
@@ -274,9 +243,9 @@ export class ServerHero extends ServerGameUnit {
     }
 
     /**
-     * 裝備加成管理
+     * 裝備屬性加成管理
      */
-    public applyEquipmentBonus(bonuses: EquipmentBonus[]): void {
+    public applyEquipmentBonus(bonuses: AttributeBonus[]): void {
         // 重置裝備加成
         this.equipmentHpBonus = 0;
         this.equipmentAttackBonus = 0;

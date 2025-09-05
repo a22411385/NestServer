@@ -2,8 +2,11 @@
  * 武器配置定義 - 集中管理所有武器的基本信息
  */
 
+import { WeaponConfigDefinition } from "@/Types/Equipment/WeaponPropertyTypes";
 import { GoogleSheetCache } from "../../Tasks/GoogleSheetCache";
-import { ITEM_RATE, WeaponType, WeaponConfigDefinition } from "../../Types";
+import { WeaponType } from "@/Types/Equipment/WeaponTypes";
+import { EquipmentQuality } from "@/Types";
+
 /**
  * 動態武器配置管理器
  */
@@ -90,7 +93,7 @@ export class WeaponConfigManager {
     /**
      * 獲取指定稀有度的所有武器
      */
-    public getConfigsByRarity(rarity: ITEM_RATE): WeaponConfigDefinition[] {
+    public getConfigsByRarity(rarity: EquipmentQuality): WeaponConfigDefinition[] {
         const configs = this.getAllConfigs();
         return Object.values(configs).filter(config => config.enabled && this.getConfigRarity(config.id) === rarity);
     }
@@ -98,22 +101,22 @@ export class WeaponConfigManager {
     /**
      * 根據武器ID獲取稀有度
      */
-    private getConfigRarity(weaponId: string): ITEM_RATE {
+    private getConfigRarity(weaponId: string): EquipmentQuality {
         // 根據武器ID或其他邏輯確定稀有度
         // 這裡可以根據實際需求調整邏輯
         const config = this.getConfig(weaponId);
-        if (!config) return ITEM_RATE.COMMON;
+        if (!config) return EquipmentQuality.NORMAL;
 
         // 示例：根據屬性數量判斷稀有度
         const fixedCount = config.fixedProperties ? config.fixedProperties.split(',').length : 0;
         const randomCount = config.randomProperties ? config.randomProperties.split(',').length : 0;
         const totalComplexity = fixedCount + randomCount;
 
-        if (totalComplexity >= 8) return ITEM_RATE.LEGENDARY;
-        if (totalComplexity >= 6) return ITEM_RATE.EPIC;
-        if (totalComplexity >= 4) return ITEM_RATE.RARE;
-        if (totalComplexity >= 2) return ITEM_RATE.UNCOMMON;
-        return ITEM_RATE.COMMON;
+        if (totalComplexity >= 8) return EquipmentQuality.LEGENDARY;
+        if (totalComplexity >= 6) return EquipmentQuality.EPIC;
+        if (totalComplexity >= 4) return EquipmentQuality.RARE;
+        if (totalComplexity >= 2) return EquipmentQuality.NORMAL;
+        return EquipmentQuality.NORMAL;
     }
 }
 
@@ -151,7 +154,7 @@ export function getWeaponsByType(type: WeaponType): WeaponConfigDefinition[] {
 /**
  * 獲取指定稀有度的所有武器
  */
-export function getWeaponsByRarity(rarity: ITEM_RATE): WeaponConfigDefinition[] {
+export function getWeaponsByRarity(rarity: EquipmentQuality): WeaponConfigDefinition[] {
     return weaponConfigManager.getConfigsByRarity(rarity);
 }
 
@@ -217,25 +220,3 @@ export function getAllWeaponConfigs(): WeaponConfigDefinition[] {
     const configs = weaponConfigManager.getAllConfigs();
     return Object.values(configs);
 }
-
-/**
- * 向下兼容：導出 WEAPON_CONFIGS
- * @deprecated 建議使用 getWeaponConfig() 等方法
- */
-export const WEAPON_CONFIGS = new Proxy({} as Record<string, WeaponConfigDefinition>, {
-    get(target, prop: string) {
-        if (typeof prop === 'string') {
-            return weaponConfigManager.getConfig(prop);
-        }
-        return undefined;
-    },
-
-    ownKeys(target) {
-        const configs = weaponConfigManager.getAllConfigs();
-        return Object.keys(configs);
-    },
-
-    has(target, prop: string) {
-        return weaponConfigManager.getConfig(prop) !== null;
-    }
-});

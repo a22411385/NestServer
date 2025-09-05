@@ -6,7 +6,7 @@ import { ServerEnemy } from "../../Colyseus/Schema/Unit/Enemy";
 import { ServerHero } from "../../Colyseus/Schema/Unit/Hero";
 import { GameRoom } from "../../Colyseus/Rooms/GameRoom";
 import { Vector2 } from "../../Colyseus/Schema/Unit/GameUnit";
-import { WaveManager } from "../Managers/WaveManager";
+import { WaveManager } from "../Managers/WaveManager/WaveManager";
 import { EnemyCoordinationSystem } from "./EnemyCoordinationSystem";
 
 const mapSize = 1000;

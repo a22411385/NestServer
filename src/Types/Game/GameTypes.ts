@@ -66,43 +66,74 @@ export interface GameTimeSettings {
 export type StatType = 'int' | 'agi' | 'str' | 'vit';
 
 /**
- * 統一的屬性加成接口 - 合併了所有屬性相關的加成
+ * 統一的屬性加成接口 - 整合裝備與武器的所有屬性加成
+ * 支援固定數值和百分比加成
  */
 export interface AttributeBonus {
-    // 基礎數值加成
-    hpBonus?: number;
-    mpBonus?: number;
-    attackBonus?: number;
-    defenseBonus?: number;
-    speedBonus?: number;
+    // === 基礎數值屬性 ===
+    hpBonus?: number;           // 生命值固定加成
+    mpBonus?: number;           // 魔法值固定加成
+    attackBonus?: number;       // 攻擊力固定加成
+    defenseBonus?: number;      // 防禦力固定加成
+    speedBonus?: number;        // 移動速度固定加成
+    attackSpeedBonus?: number;  // 攻擊速度固定加成
+    attackRangeBonus?: number;  // 攻擊範圍固定加成
 
-    // 百分比加成 (0.1 = 10%)
+    // === 百分比加成 (0.1 = 10%) ===
     hpMultiplier?: number;
     mpMultiplier?: number;
     attackMultiplier?: number;
     defenseMultiplier?: number;
     speedMultiplier?: number;
+    attackSpeedMultiplier?: number;
+    attackRangeMultiplier?: number;
 
-    // 角色主屬性加成
-    intBonus?: number;
-    agiBonus?: number;
-    strBonus?: number;
-    vitBonus?: number;
+    // === 角色主屬性加成 ===
+    strengthBonus?: number;     // 力量固定加成
+    intelligenceBonus?: number; // 智力固定加成
+    vitalityBonus?: number;     // 體力固定加成
+    agilityBonus?: number;      // 敏捷固定加成
 
-    // 戰鬥特效
-    criticalRate?: number;
-    criticalDamage?: number;
-    dodgeRate?: number;
-    blockRate?: number;
-    lifeSteal?: number;
-    manaSteal?: number;
+    strengthMultiplier?: number;     // 力量百分比加成
+    intelligenceMultiplier?: number; // 智力百分比加成
+    vitalityMultiplier?: number;     // 體力百分比加成
+    agilityMultiplier?: number;      // 敏捷百分比加成
 
-    // 抗性
-    physicalResistance?: number;
-    magicalResistance?: number;
-    fireResistance?: number;
-    iceResistance?: number;
-    poisonResistance?: number;
+    // === 戰鬥特效 ===
+    criticalRate?: number;      // 暴擊率 (0-1)
+    criticalDamage?: number;    // 暴擊傷害倍率
+    dodgeRate?: number;         // 閃避率 (0-1)
+    blockRate?: number;         // 格擋率 (0-1)
+    lifeSteal?: number;         // 生命偷取 (0-1)
+    manaSteal?: number;         // 魔法偷取 (0-1)
+
+    // === 武器專用特效 ===
+    pierceCount?: number;       // 穿透次數
+    knockbackForce?: number;    // 擊退力量
+    areaOfEffect?: number;      // 範圍效果半徑
+    chainAttackCount?: number;  // 連鎖攻擊次數
+    splashDamageRadius?: number; // 濺射傷害範圍
+
+    // === 輔助武器專用 ===
+    healAmount?: number;        // 治療量
+    healMultiplier?: number;    // 治療倍率
+    buffDuration?: number;      // 增益持續時間
+    supportRadius?: number;     // 支援範圍
+
+    // === 抗性屬性 ===
+    physicalResistance?: number;  // 物理抗性 (0-1)
+    magicalResistance?: number;   // 魔法抗性 (0-1)
+    fireResistance?: number;      // 火焰抗性 (0-1) 
+    iceResistance?: number;       // 冰霜抗性 (0-1)
+    poisonResistance?: number;    // 毒素抗性 (0-1)
+    stunResistance?: number;      // 眩暈抗性 (0-1)
+
+    // === 狀態效果觸發機率 ===
+    stunChance?: number;        // 眩暈機率 (0-1)
+    freezeChance?: number;      // 冰凍機率 (0-1)
+    burnChance?: number;        // 燃燒機率 (0-1)
+    poisonChance?: number;      // 中毒機率 (0-1)
+    slowChance?: number;        // 緩速機率 (0-1)
 }
 
 /**

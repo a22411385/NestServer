@@ -1,40 +1,52 @@
 import { WeaponBasic } from "./WeaponBasic";
-import { WeaponAttackResult, AttackFailReason, VisualEffect } from "@/Types";
+import { AttackResult, AttackFailReason, VisualEffect } from "@/Types";
 import { ServerGameUnit } from "../../Unit/GameUnit";
 import { WeaponType } from "@/Types";
 
 /**
- * ???????
- * ???????????????????????
- * ?? Schema ???ProjectileWeapon ????????
+ * 投射武器類
+ * 特點：遠程攻擊、有投射物、可能有穿透效果
+ * 移除 Schema 導入，ProjectileWeapon 現在是純邏輯層類
+ * 🆕 支持配置驅動的初始化
  */
 export class ProjectileWeapon extends WeaponBasic {
-    projectileSpeed: number = 0; // ????
-    pierceCount: number = 0; // ????
-    areaOfEffect: number = 0; // ???? (0???AOE)
-    accuracy: number = 1.0; // ????? (0-1)
+    projectileSpeed: number = 0; // 投射物速度
+    pierceCount: number = 0; // 穿透次數
+    areaOfEffect: number = 0; // 範圍效果 (0表示無AOE)
+    accuracy: number = 1.0; // 命中精度 (0-1)
 
-    constructor(
-        weaponId: string,
-        attackRange: number,
-        baseDamage: number,
-        attackSpeed: number,
-        projectileSpeed: number,
-        pierceCount: number = 0,
-        areaOfEffect: number = 0,
-        accuracy: number = 1.0
-    ) {
-        super(weaponId, WeaponType.PROJECTILE, attackRange, baseDamage, attackSpeed);
-        this.projectileSpeed = projectileSpeed;
-        this.pierceCount = pierceCount;
-        this.areaOfEffect = areaOfEffect;
-        this.accuracy = accuracy;
+    constructor() {
+        super(); // 🆕 調用無參數的父類構造函數
+    }
+
+    /**
+     * 🆕 實現基類的配置應用方法
+     */
+    protected applyWeaponSpecificConfig(): void {
+        // 投射武器的通用配置邏輯
+        console.log(`🏹 投射武器配置已應用: ${this.name}`);
+        
+        // 設置投射武器的預設值
+        this.projectileSpeed = 300; // 預設投射物速度
+        this.pierceCount = 0;       // 預設無穿透
+        this.areaOfEffect = 0;      // 預設無範圍效果
+        this.accuracy = 1.0;        // 預設100%命中
+
+        // 子類可以覆寫此方法來應用特定配置
+        this.applyProjectileSpecificConfig();
+    }
+
+    /**
+     * 🆕 子類可覆寫的投射武器特定配置方法
+     */
+    protected applyProjectileSpecificConfig(): void {
+        // 預設實現，子類可覆寫
     }
 
     public tryAttack(
         attacker: ServerGameUnit,
         potentialTargets: ServerGameUnit[]
-    ): WeaponAttackResult {
+    ): AttackResult {
         // ??????
         if (!this.canAttack()) {
             return {
@@ -244,17 +256,22 @@ export class ProjectileWeapon extends WeaponBasic {
         direction: { x: number, y: number }
     ): VisualEffect[] {
         return [{
-            type: 'projectile',
+            type: 'projectile', // 🔧 使用正確的視覺效果類型
             eventType: 'projectile_fire',
             position: { x: attacker.position.x, y: attacker.position.y },
             direction: direction,
             data: {
                 weaponType: this.weaponId,
+                weaponId: this.weaponId, // 🔧 添加武器ID
                 targetPosition: { x: target.position.x, y: target.position.y },
+                startPosition: { x: attacker.position.x, y: attacker.position.y }, // 🔧 添加起始位置
                 speed: this.projectileSpeed,
+                damage: this.baseDamage, // 🔧 添加傷害數值
                 range: this.attackRange,
                 pierceCount: this.pierceCount,
-                aoeRadius: this.areaOfEffect
+                aoeRadius: this.areaOfEffect,
+                bulletType: this.pierceCount > 0 ? 'piercing' : 'basic', // 🔧 添加子彈類型
+                lifeTime: (this.attackRange / this.projectileSpeed) * 1000 // 🔧 根據射程和速度計算生存時間
             }
         }];
     }

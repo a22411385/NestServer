@@ -3,8 +3,8 @@
  * 整合自 WaveManager.ts 的所有接口
  */
 
-import { EnemyType } from "./EnemyTypes";
-import { SpawnType } from "./SpawnTypes";
+import { EnemyType } from "../../../Types/Game/EnemyTypes";
+import { SpawnType } from "../SpawnManager";
 
 
 /**

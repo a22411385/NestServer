@@ -37,7 +37,7 @@ export class ServerEnemy extends ServerGameUnit {
 
     constructor() {
         super();
-        this.hp = 20;
+        this.hp = 50; // 🔧 修復：與 maxHp 一致
         this.maxHp = 50;
         this.moveSpeed = 30; // 每秒移動50像素
         this.scale = 1.0; // 預設縮放為1

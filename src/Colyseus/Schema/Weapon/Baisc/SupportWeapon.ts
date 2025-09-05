@@ -1,5 +1,5 @@
 import { WeaponBasic } from "./WeaponBasic";
-import { WeaponAttackResult, AttackFailReason, VisualEffect, AttackResult } from "@/Types";
+import { AttackFailReason, VisualEffect, AttackResult } from "@/Types";
 import { ServerGameUnit } from "../../Unit/GameUnit";
 import { WeaponType } from "@/Types";
 
@@ -7,6 +7,7 @@ import { WeaponType } from "@/Types";
  * 輔助武器抽象類
  * 特點：可以治療友軍、提供增益效果、範圍支援
  * 移除 Schema 導入，SupportWeapon 現在是純邏輯層類
+ * 🆕 支持配置驅動的初始化
  */
 export abstract class SupportWeapon extends WeaponBasic {
     healAmount: number = 0; // 治療量
@@ -14,20 +15,32 @@ export abstract class SupportWeapon extends WeaponBasic {
     supportRadius: number = 0; // 支援範圍
     canTargetSelf: boolean = true; // 是否可以對自己使用
 
-    constructor(
-        weaponId: string,
-        supportRange: number,
-        healAmount: number,
-        attackSpeed: number,
-        buffDuration: number = 0,
-        supportRadius: number = 0,
-        canTargetSelf: boolean = true
-    ) {
-        super(weaponId, WeaponType.SUPPORT, supportRange, healAmount, attackSpeed);
-        this.healAmount = healAmount;
-        this.buffDuration = buffDuration;
-        this.supportRadius = supportRadius;
-        this.canTargetSelf = canTargetSelf;
+    constructor() {
+        super(); // 🆕 調用無參數的父類構造函數
+    }
+
+    /**
+     * 🆕 實現基類的配置應用方法
+     */
+    protected applyWeaponSpecificConfig(): void {
+        // 輔助武器的通用配置邏輯
+        console.log(`🛡️ 輔助武器配置已應用: ${this.name}`);
+        
+        // 設置輔助武器的預設值
+        this.healAmount = 20;        // 預設治療量
+        this.buffDuration = 5000;    // 預設增益持續時間 (5秒)
+        this.supportRadius = 150;    // 預設支援範圍
+        this.canTargetSelf = true;   // 預設可以對自己使用
+
+        // 子類可以覆寫此方法來應用特定配置
+        this.applySupportSpecificConfig();
+    }
+
+    /**
+     * 🆕 子類可覆寫的輔助武器特定配置方法
+     */
+    protected applySupportSpecificConfig(): void {
+        // 預設實現，子類可覆寫
     }
 
     public tryAttack(

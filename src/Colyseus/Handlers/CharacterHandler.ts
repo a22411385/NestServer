@@ -1,7 +1,6 @@
 import { Client } from "colyseus";
 import { BaseMessageHandler } from "./Base/BaseMessageHandler";
-import { PermissionLevel } from "@/Types";
-import { StatType } from "@/Colyseus/Schema/Unit/Hero";
+import { PermissionLevel, StatType } from "@/Types";
 
 /**
  * 角色處理器

@@ -3,7 +3,7 @@
  * 整合自 SpawnManager.ts 的所有接口和枚舉
  */
 
-import { Vector2 } from "../BaseTypes";
+import { Vector2 } from "../../../Types/BaseTypes";
 
 /**
  * 生成位置類型枚舉

@@ -12,16 +12,16 @@ export * from './Game/AttackTypes';    // 包含統一的 AttackResult 接口
 export * from './Game/CombatTypes';    // 重新導出 AttackTypes，避免重複
 
 // ========================= 武器系統類型 =========================
-export * from './Equipment/WeaponTypes';         // 重新設計的武器分類
-export * from './Equipment/WeaponPropertyTypes'; // 武器屬性定義
-export * from './Equipment/EquipmentTypes';      // 重新導出統一的 AttributeBonus
+export * from './Equipment/WeaponTypes';         // 武器分類枚舉
+export * from './Equipment/EquipmentTypes';      // 統一的裝備系統
 
 // ========================= 其他遊戲類型 =========================
-export * from './Game/WaveTypes';
 export * from './Game/EnemyTypes';
-export * from './Game/SpawnTypes';
 export * from './Game/BulletTypes';
-export * from './Game/ItemBaseTypes';
+
+// ========================= 系統特定類型 (新位置) =========================
+export * from '../Game/Managers/WaveManager';      // 波次管理系統類型
+export * from '../Game/Managers/SpawnManager';     // 生成管理系統類型
 
 // ========================= 網路類型 =========================
 export * from './Network/NetworkTypes';

@@ -2,7 +2,7 @@ import { GameRoom } from "../../Colyseus/Rooms/GameRoom";
 import { ServerHero } from "../../Colyseus/Schema/Unit/Hero";
 import { ServerGameUnit } from "../../Colyseus/Schema/Unit/GameUnit";
 import { WeaponBasic } from "../../Colyseus/Schema/Weapon/Baisc/WeaponBasic";
-import { WeaponAttackResult, WeaponType } from "@/Types";
+import { AttackResult, WeaponType } from "@/Types";
 import { UnitType } from "../../Colyseus/Schema/GameState";
 import { BattleLogSystem } from "./BattleLogSystem";
 
@@ -40,15 +40,15 @@ export class CombatSystem {
 
         for (const result of attackResults) {
             if (result.success) {
-                this.handleWeaponAttackResult(hero, result);
+                this.handleAttackResult(hero, result);
             }
         }
     }
 
     /**
-     * 處理武器攻擊結果
+     * 處理攻擊結果
      */
-    private handleWeaponAttackResult(hero: ServerHero, result: WeaponAttackResult): void {
+    private handleAttackResult(hero: ServerHero, result: AttackResult): void {
         if (!result.targetIds || result.targetIds.length === 0) return;
 
         // 獲取武器對象來判斷類型
@@ -80,14 +80,14 @@ export class CombatSystem {
         hero: ServerHero,
         weapon: any,
         targets: ServerGameUnit[],
-        result: WeaponAttackResult
+        result: AttackResult
     ): AttackProcessResult {
         const attackData: AttackProcessResult = {
             damageResults: [],
             shouldCreateProjectile: false
         };
 
-        if (weapon.weaponType === WeaponType.PROJECTILE) {
+        if (weapon.weaponType === WeaponType.PROJECTILE_WEAPON) {
             // 投射武器：延遲傷害處理
             attackData.shouldCreateProjectile = true;
             console.log(`🏹 投射武器攻擊: ${result.weaponId} - 創建投射物`);
@@ -114,7 +114,7 @@ export class CombatSystem {
      */
     private handleVisualEffects(
         hero: ServerHero,
-        result: WeaponAttackResult,
+        result: AttackResult,
         attackData: AttackProcessResult
     ): void {
         if (!result.visualEffects) return;
@@ -130,7 +130,7 @@ export class CombatSystem {
     private processVisualEffect(
         hero: ServerHero,
         visualEffect: any,
-        attackResult: WeaponAttackResult
+        attackResult: AttackResult
     ): void {
         switch (visualEffect.type) {
             case 'swing':
@@ -151,7 +151,7 @@ export class CombatSystem {
                 });
                 break;
 
-            case WeaponType.PROJECTILE:
+            case 'projectile': // 🔧 修復：使用正確的視覺效果類型
                 if (visualEffect.data) {
                     const bulletDamage = attackResult.baseDamage || visualEffect.data.damage || 10;
 
@@ -161,9 +161,11 @@ export class CombatSystem {
                         direction: visualEffect.data.direction || visualEffect.direction,
                         damage: bulletDamage,
                         speed: visualEffect.data.speed || 300,
-                        bulletType: visualEffect.data.bulletType,
+                        bulletType: visualEffect.data.bulletType || 'basic',
                         lifeTime: visualEffect.data.lifeTime || 3000
                     });
+
+                    console.log(`🚀 創建投射物子彈: ${visualEffect.data.weaponId} 傷害=${bulletDamage}`);
                 }
                 break;
 
@@ -181,7 +183,7 @@ export class CombatSystem {
      */
     private broadcastAttackResult(
         hero: ServerHero,
-        result: WeaponAttackResult,
+        result: AttackResult,
         attackData: AttackProcessResult
     ): void {
         this.gameRoom.broadcast('weapon_attack', {

@@ -1,11 +1,12 @@
 import { ServerGameUnit } from "../../Unit/GameUnit";
 import { UnitType } from "../../GameState";
-import { WeaponType, AttackResult } from "../../../../Types";
-import { WeaponPropertyValue, WeaponPropertyType } from "../../../../Types/Equipment/WeaponPropertyTypes";
-// 移除 Schema 導入，WeaponBasic 現在是純邏輯層類
+import { WeaponType, AttackResult, PropertyType } from "../../../../Types";
+import { PropertyValue, WeaponConfigDefinition } from "@/Types/Equipment/WeaponPropertyTypes";
+import { getWeaponConfig } from "../../../../Game/Factories/WeaponConfig";
 
 //武器基類：負責攻擊邏輯和目標選擇，不處理傷害計算
 // 現在是純邏輯層類，不再同步到客戶端
+// 🆕 支持配置驅動的初始化，無需構造函數參數
 export abstract class WeaponBasic {
     public weaponId: string = "";
     public weaponType: WeaponType = WeaponType.MELEE_WEAPON;
@@ -14,6 +15,8 @@ export abstract class WeaponBasic {
     public attackSpeed: number = 0;  // 攻擊間隔 (毫秒)
     public rarity: string = "common"; // 武器稀有度
     public name: string = "";
+    public description: string = "";
+    public enabled: boolean = true;
 
     // 傳統屬性加成 (保留向下兼容性，但會被新屬性系統覆寫)
     public int: number = 0;
@@ -22,23 +25,92 @@ export abstract class WeaponBasic {
     public vit: number = 0;
 
     // 新增：動態屬性系統
-    protected properties: Map<WeaponPropertyType, WeaponPropertyValue> = new Map();
+    protected properties: Map<string, PropertyValue> = new Map();
+    
+    // 🆕 配置相關
+    protected weaponConfig: WeaponConfigDefinition | null = null;
 
     // 服務器端屬性
     protected lastAttackTime: number = 0;
 
-    constructor(weaponId: string, weaponType: WeaponType, attackRange: number, baseDamage: number, attackSpeed: number) {
-        this.weaponId = weaponId;
-        this.weaponType = weaponType;
-        this.attackRange = attackRange;
-        this.baseDamage = baseDamage;
-        this.attackSpeed = attackSpeed;
+    constructor() {
+        // 🆕 無參數構造函數，等待配置初始化
+    }
+
+    /**
+     * 🆕 從配置初始化武器 - 新的標準初始化方法
+     */
+    public initializeFromConfig(weaponId: string): boolean {
+        this.weaponConfig = getWeaponConfig(weaponId);
+        
+        if (!this.weaponConfig) {
+            console.error(`❌ 無法找到武器配置: ${weaponId}`);
+            return false;
+        }
+
+        // 設置基礎屬性
+        this.weaponId = this.weaponConfig.id;
+        this.name = this.weaponConfig.name;
+        this.description = this.weaponConfig.description || "";
+        this.baseDamage = this.weaponConfig.baseDamage;
+        this.attackSpeed = this.weaponConfig.attackSpeed;
+        this.attackRange = this.weaponConfig.attackRange;
+        this.enabled = this.weaponConfig.enabled !== false;
+
+        // 根據 classModule 設置武器類型
+        this.weaponType = this.getWeaponTypeFromModule(this.weaponConfig.classModule);
+
+        // 調用子類的配置特定初始化
+        this.applyWeaponSpecificConfig();
+
+        console.log(`✅ 武器已從配置初始化: ${this.name} (${this.weaponId})`);
+        return true;
+    }
+
+    /**
+     * 🆕 根據模組名稱獲取武器類型
+     */
+    private getWeaponTypeFromModule(classModule: string): WeaponType {
+        switch (classModule) {
+            case 'MeleeWeapon':
+                return WeaponType.MELEE_WEAPON;
+            case 'ProjectileWeapon':
+                return WeaponType.PROJECTILE_WEAPON;
+            case 'SupportWeapon':
+                return WeaponType.SUPPORT_WEAPON;
+            default:
+                console.warn(`⚠️ 未知的武器模組: ${classModule}，使用預設類型`);
+                return WeaponType.MELEE_WEAPON;
+        }
+    }
+
+    /**
+     * 🆕 子類實現的特定配置應用方法
+     */
+    protected abstract applyWeaponSpecificConfig(): void;
+
+    /**
+     * 🆕 獲取固定屬性列表
+     */
+    public getFixedProperties(): string[] {
+        if (!this.weaponConfig) return [];
+        return this.weaponConfig.fixedProperties ? 
+            this.weaponConfig.fixedProperties.split(',').map(p => p.trim()).filter(p => p) : [];
+    }
+
+    /**
+     * 🆕 獲取隨機屬性列表
+     */
+    public getRandomProperties(): string[] {
+        if (!this.weaponConfig) return [];
+        return this.weaponConfig.randomProperties ? 
+            this.weaponConfig.randomProperties.split(',').map(p => p.trim()).filter(p => p) : [];
     }
 
     /**
      * 應用屬性到武器實例
      */
-    public applyProperties(properties: WeaponPropertyValue[]): void {
+    public applyProperties(properties: PropertyValue[]): void {
         this.properties.clear();
 
         for (const property of properties) {
@@ -54,67 +126,67 @@ export abstract class WeaponBasic {
     /**
      * 更新基礎屬性
      */
-    private updateBaseStats(property: WeaponPropertyValue): void {
+    private updateBaseStats(property: PropertyValue): void {
         switch (property.type) {
             // 基礎武器屬性
-            case WeaponPropertyType.ATTACK_DAMAGE:
+            case PropertyType.ATTACK_DAMAGE:
                 this.baseDamage += typeof property.value === 'number' ? property.value : property.value[0];
                 break;
-            case WeaponPropertyType.ATTACK_SPEED:
+            case PropertyType.ATTACK_SPEED:
                 // 攻擊速度是減少間隔時間，所以是減法
                 const speedBonus = typeof property.value === 'number' ? property.value : property.value[0];
                 this.attackSpeed = Math.max(100, this.attackSpeed - speedBonus); // 最小間隔100ms
                 break;
-            case WeaponPropertyType.ATTACK_RANGE:
+            case PropertyType.ATTACK_RANGE:
                 this.attackRange += typeof property.value === 'number' ? property.value : property.value[0];
                 break;
 
             // 投射物屬性
-            case WeaponPropertyType.PROJECTILE_SPEED:
-            case WeaponPropertyType.AREA_OF_EFFECT:
-            case WeaponPropertyType.PIERCE_COUNT:
-            case WeaponPropertyType.SWEEP_ANGLE:
+            case PropertyType.PROJECTILE_SPEED:
+            case PropertyType.AREA_OF_EFFECT:
+            case PropertyType.PIERCE_COUNT:
+            case PropertyType.SWEEP_ANGLE:
                 // 這些屬性會在具體的武器子類中使用
                 break;
 
             // 治療和輔助屬性
-            case WeaponPropertyType.HEAL_AMOUNT:
-            case WeaponPropertyType.BUFF_DURATION:
-            case WeaponPropertyType.SUPPORT_RADIUS:
+            case PropertyType.HEAL_AMOUNT:
+            case PropertyType.BUFF_DURATION:
+            case PropertyType.SUPPORT_RADIUS:
                 // 輔助武器專用屬性
                 break;
 
             // 角色屬性加成 (保持向下兼容)
-            case WeaponPropertyType.STRENGTH:
+            case PropertyType.STRENGTH:
                 this.str += typeof property.value === 'number' ? property.value : property.value[0];
                 break;
-            case WeaponPropertyType.INTELLIGENCE:
+            case PropertyType.INTELLIGENCE:
                 this.int += typeof property.value === 'number' ? property.value : property.value[0];
                 break;
-            case WeaponPropertyType.VITALITY:
+            case PropertyType.VITALITY:
                 this.vit += typeof property.value === 'number' ? property.value : property.value[0];
                 break;
-            case WeaponPropertyType.AGILITY:
+            case PropertyType.AGILITY:
                 this.agi += typeof property.value === 'number' ? property.value : property.value[0];
                 break;
 
             // 戰鬥特效屬性 - 在攻擊時處理
-            case WeaponPropertyType.KNOCKBACK:
-            case WeaponPropertyType.CRITICAL_CHANCE:
-            case WeaponPropertyType.CRITICAL_DAMAGE:
-            case WeaponPropertyType.LIFE_STEAL:
-            case WeaponPropertyType.PIERCING:
-            case WeaponPropertyType.CHAIN_ATTACK:
-            case WeaponPropertyType.SPLASH_DAMAGE:
+            case PropertyType.KNOCKBACK:
+            case PropertyType.CRITICAL_CHANCE:
+            case PropertyType.CRITICAL_DAMAGE:
+            case PropertyType.LIFE_STEAL:
+            case PropertyType.PIERCING:
+            case PropertyType.CHAIN_ATTACK:
+            case PropertyType.SPLASH_DAMAGE:
                 // 這些屬性在 tryAttack 或傷害計算時處理
                 break;
 
             // 狀態效果屬性 - 在攻擊時處理
-            case WeaponPropertyType.STUN:
-            case WeaponPropertyType.FREEZE:
-            case WeaponPropertyType.BURN:
-            case WeaponPropertyType.POISON:
-            case WeaponPropertyType.SLOW:
+            case PropertyType.STUN:
+            case PropertyType.FREEZE:
+            case PropertyType.BURN:
+            case PropertyType.POISON:
+            case PropertyType.SLOW:
                 // 這些屬性在攻擊命中時觸發
                 break;
 
@@ -127,14 +199,14 @@ export abstract class WeaponBasic {
     /**
      * 獲取特定屬性值
      */
-    public getProperty(type: WeaponPropertyType): WeaponPropertyValue | null {
+    public getProperty(type: string): PropertyValue | null {
         return this.properties.get(type) || null;
     }
 
     /**
      * 獲取屬性數值
      */
-    public getPropertyValue(type: WeaponPropertyType): number | number[] | null {
+    public getPropertyValue(type: string): number | number[] | null {
         const property = this.getProperty(type);
         return property ? property.value : null;
     }
@@ -142,14 +214,14 @@ export abstract class WeaponBasic {
     /**
      * 檢查是否有特定屬性
      */
-    public hasProperty(type: WeaponPropertyType): boolean {
+    public hasProperty(type: string): boolean {
         return this.properties.has(type);
     }
 
     /**
      * 獲取所有屬性
      */
-    public getAllProperties(): WeaponPropertyValue[] {
+    public getAllProperties(): PropertyValue[] {
         return Array.from(this.properties.values());
     }
 

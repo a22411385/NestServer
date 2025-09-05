@@ -1,20 +1,19 @@
-import { EnemyFactory } from "../Factories/EnemyFactory";
-import { SpawnManager } from "./SpawnManager";
-import { Vector2 } from "../../Colyseus/Schema/Unit/GameUnit";
-import { ServerEnemy } from "../../Colyseus/Schema/Unit/Enemy";
-import { ServerGameUnit } from "../../Colyseus/Schema/Unit/GameUnit";
+import { EnemyFactory } from "../../Factories/EnemyFactory";
+import { SpawnManager } from "../SpawnManager/SpawnManager";
+import { Vector2 } from "../../../Colyseus/Schema/Unit/GameUnit";
+import { ServerEnemy } from "../../../Colyseus/Schema/Unit/Enemy";
+import { ServerGameUnit } from "../../../Colyseus/Schema/Unit/GameUnit";
 
 // 🆕 使用統一類型定義
+import { EnemyType } from "../../../Types/Game/EnemyTypes";
+import { SpawnType, SpawnConfig } from "../SpawnManager/types";
 import {
-    EnemyType,
-    SpawnType,
-    SpawnConfig,
     WaveState,
     GameFlowState,
     GameFlowConfig,
     WaveConfig,
     WaveEvent
-} from "@/Types";
+} from "./types";
 
 /**
  * 波次管理器 - 負責管理遊戲波次、敵人生成時機和獎勵分發

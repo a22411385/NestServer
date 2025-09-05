@@ -1,22 +1,31 @@
 import { SupportWeapon } from "../Baisc/SupportWeapon";
-import { WeaponAttackResult } from "@/Types";
+import { AttackResult } from "@/Types";
 import { ServerGameUnit } from "../../Unit/GameUnit";
 
 /**
  * 治療藥劑 - 支援武器範例
  * 特點：範圍治療，可以對自己使用，提供短時間增益
+ * 🆕 完全依賴配置初始化，無需構造函數參數
  */
 export class HealingPotion extends SupportWeapon {
     constructor() {
-        super(
-            'healing_potion',    // weaponId
-            150,                 // 支援範圍
-            30,                  // 治療量
-            3000,                // 攻擊間隔 3秒
-            5000,                // 增益持續時間 5秒
-            100,                 // 支援範圍半徑
-            true                 // 可以對自己使用
-        );
+        super(); // 🆕 調用無參數的父類構造函數
+    }
+
+    /**
+     * 🆕 應用治療藥劑特定的配置
+     */
+    protected applySupportSpecificConfig(): void {
+        // 治療藥劑特有配置
+        console.log(`🧪 治療藥劑特定配置已應用 - 配置來自: ${this.weaponConfig?.name}`);
+        
+        // 治療藥劑特有設定
+        this.healAmount = 30;        // 治療量
+        this.buffDuration = 5000;    // 增益持續時間 5秒
+        this.supportRadius = 100;    // 支援範圍半徑
+        this.canTargetSelf = true;   // 可以對自己使用
+        
+        console.log(`💚 治療藥劑可以治療和提供增益效果`);
     }
 
     /**

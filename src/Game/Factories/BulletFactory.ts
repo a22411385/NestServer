@@ -135,9 +135,9 @@ export class BulletFactory {
     private static getWeaponProjectileSpeed(weapon: WeaponBasic): number {
         // 根據武器類型返回不同的速度
         switch (weapon.weaponType) {
-            case WeaponType.PROJECTILE: return 400;
-            case WeaponType.MELEE: return 500; // 近戰武器如果有投射物效果
-            case WeaponType.SUPPORT: return 250;
+            case WeaponType.PROJECTILE_WEAPON: return 400;
+            case WeaponType.MELEE_WEAPON: return 500; // 近戰武器如果有投射物效果
+            case WeaponType.SUPPORT_WEAPON: return 250;
             default: return 300;
         }
     }
@@ -147,11 +147,11 @@ export class BulletFactory {
      */
     private static getWeaponBulletType(weapon: WeaponBasic): BulletType {
         switch (weapon.weaponType) {
-            case WeaponType.PROJECTILE:
+            case WeaponType.PROJECTILE_WEAPON:
                 return BulletType.ARROW;
-            case WeaponType.SUPPORT:
+            case WeaponType.SUPPORT_WEAPON:
                 return BulletType.MAGIC;
-            case WeaponType.MELEE:
+            case WeaponType.MELEE_WEAPON:
                 return BulletType.BASIC;
             default:
                 return BulletType.BASIC;
@@ -164,8 +164,8 @@ export class BulletFactory {
     private static getWeaponPierceCount(weapon: WeaponBasic): number {
         // 可以根據武器屬性或升級等級來決定
         switch (weapon.weaponType) {
-            case 'projectile': return 2;
-            case 'support': return 1;
+            case WeaponType.PROJECTILE_WEAPON: return 2;
+            case WeaponType.SUPPORT_WEAPON: return 1;
             default: return 0;
         }
     }
@@ -175,8 +175,8 @@ export class BulletFactory {
      */
     private static getWeaponAreaOfEffect(weapon: WeaponBasic): number {
         switch (weapon.weaponType) {
-            case 'support': return 80;
-            case 'projectile': return 0;
+            case WeaponType.SUPPORT_WEAPON: return 80;
+            case WeaponType.PROJECTILE_WEAPON: return 0;
             default: return 0;
         }
     }
@@ -195,8 +195,8 @@ export class BulletFactory {
      */
     private static getWeaponBulletScale(weapon: WeaponBasic): number {
         switch (weapon.weaponType) {
-            case 'support': return 1.5;
-            case 'projectile': return 1.2;
+            case WeaponType.SUPPORT_WEAPON: return 1.5;
+            case WeaponType.PROJECTILE_WEAPON: return 1.2;
             default: return 1.0;
         }
     }

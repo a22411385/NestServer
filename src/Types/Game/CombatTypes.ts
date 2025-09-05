@@ -2,17 +2,10 @@
  * 戰鬥系統類型定義
  * 整合所有戰鬥相關的接口
  */
+import { AttackResult } from './AttackTypes';
 
-/**
- * 攻擊結果接口
- */
-export interface AttackResult {
-    success: boolean;
-    damage: number;
-    targetId: string;
-    isCritical?: boolean;
-    effects?: string[];
-}
+// 重新導出統一的 AttackResult
+export { AttackResult } from './AttackTypes';
 
 /**
  * 攻擊處理結果接口

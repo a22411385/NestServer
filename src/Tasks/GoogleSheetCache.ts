@@ -2,6 +2,7 @@ import * as XLSX from 'xlsx';
 import * as fs from 'fs';
 import * as path from 'path';
 import axios from 'axios';
+import { WeaponConfigDefinition, WeaponPropertyDefinition } from '@/Types/Equipment/WeaponPropertyTypes';
 
 /**
  * Google Sheets 數據快取模組
@@ -27,7 +28,6 @@ import axios from 'axios';
  * @since 1.0.0
  */
 
-import { WeaponConfigDefinition, WeaponPropertyDefinition } from '@/Types';
 
 export interface GoogleCacheData {
     WeaponProperties: WeaponPropertyDefinition[];
