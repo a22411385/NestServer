@@ -1,6 +1,6 @@
 import { Client } from "colyseus";
 import { BaseMessageHandler } from "./Base/BaseMessageHandler";
-import { PermissionLevel, StatType } from "@/Types";
+import { MessageData, PermissionLevel, StatType } from "@/Types";
 
 /**
  * 角色處理器
@@ -26,7 +26,7 @@ export class CharacterHandler extends BaseMessageHandler {
         return [...this.supportedTypes];
     }
 
-    async handle(client: Client, message: any): Promise<void> {
+    async handle(client: Client, message: MessageData): Promise<void> {
         const { type, data } = message;
 
         try {

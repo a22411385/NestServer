@@ -8,6 +8,7 @@ import { GameRoom } from "../../Colyseus/Rooms/GameRoom";
 import { Vector2 } from "../../Colyseus/Schema/Unit/GameUnit";
 import { WaveManager } from "../Managers/WaveManager/WaveManager";
 import { EnemyCoordinationSystem } from "./EnemyCoordinationSystem";
+import { BattleMathUtils } from "../../Util/BattleMathUtils";
 
 const mapSize = 1000;
 
@@ -148,8 +149,8 @@ export class EnemySystem {
 
         // 設置指定位置
         enemy.position = new Vector2(
-            Math.max(0, Math.min(1000, x)),
-            Math.max(0, Math.min(800, y))
+            BattleMathUtils.clamp(x, 0, 1000),
+            BattleMathUtils.clamp(y, 0, 800)
         );
 
         // 添加到遊戲狀態
@@ -203,13 +204,6 @@ export class EnemySystem {
      */
     clearAllEnemies(): void {
         this.state.removeAllEnemy();
-    }
-
-    /**
-     * 獲取當前敵人數量
-     */
-    getEnemyCount(): number {
-        return this.state.getEnemyCount();
     }
 
     /**

@@ -4,139 +4,353 @@ import { ServerEnemy } from "../../Colyseus/Schema/Unit/Enemy";
 import { ServerItem, ItemType } from "../../Colyseus/Schema/Item/ServerItem";
 import { Vector2 } from "../../Colyseus/Schema/Unit/GameUnit";
 import { IdGenerator } from "../../Util/IdGenerator";
+import { ConfigManager } from "../Managers/ConfigManager";
+import { BattleMathUtils } from "../../Util/BattleMathUtils";
+import {
+    RARITY_DROP_RATES,
+    TYPE_DROP_MULTIPLIERS,
+    CATEGORY_MULTIPLIERS,
+    RARITY_LEVEL_REQUIREMENTS,
+    WEAPON_DROP_CONFIG,
+    BASIC_DROP_CONFIG
+} from "./DropRates";
+import { ItemConfigDefinition } from "@/Types/Equipment/ItemTypes";
 
 /**
- * 掉落表項目
+ * 掉落表項目（兼容舊系統）
  */
-export interface DropTableEntry {
+interface DropTableEntry {
     itemType: 'exp' | 'gold' | 'material' | 'weapon';
-    chance: number; // 0-1 的掉落機率
+    chance: number;
     minValue?: number;
     maxValue?: number;
-    specificId?: string; // 用於材料ID或武器ID
-    rarity?: string; // 用於武器稀有度
+    specificId?: string;
+    rarity?: string;
 }
 
 /**
- * 基於敵人等級的掉落表
- */
-export interface EnemyDropTable {
-    [enemyLevel: number]: DropTableEntry[];
-}
-
-/**
- * 物品掉落系統管理器
- * 負責處理怪物死亡時的物品掉落邏輯
+ * 物品掉落系統管理器 - 新版本
+ * 使用統一配置管理器和智能掉落算法
  */
 export class DropSystem {
     private room: GameRoom;
-    private dropTable: EnemyDropTable;
 
     constructor(room: GameRoom) {
         this.room = room;
-        this.initializeDropTable();
     }
 
     /**
-     * 初始化掉落表
-     */
-    private initializeDropTable(): void {
-        this.dropTable = {
-            // 1級敵人掉落表
-            1: [
-                { itemType: 'exp', chance: 1.0, minValue: 8, maxValue: 12 },
-                { itemType: 'gold', chance: 0.7, minValue: 3, maxValue: 7 },
-                { itemType: 'material', chance: 0.3, specificId: 'zombie_flesh', minValue: 1, maxValue: 2 },
-            ],
-            // 2級敵人掉落表
-            2: [
-                { itemType: 'exp', chance: 1.0, minValue: 12, maxValue: 18 },
-                { itemType: 'gold', chance: 0.8, minValue: 5, maxValue: 10 },
-                { itemType: 'material', chance: 0.4, specificId: 'zombie_flesh', minValue: 1, maxValue: 3 },
-                { itemType: 'material', chance: 0.2, specificId: 'monster_bone', minValue: 1, maxValue: 1 },
-            ],
-            // 3級敵人掉落表
-            3: [
-                { itemType: 'exp', chance: 1.0, minValue: 18, maxValue: 25 },
-                { itemType: 'gold', chance: 0.9, minValue: 8, maxValue: 15 },
-                { itemType: 'material', chance: 0.5, specificId: 'zombie_flesh', minValue: 2, maxValue: 4 },
-                { itemType: 'material', chance: 0.3, specificId: 'monster_bone', minValue: 1, maxValue: 2 },
-                { itemType: 'weapon', chance: 0.1, rarity: 'common' },
-            ],
-            // Boss等級掉落表
-            4: [
-                { itemType: 'exp', chance: 1.0, minValue: 50, maxValue: 80 },
-                { itemType: 'gold', chance: 1.0, minValue: 25, maxValue: 50 },
-                { itemType: 'material', chance: 0.8, specificId: 'magic_crystal', minValue: 1, maxValue: 3 },
-                { itemType: 'weapon', chance: 0.3, rarity: 'uncommon' },
-                { itemType: 'weapon', chance: 0.1, rarity: 'rare' },
-            ]
-        };
-    }
-
-    /**
-     * 處理敵人死亡掉落
+     * 🎯 處理敵人死亡掉落 - 新版智能系統
      */
     public handleEnemyDeath(enemy: ServerEnemy, killer: ServerGameUnit): void {
-        console.log(`🎁 處理敵人 ${enemy.name} 的掉落物品...`);
+        console.log(`🎁 處理敵人 ${enemy.name}(Lv.${enemy.lv}) 的智能掉落...`);
 
-        const enemyLevel = enemy.lv || 1;
-        const dropEntries = this.dropTable[enemyLevel] || this.dropTable[1];
-
-        // 在敵人死亡位置周圍隨機散佈物品
         const dropPosition = this.getRandomDropPosition(enemy.position);
+        const droppedItems = this.generateSmartDropItems(enemy, dropPosition.x, dropPosition.y);
 
-        for (const entry of dropEntries) {
-            if (Math.random() <= entry.chance) {
-                this.createDropItem(entry, dropPosition);
+        // 將掉落物品加入房間
+        droppedItems.forEach(item => {
+            this.room.state.gameCore.mapItems.push(item);
+        });
+
+        console.log(`✅ 敵人 ${enemy.name} 掉落 ${droppedItems.length} 個物品`);
+    }
+
+    /**
+     * 🎯 智能掉落物品生成系統
+     */
+    private generateSmartDropItems(enemy: ServerEnemy, x: number, y: number): ServerItem[] {
+        const items: ServerItem[] = [];
+
+        // 1. 必定掉落：經驗值
+        const expAmount = this.calculateExpDrop(enemy);
+        items.push(ServerItem.createExp(x, y, expAmount));
+
+        // 2. 高機率掉落：金幣
+        if (this.rollDrop(BASIC_DROP_CONFIG.gold.dropRate)) {
+            const goldAmount = this.calculateGoldDrop(enemy);
+            items.push(ServerItem.createGold(x, y, goldAmount));
+        }
+
+        // 3. 🎯 智能物品掉落：基於物品配置表
+        const droppedItems = this.rollItemDrops(enemy);
+        droppedItems.forEach(itemDrop => {
+            const dropItem = this.createItemFromConfig(itemDrop.config, x, y, itemDrop.quantity);
+            if (dropItem) {
+                items.push(dropItem);
+            }
+        });
+
+        // 4. 武器掉落：使用現有武器系統
+        if (this.rollDrop(this.calculateWeaponDropRate(enemy))) {
+            const weaponDrop = this.generateRandomWeapon(enemy);
+            items.push(ServerItem.createWeapon(
+                x, y,
+                weaponDrop.weaponId,
+                weaponDrop.quality,
+                weaponDrop.name,
+                weaponDrop.level
+            ));
+        }
+
+        return items;
+    }
+
+    /**
+     * 🎯 基於物品配置表的智能掉落
+     */
+    private rollItemDrops(enemy: ServerEnemy): Array<{ config: ItemConfigDefinition, quantity: number }> {
+        const droppedItems: Array<{ config: ItemConfigDefinition, quantity: number }> = [];
+
+        // 獲取啟用的非武器物品
+        const enabledItems = ConfigManager.getEnabledItems().filter(item => item.type !== 'WEAPON');
+
+        for (const itemConfig of enabledItems) {
+            // 計算掉落機率
+            const dropRate = this.calculateItemDropRate(itemConfig, enemy);
+
+            if (this.rollDrop(dropRate)) {
+                // 計算掉落數量
+                const quantity = this.calculateDropQuantity(itemConfig, enemy);
+                droppedItems.push({ config: itemConfig, quantity });
+
+                console.log(`📦 掉落物品: ${itemConfig.name} x${quantity} (${(dropRate * 100).toFixed(2)}%)`);
             }
         }
 
-        console.log(`✅ 敵人 ${enemy.name} 掉落處理完成`);
+        return droppedItems;
     }
 
     /**
-     * 創建掉落物品
+     * 🎯 計算物品掉落機率
      */
-    private createDropItem(entry: DropTableEntry, basePosition: Vector2): void {
-        const itemId = IdGenerator.generateItemId();
-        const position = this.getRandomDropPosition(basePosition);
+    private calculateItemDropRate(itemConfig: any, enemy: ServerEnemy): number {
+        // 基礎稀有度機率
+        let baseRate = RARITY_DROP_RATES[itemConfig.rarity as keyof typeof RARITY_DROP_RATES] || 0.1;
 
-        let dropItem: ServerItem;
+        // 物品類型調整
+        const typeMultiplier = TYPE_DROP_MULTIPLIERS[itemConfig.type as keyof typeof TYPE_DROP_MULTIPLIERS] || 1.0;
+        baseRate *= typeMultiplier;
 
-        switch (entry.itemType) {
-            case 'exp':
-                const expValue = this.getRandomValue(entry.minValue || 10, entry.maxValue || 10);
-                dropItem = ServerItem.createExp(position.x, position.y, expValue);
-                break;
+        // 等級調整
+        const levelMultiplier = this.calculateLevelMultiplier(itemConfig, enemy);
+        baseRate *= levelMultiplier;
 
-            case 'gold':
-                const goldValue = this.getRandomValue(entry.minValue || 5, entry.maxValue || 5);
-                dropItem = ServerItem.createGold(position.x, position.y, goldValue);
-                break;
+        // 物品價值調整（越貴越難掉）
+        const valueMultiplier = BattleMathUtils.atLeast(1 / Math.sqrt(itemConfig.baseValue / 10), 0.1);
+        baseRate *= valueMultiplier;
 
-            case 'material':
-                const materialValue = this.getRandomValue(entry.minValue || 1, entry.maxValue || 1);
-                dropItem = ServerItem.createMaterial(position.x, position.y, entry.specificId || 'zombie_flesh', materialValue);
-                break;
+        // 分類特殊調整
+        baseRate *= this.getCategoryMultiplier(itemConfig.category);
 
-            case 'weapon':
-                const weaponId = this.getRandomWeaponId();
-                const rarity = entry.rarity || 'common';
-                dropItem = ServerItem.createWeapon(position.x, position.y, weaponId, rarity);
-                break;
+        return BattleMathUtils.clamp(baseRate, 0.001, 1);
+    }
 
-            default:
-                console.warn(`未知的物品類型: ${entry.itemType}`);
-                return;
+    /**
+     * 🎯 等級相關的掉落機率調整
+     */
+    private calculateLevelMultiplier(itemConfig: any, enemy: ServerEnemy): number {
+        const enemyLevel = enemy.lv || 1;
+
+        // 根據物品類型和稀有度調整等級需求
+        const levelRequirement = this.getItemLevelRequirement(itemConfig);
+
+        if (enemyLevel < levelRequirement) {
+            // 等級不夠，大幅降低掉落率
+            return 0.1;
         }
 
-        dropItem.id = itemId;
+        // 等級超過太多，適度降低掉落率
+        const levelDifference = enemyLevel - levelRequirement;
+        if (levelDifference > 10) {
+            return BattleMathUtils.atLeast(1 - (levelDifference - 10) * 0.05, 0.3);
+        }
 
-        // 添加到遊戲世界
-        this.room.state.gameCore.mapItems.push(dropItem);
+        return 1.0;
+    }
 
-        console.log(`📦 創建掉落物品: ${dropItem.itemType} 在位置 (${position.x.toFixed(1)}, ${position.y.toFixed(1)})`);
+    /**
+     * 🎯 獲取物品的建議等級需求
+     */
+    private getItemLevelRequirement(itemConfig: any): number {
+        // 基於稀有度的基礎等級需求
+        let baseLevel: number = RARITY_LEVEL_REQUIREMENTS[itemConfig.rarity as keyof typeof RARITY_LEVEL_REQUIREMENTS] || 1;
+
+        // 特殊物品的等級調整
+        if (itemConfig.category === 'ore') {
+            if (itemConfig.id.includes('mithril')) baseLevel = 30;
+            if (itemConfig.id.includes('adamant')) baseLevel = 50;
+        }
+
+        if (itemConfig.category === 'magic') {
+            baseLevel += 10; // 魔法物品需要更高等級
+        }
+
+        if (itemConfig.category === 'rare_drop') {
+            baseLevel += 20; // 稀有掉落需要更高等級
+        }
+
+        return baseLevel;
+    }
+
+    /**
+     * 🎯 分類特殊倍率
+     */
+    private getCategoryMultiplier(category: string): number {
+        return CATEGORY_MULTIPLIERS[category] || 1.0;
+    }
+
+    /**
+     * 🎯 計算掉落數量
+     */
+    private calculateDropQuantity(itemConfig: any, enemy: ServerEnemy): number {
+        let baseQuantity = 1;
+        const enemyLevel = enemy.lv || 1;
+
+        // 基於物品類型的基礎數量
+        if (itemConfig.type === 'CURRENCY') {
+            // 貨幣類：根據價值和等級計算
+            if (itemConfig.id === 'gold') {
+                baseQuantity = Math.floor(enemyLevel * (2 + BattleMathUtils.randomFloatRange(0, 3)));
+            } else if (itemConfig.id === 'gem') {
+                baseQuantity = BattleMathUtils.randomIntRange(1, 2);
+            } else if (itemConfig.id === 'crystal') {
+                baseQuantity = 1;
+            }
+        } else if (itemConfig.type === 'MATERIAL') {
+            // 材料類：根據稀有度調整
+            const rarityQuantities = {
+                common: [1, 5],
+                uncommon: [1, 3],
+                rare: [1, 2],
+                epic: [1, 1],
+                legendary: [1, 1]
+            };
+
+            const [min, max] = rarityQuantities[itemConfig.rarity as keyof typeof rarityQuantities] || [1, 1];
+            baseQuantity = BattleMathUtils.randomIntRange(min, max);
+        } else if (itemConfig.type === 'CONSUMABLE') {
+            // 消耗品：通常單個
+            baseQuantity = BattleMathUtils.rollProbability(0.3) ? 2 : 1;
+        }
+
+        return BattleMathUtils.atLeast(baseQuantity, 1);
+    }
+
+    /**
+     * 🎯 從配置創建物品
+     */
+    private createItemFromConfig(itemConfig: ItemConfigDefinition, x: number, y: number, quantity: number): ServerItem | null {
+        const randomOffset = BattleMathUtils.getRandomOffset();
+        const finalX = x + randomOffset.x;
+        const finalY = y + randomOffset.y;
+        const name = itemConfig.name;
+        switch (itemConfig.type) {
+            case 'CURRENCY':
+                if (itemConfig.id === 'gold') {
+                    return ServerItem.createGold(finalX, finalY, quantity);
+                } else {
+                    return ServerItem.createMaterial(finalX, finalY, itemConfig.id, name, quantity);
+                }
+
+            case 'MATERIAL':
+                return ServerItem.createMaterial(finalX, finalY, itemConfig.id, name, quantity);
+
+            case 'CONSUMABLE':
+                return ServerItem.createMaterial(finalX, finalY, itemConfig.id, name, quantity);
+
+            case 'MISC':
+                return ServerItem.createMaterial(finalX, finalY, itemConfig.id, name, quantity);
+
+            default:
+                console.warn(`未知物品類型: ${itemConfig.type} for item: ${itemConfig.id}`);
+                return null;
+        }
+    }
+
+    /**
+     * 🎯 武器掉落機率計算
+     */
+    private calculateWeaponDropRate(enemy: ServerEnemy): number {
+        // 基礎武器掉落率
+        let baseRate = WEAPON_DROP_CONFIG.baseDropRate;
+
+        // 等級調整
+        const enemyLevel = enemy.lv || 1;
+        baseRate += enemyLevel * WEAPON_DROP_CONFIG.levelMultiplier;
+
+        // 最大掉落率限制
+        return Math.min(WEAPON_DROP_CONFIG.maxDropRate, baseRate);
+    }
+
+    /**
+     * 🎯 生成隨機武器
+     */
+    private generateRandomWeapon(enemy: ServerEnemy): {
+        weaponId: string;
+        name: string;
+        quality: string;
+        level: number;
+    } {
+        const enabledWeapons = ConfigManager.getEnabledWeapons();
+        // 隨機選擇武器
+        const weaponConfig = enabledWeapons[Math.floor(Math.random() * enabledWeapons.length)];
+        const weaponId = weaponConfig.id;
+
+        // 根據配置的品質機率生成品質
+        const quality = this.rollQuality(WEAPON_DROP_CONFIG.qualityRates);
+
+        // 等級基於敵人等級 ±1
+        const level = Math.max(1, (enemy.lv || 1) + Math.floor(Math.random() * 3) - 1);
+
+        return { weaponId, quality, level, name: weaponConfig.name };
+    }
+
+    /**
+     * 🎯 品質抽取
+     */
+    private rollQuality(rates: Record<string, number>): string {
+        const roll = Math.random();
+        let cumulative = 0;
+
+        for (const [quality, rate] of Object.entries(rates)) {
+            cumulative += rate;
+            if (roll <= cumulative) {
+                return quality;
+            }
+        }
+        return 'common';
+    }
+
+    /**
+     * 🎯 機率判定
+     */
+    private rollDrop(probability: number): boolean {
+        return BattleMathUtils.rollProbability(probability);
+    }
+
+    /**
+     * 🎯 計算經驗值掉落
+     */
+    private calculateExpDrop(enemy: ServerEnemy): number {
+        const enemyLevel = enemy.lv || 1;
+        const baseAmount = BASIC_DROP_CONFIG.exp.baseAmount;
+        const levelMultiplier = BASIC_DROP_CONFIG.exp.levelMultiplier;
+        const randomRange = BASIC_DROP_CONFIG.exp.randomRange;
+
+        return Math.floor(enemyLevel * baseAmount * levelMultiplier + Math.random() * randomRange);
+    }
+
+    /**
+     * 🎯 計算金幣掉落
+     */
+    private calculateGoldDrop(enemy: ServerEnemy): number {
+        const enemyLevel = enemy.lv || 1;
+        const baseAmount = BASIC_DROP_CONFIG.gold.baseAmount;
+        const levelMultiplier = BASIC_DROP_CONFIG.gold.levelMultiplier;
+        const randomRange = BASIC_DROP_CONFIG.gold.randomRange;
+
+        return Math.floor(enemyLevel * baseAmount * levelMultiplier + BattleMathUtils.randomFloatRange(0, randomRange));
     }
 
     /**
@@ -152,92 +366,36 @@ export class DropSystem {
             basePosition.y + Math.sin(angle) * distance
         );
     }
+    // /**
+    //  * 清理過期物品
+    //  */
+    // public cleanupExpiredItems(): void {
+    //     const expiredItems: number[] = [];
 
-    /**
-     * 獲取隨機數值
-     */
-    private getRandomValue(min: number, max: number): number {
-        return Math.floor(Math.random() * (max - min + 1)) + min;
-    }
+    //     for (let i = 0; i < this.room.state.gameCore.mapItems.length; i++) {
+    //         const item = this.room.state.gameCore.mapItems[i];
+    //         if (item.isExpired()) {
+    //             expiredItems.push(i);
+    //         }
+    //     }
 
-    /**
-     * 獲取隨機武器ID（暫時簡化）
-     */
-    private getRandomWeaponId(): string {
-        const weaponIds = [
-            'baseball_bat',
-            'pistol',
-            'assault_rifle',
-            'shotgun',
-            'sniper_rifle'
-        ];
-        return weaponIds[Math.floor(Math.random() * weaponIds.length)];
-    }
+    //     // 從後往前刪除，避免索引混亂
+    //     for (let i = expiredItems.length - 1; i >= 0; i--) {
+    //         const index = expiredItems[i];
+    //         const item = this.room.state.gameCore.mapItems[index];
+    //         console.log(`🗑️ 清理過期物品: ${item.itemType}`);
+    //         this.room.state.gameCore.mapItems.splice(index, 1);
+    //     }
 
-    /**
-     * 清理過期物品
-     */
-    public cleanupExpiredItems(): void {
-        const expiredItems: number[] = [];
-
-        for (let i = 0; i < this.room.state.gameCore.mapItems.length; i++) {
-            const item = this.room.state.gameCore.mapItems[i];
-            if (item.isExpired()) {
-                expiredItems.push(i);
-            }
-        }
-
-        // 從後往前刪除，避免索引混亂
-        for (let i = expiredItems.length - 1; i >= 0; i--) {
-            const index = expiredItems[i];
-            const item = this.room.state.gameCore.mapItems[index];
-            console.log(`🗑️ 清理過期物品: ${item.itemType}`);
-            this.room.state.gameCore.mapItems.splice(index, 1);
-        }
-
-        if (expiredItems.length > 0) {
-            console.log(`🧹 清理了 ${expiredItems.length} 個過期物品`);
-        }
-    }
+    //     if (expiredItems.length > 0) {
+    //         console.log(`🧹 清理了 ${expiredItems.length} 個過期物品`);
+    //     }
+    // }
 
     /**
      * 清理系統資源
      */
     public cleanup(): void {
         console.log('🧹 DropSystem 已清理');
-    }
-
-    /**
-     * 🆕 測試用：直接創建指定類型的物品
-     */
-    public createTestDropItem(itemType: string, position: { x: number, y: number }, value: number = 10): void {
-        const itemId = IdGenerator.generateItemId();
-
-        let dropItem: ServerItem;
-
-        switch (itemType) {
-            case 'exp':
-                dropItem = ServerItem.createExp(position.x, position.y, value);
-                break;
-            case 'gold':
-                dropItem = ServerItem.createGold(position.x, position.y, value);
-                break;
-            case 'material':
-                dropItem = ServerItem.createMaterial(position.x, position.y, 'zombie_flesh', value);
-                break;
-            case 'weapon':
-                dropItem = ServerItem.createWeapon(position.x, position.y, 'baseball_bat', 'common');
-                break;
-            default:
-                console.warn(`未知的測試物品類型: ${itemType}`);
-                return;
-        }
-
-        dropItem.id = itemId;
-
-        // 添加到遊戲世界
-        this.room.state.gameCore.mapItems.push(dropItem);
-
-        console.log(`🧪 測試創建掉落物品: ${dropItem.itemType} 在位置 (${position.x.toFixed(1)}, ${position.y.toFixed(1)})`);
     }
 }

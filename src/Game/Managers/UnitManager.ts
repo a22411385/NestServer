@@ -5,6 +5,7 @@ import { Client, Room } from "colyseus";
 import { GameRoomState, UnitType } from "../../Colyseus/Schema/GameState";
 import { Vector2 } from "@/Colyseus/Schema/Unit/GameUnit";
 import { StatType } from "@/Types/Game/GameTypes";
+import { ServerHero } from "@/Colyseus/Schema/Unit/Hero";
 
 const MAX_ENEMY_COUNT = 100;
 const ZombieName = ["普通殭屍", "快速殭屍", "強壯殭屍"];
@@ -105,7 +106,6 @@ export class UnitManager {
 
         return aliveHeroes;
     }
-
 
     /**
     * 處理屬性點分配

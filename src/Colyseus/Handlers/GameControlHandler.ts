@@ -1,6 +1,6 @@
 import { Client } from "colyseus";
 import { BaseMessageHandler } from "./Base/BaseMessageHandler";
-import { PermissionLevel } from "@/Types";
+import { MessageData, PermissionLevel } from "@/Types";
 
 /**
  * 遊戲控制消息處理器
@@ -29,7 +29,7 @@ export class GameControlHandler extends BaseMessageHandler {
         return [...this.supportedTypes];
     }
 
-    async handle(client: Client, message: any): Promise<void> {
+    async handle(client: Client, message: MessageData): Promise<void> {
         const { type, data } = message;
 
         try {
@@ -77,6 +77,9 @@ export class GameControlHandler extends BaseMessageHandler {
 
         if (this.checkGamePlaying()) {
             throw new Error("遊戲已經在進行中");
+        }
+        if (!this.room.playerManager.getAllPlayersReady()) {
+            throw new Error("並非所有玩家都已準備好");
         }
 
         this.room.gameManager.startGame();

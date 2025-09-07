@@ -123,7 +123,7 @@ export class BulletSystem {
 
                 // 檢查子彈是否應該繼續存在
                 if (!bullet.onHit()) {
-                    bullet.hasHit = true;
+
                     break;
                 }
             }

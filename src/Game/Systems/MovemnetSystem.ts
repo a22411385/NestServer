@@ -2,6 +2,7 @@ import { UnitType } from "@/Colyseus/Schema/GameState";
 import { GameRoom } from "../../Colyseus/Rooms/GameRoom";
 import { ServerGameUnit } from "../../Colyseus/Schema/Unit/GameUnit";
 import { Client } from "colyseus";
+import { BattleMathUtils } from "../../Util/BattleMathUtils";
 
 
 const MOVEMENT_CONFIG = {
@@ -84,12 +85,10 @@ export class MovementSystem {
         unit.position.x += deltaX;
         unit.position.y += deltaY;
 
-        const mapWidth = this.room.mapWidth;
-        const mapHeight = this.room.mapHeight;
-
         // 確保在世界邊界內
-        unit.position.x = Math.max(-mapWidth / 2, Math.min(mapWidth / 2, unit.position.x));
-        unit.position.y = Math.max(-mapHeight / 2, Math.min(mapHeight / 2, unit.position.y));
+        const clampedPosition = BattleMathUtils.clampToMapBounds(unit.position, this.room.mapWidth, this.room.mapHeight);
+        unit.position.x = clampedPosition.x;
+        unit.position.y = clampedPosition.y;
     }
 
     // addMoveData(unitId: string, moveVector: Vector2): void {

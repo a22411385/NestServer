@@ -1,5 +1,5 @@
 import { Client, Room } from "colyseus";
-import { GameRoomState, GamePlayer, UnitType, UnitFactory } from "../../Colyseus/Schema/GameState";
+import { GameRoomState, GamePlayer, UnitType } from "../../Colyseus/Schema/GameState";
 import { IdGenerator } from "../../Util/IdGenerator";
 import { ServerHero } from "../../Colyseus/Schema/Unit/Hero";
 import { Vector2 } from "../../Colyseus/Schema/Unit/GameUnit";

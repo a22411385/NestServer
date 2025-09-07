@@ -3,6 +3,9 @@
  * 整合自 struct.ts 和其他分散的基礎類型
  */
 
+import { ItemConfigDefinition } from "./Equipment/ItemTypes";
+import { WeaponConfigDefinition, WeaponPropertyDefinition } from "./Equipment/WeaponPropertyTypes";
+
 /**
  * JWT 載荷接口
  */
@@ -56,4 +59,11 @@ export interface LevelRequirement {
 export interface Durability {
     current: number;
     max: number;
+}
+
+export interface GoogleCacheData {
+    WeaponProperties: WeaponPropertyDefinition[];
+    WeaponConfigs: WeaponConfigDefinition[];
+    ItemConfigs: ItemConfigDefinition[];
+    lastUpdated: string;
 }

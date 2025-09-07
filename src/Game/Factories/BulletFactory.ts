@@ -17,6 +17,15 @@ export class BulletFactory {
         const bullet = new ServerBullet();
         const bulletId = this.generateBulletId();
 
+        // 計算最大距離
+        let maxDistance = 400; // 默認值
+        if (config.maxDistance !== undefined) {
+            maxDistance = config.maxDistance;
+        } else if (config.lifeTime !== undefined) {
+            const speed = config.speed || 300;
+            maxDistance = (config.lifeTime / 1000) * speed;
+        }
+
         bullet.initialize(
             bulletId,
             config.ownerId,
@@ -25,15 +34,13 @@ export class BulletFactory {
             config.damage,
             config.speed || 300,
             config.bulletType?.toString() || BulletType.BASIC,
-            config.weaponId || ""
+            config.weaponId || "",
+            maxDistance
         );
 
         // 設置額外屬性
         if (config.pierceCount !== undefined) {
             bullet.pierceCount = config.pierceCount;
-        }
-        if (config.lifeTime !== undefined) {
-            bullet.lifetime = config.lifeTime; // 使用正確的屬性名 'lifetime'
         }
 
         return bullet;

@@ -1,8 +1,6 @@
 import { Room, Client } from "colyseus";
 import { GameRoomState as GameRoomState, GameCoreState, UnitType, MapData } from "@/Colyseus/Schema/GameState";
 
-// 引入新的管理器和系統
-import { PlayerManager } from "@/Game/Managers/PlayerManager";
 import { GameManager } from "@/Game/Managers/GameManager";
 import { EnemySystem } from "@/Game/Systems/EnemySystem";
 import { MessageHandler } from "@/Colyseus/Handlers/MessageHandler";
@@ -16,6 +14,7 @@ import { LobbyRoomBus } from "./LobbyRoom";
 import { DamageSystem } from "../../Game/Systems/DamageSystem";
 import { BulletSystem } from "@/Game/Systems/BulletSystem";
 import { DropSystem } from "@/Game/Systems/DropSystem"; // 🆕 添加掉落系統
+import { ItemPickupSystem } from "@/Game/Systems/ItemPickupSystem"; // 🆕 添加拾取系統
 
 // 🆕 引入新的系統
 import { CombatSystem } from "@/Game/Systems/CombatSystem";
@@ -25,6 +24,7 @@ import { WeaponFactory } from "@/Game/Factories/WeaponFactory";
 
 // 🆕 引入統一類型定義
 import { GameRoomOptions } from "@/Types";
+import { PlayerManager } from "@/Game/Managers/PlayerManager";
 
 export class GameRoom extends MiddleRoom<GameRoomState> {
 
@@ -47,6 +47,7 @@ export class GameRoom extends MiddleRoom<GameRoomState> {
     public combatSystem: CombatSystem; // 🆕 戰鬥系統
     public equipmentManager: EquipmentManager; // 🆕 裝備管理器
     public dropSystem: DropSystem; // 🆕 掉落系統
+    public itemPickupSystem: ItemPickupSystem; // 🆕 拾取系統
 
     public roomInfo: LobbyRoomInfo;
     private lastItemCleanup: number = 0; // 上次物品清理時間
@@ -79,6 +80,7 @@ export class GameRoom extends MiddleRoom<GameRoomState> {
         this.combatSystem = new CombatSystem(this); // 🆕 初始化戰鬥系統
         this.equipmentManager = new EquipmentManager(this); // 🆕 初始化裝備管理器
         this.dropSystem = new DropSystem(this); // 🆕 初始化掉落系統
+        this.itemPickupSystem = new ItemPickupSystem(this); // 🆕 初始化拾取系統
 
         this.gameManager = new GameManager(this);
 
@@ -199,12 +201,12 @@ export class GameRoom extends MiddleRoom<GameRoomState> {
         // 🔧 更新敵人 AI（只設置速度向量）
         this.enemySystem.updateEnemyAI(deltaTime, currentTime);
 
-        // 🆕 定期清理過期物品（每30秒）
-        const now = Date.now();
-        if (!this.lastItemCleanup || now - this.lastItemCleanup > 30000) {
-            this.dropSystem.cleanupExpiredItems();
-            this.lastItemCleanup = now;
-        }
+        // �🆕 定期清理過期物品（每30秒）
+        // const now = Date.now();
+        // if (!this.lastItemCleanup || now - this.lastItemCleanup > 30000) {
+        //     this.dropSystem.cleanupExpiredItems();
+        //     this.lastItemCleanup = now;
+        // }
 
         // 🔧 攻擊和傷害處理由敵人AI內部處理，不再需要外部傷害報告
 

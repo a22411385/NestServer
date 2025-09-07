@@ -25,7 +25,7 @@ export class ServerHero extends ServerGameUnit {
     @type([ServerItem]) public inventory = new ArraySchema<ServerItem>();
 
     @type("number") public gold: number = 0; // 新增金幣屬性
-
+    @type("number") public pickupRange: number = 150; // 拾取範圍
     // === 基礎屬性點 (永久，升級分配) ===
     @type("number") public vit: number = 10;        // 體質點數
     @type("number") public str: number = 10;        // 力量點數

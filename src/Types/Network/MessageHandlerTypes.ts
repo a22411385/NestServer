@@ -15,7 +15,10 @@ export enum PermissionLevel {
     HOST = 'host',
     TEST = 'test'
 }
-
+export type MessageData = {
+    type: string;
+    data: any;
+};
 /**
  * 消息處理器接口
  */
@@ -23,7 +26,7 @@ export interface IMessageHandler {
     /**
      * 處理消息
      */
-    handle(client: Client, message: any): Promise<void> | void;
+    handle(client: Client, message: MessageData): Promise<void> | void;
 
     /**
      * 檢查是否能處理此類型消息

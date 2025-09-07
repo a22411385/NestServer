@@ -12,7 +12,7 @@ export enum ItemType {
 // --- 統一物品類 ---
 export class ServerItem extends Schema {
     @type("string") id: string = "";
-
+    @type("string") name: string = "";
     @type("string") itemType: string = ItemType.GOLD;
     @type("number") x: number = 0;
     @type("number") y: number = 0;
@@ -32,10 +32,10 @@ export class ServerItem extends Schema {
     // 材料相關屬性
     @type("string") materialId: string = "";
 
-    constructor(itemType: string = ItemType.GOLD, x: number = 0, y: number = 0) {
+    constructor(itemType: string = ItemType.GOLD, name: string, x: number = 0, y: number = 0) {
         super();
         this.id = this.generateId();
-
+        this.name = name;
         this.itemType = itemType;
         this.x = x;
         this.y = y;
@@ -53,7 +53,7 @@ export class ServerItem extends Schema {
      * 創建金幣物品
      */
     static createGold(x: number, y: number, amount: number): ServerItem {
-        const item = new ServerItem(ItemType.GOLD, x, y);
+        const item = new ServerItem(ItemType.GOLD, "", x, y);
         item.value = amount;
         return item;
     }
@@ -62,7 +62,7 @@ export class ServerItem extends Schema {
      * 創建經驗值物品
      */
     static createExp(x: number, y: number, amount: number): ServerItem {
-        const item = new ServerItem(ItemType.EXP, x, y);
+        const item = new ServerItem(ItemType.EXP, "", x, y);
         item.value = amount;
         return item;
     }
@@ -70,8 +70,8 @@ export class ServerItem extends Schema {
     /**
      * 創建材料物品
      */
-    static createMaterial(x: number, y: number, materialId: string, quantity: number = 1): ServerItem {
-        const item = new ServerItem(ItemType.MATERIAL, x, y);
+    static createMaterial(x: number, y: number, materialId: string, name: string, quantity: number = 1): ServerItem {
+        const item = new ServerItem(ItemType.MATERIAL, name, x, y);
         item.materialId = materialId;
         item.value = quantity;
         return item;
@@ -80,8 +80,8 @@ export class ServerItem extends Schema {
     /**
      * 創建武器物品（掉落時已確定品質）
      */
-    static createWeapon(x: number, y: number, weaponId: string, quality: string, level: number = 1): ServerItem {
-        const item = new ServerItem(ItemType.WEAPON, x, y);
+    static createWeapon(x: number, y: number, weaponId: string, name: string, quality: string, level: number = 1): ServerItem {
+        const item = new ServerItem(ItemType.WEAPON, name, x, y);
         item.weaponId = weaponId;
         item.quality = quality;
         item.level = level;
@@ -94,7 +94,7 @@ export class ServerItem extends Schema {
      * 從 WeaponData 創建掉落物品（玩家丟棄武器時使用）
      */
     static createFromWeaponData(weaponData: WeaponData, x: number, y: number): ServerItem {
-        const item = new ServerItem(ItemType.WEAPON, x, y);
+        const item = new ServerItem(ItemType.WEAPON, weaponData.name, x, y);
 
         // 複製武器基本屬性
         item.weaponId = weaponData.weaponId;

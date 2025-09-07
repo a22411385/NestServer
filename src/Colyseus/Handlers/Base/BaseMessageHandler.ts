@@ -1,7 +1,7 @@
 import { Client } from "colyseus";
 import { GameRoom } from "../../Rooms/GameRoom";
 import { GameRoomState } from "../../Schema/GameState";
-import { IMessageHandler, PermissionLevel } from "@/Types";
+import { IMessageHandler, MessageData, PermissionLevel } from "@/Types";
 
 export interface MessageHandleResult {
     success: boolean;
@@ -24,7 +24,7 @@ export abstract class BaseMessageHandler implements IMessageHandler {
     /**
      * 處理消息 - 子類實現
      */
-    abstract handle(client: Client, message: any): Promise<void> | void;
+    abstract handle(client: Client, message: MessageData): Promise<void> | void;
 
     /**
      * 檢查是否能處理此類型消息 - 子類實現

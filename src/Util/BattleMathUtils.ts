@@ -145,6 +145,120 @@ export namespace BattleMathUtils {
         const y = cy + Math.sin(angle) * r;
 
         return { x: toInt(x), y: toInt(y) };
+    }
 
+    /**
+     * 計算兩點之間的距離（使用 Math.hypot 優化性能）
+     */
+    export function calculateDistance(x1: number, y1: number, x2: number, y2: number): number {
+        return Math.hypot(x2 - x1, y2 - y1);
+    }
+
+    /**
+     * 計算兩個位置對象之間的距離
+     */
+    export function calculateDistanceVector(pos1: { x: number, y: number }, pos2: { x: number, y: number }): number {
+        return calculateDistance(pos1.x, pos1.y, pos2.x, pos2.y);
+    }
+
+    /**
+     * 將數值限制在指定範圍內（邊界限制）
+     */
+    export function clamp(value: number, min: number, max: number): number {
+        return Math.max(min, Math.min(max, value));
+    }
+
+    /**
+     * 檢查位置是否在地圖邊界內
+     */
+    export function isWithinMapBounds(x: number, y: number, mapWidth: number, mapHeight: number): boolean {
+        const halfWidth = mapWidth / 2;
+        const halfHeight = mapHeight / 2;
+        return x >= -halfWidth && x <= halfWidth && y >= -halfHeight && y <= halfHeight;
+    }
+
+    /**
+     * 將位置限制在地圖邊界內
+     */
+    export function clampToMapBounds(position: { x: number, y: number }, mapWidth: number, mapHeight: number): { x: number, y: number } {
+        const halfWidth = mapWidth / 2;
+        const halfHeight = mapHeight / 2;
+        return {
+            x: clamp(position.x, -halfWidth, halfWidth),
+            y: clamp(position.y, -halfHeight, halfHeight)
+        };
+    }
+
+    /**
+     * 隨機範圍內的整數（包含 min 和 max）
+     */
+    export function randomIntRange(min: number, max: number): number {
+        return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+
+    /**
+     * 隨機範圍內的浮點數（包含 min，不包含 max）
+     */
+    export function randomFloatRange(min: number, max: number): number {
+        return Math.random() * (max - min) + min;
+    }
+
+    /**
+     * 基於概率的隨機判斷
+     */
+    export function rollProbability(probability: number): boolean {
+        return Math.random() < probability;
+    }
+
+    /**
+     * 隨機偏移量生成器
+     */
+    export function getRandomOffset(range: number = 50): { x: number, y: number } {
+        return {
+            x: randomFloatRange(-range, range),
+            y: randomFloatRange(-range, range)
+        };
+    }
+
+    /**
+     * 將值限制為最小值（確保不小於指定值）
+     */
+    export function atLeast(value: number, minimum: number): number {
+        return Math.max(value, minimum);
+    }
+
+    /**
+     * 將值限制為最大值（確保不大於指定值）
+     */
+    export function atMost(value: number, maximum: number): number {
+        return Math.min(value, maximum);
+    }
+
+    /**
+     * 計算百分比
+     */
+    export function percentage(value: number, total: number): number {
+        return total === 0 ? 0 : (value / total) * 100;
+    }
+
+    /**
+     * 從百分比計算實際值
+     */
+    export function fromPercentage(percentage: number, total: number): number {
+        return (percentage / 100) * total;
+    }
+
+    /**
+     * 線性插值
+     */
+    export function lerp(start: number, end: number, factor: number): number {
+        return start + (end - start) * clamp(factor, 0, 1);
+    }
+
+    /**
+     * 反向線性插值（計算因子）
+     */
+    export function inverseLerp(start: number, end: number, value: number): number {
+        return end === start ? 0 : clamp((value - start) / (end - start), 0, 1);
     }
 }

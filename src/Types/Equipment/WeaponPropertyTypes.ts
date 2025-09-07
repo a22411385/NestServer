@@ -94,6 +94,8 @@ export interface WeaponConfigDefinition {
     description: string;
 }
 
+
+
 /**
  * 通用屬性值定義 - 裝備與武器共用
  */

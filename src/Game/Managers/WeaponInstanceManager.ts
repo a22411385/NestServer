@@ -4,6 +4,7 @@ import { WeaponData } from "../../Colyseus/Schema/Weapon/WeaponData";
 import { WeaponFactory } from "../Factories/WeaponFactory";
 import { WeaponDataService } from "../Services/WeaponDataService";
 import { WeaponPropertyService } from "../Services/WeaponPropertyService";
+import { BattleMathUtils } from "../../Util/BattleMathUtils";
 
 /**
  * 武器實例管理器 - 專注於實例的創建、緩存和生命周期管理
@@ -121,13 +122,13 @@ export class WeaponInstanceManager {
 
         // 強化等級影響品質機率（每級+2%機率提升品質）
         const enhanceBonus = weaponData.enhanceLevel * 2;
-        const levelBonus = Math.max(0, weaponData.level - 1) * 1; // 等級影響較小
+        const levelBonus = BattleMathUtils.atLeast(weaponData.level - 1, 0) * 1; // 等級影響較小
 
         // 調整機率（減少隨機數，提升品質機率）
         baseProbability -= (enhanceBonus + levelBonus);
 
         // 確保機率在合理範圍內
-        baseProbability = Math.max(0, Math.min(100, baseProbability));
+        baseProbability = BattleMathUtils.clamp(baseProbability, 0, 100);
 
         // 根據調整後的機率確定品質
         if (baseProbability < 54) return WeaponQuality.NORMAL;     // 54%

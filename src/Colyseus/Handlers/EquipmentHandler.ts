@@ -1,6 +1,6 @@
 import { Client } from "colyseus";
 import { BaseMessageHandler } from "./Base/BaseMessageHandler";
-import { PermissionLevel } from "@/Types";
+import { MessageData, PermissionLevel } from "@/Types";
 
 /**
  * 裝備消息處理器
@@ -32,7 +32,7 @@ export class EquipmentHandler extends BaseMessageHandler {
         return [...this.supportedTypes];
     }
 
-    async handle(client: Client, message: any): Promise<void> {
+    async handle(client: Client, message: MessageData): Promise<void> {
         const { type, data } = message;
 
         try {

@@ -3,6 +3,8 @@ import * as fs from 'fs';
 import * as path from 'path';
 import axios from 'axios';
 import { WeaponConfigDefinition, WeaponPropertyDefinition } from '@/Types/Equipment/WeaponPropertyTypes';
+import { ItemConfigDefinition } from '@/Types/Equipment/ItemTypes';
+import { GoogleCacheData } from '@/Types';
 
 /**
  * Google Sheets 數據快取模組
@@ -29,11 +31,6 @@ import { WeaponConfigDefinition, WeaponPropertyDefinition } from '@/Types/Equipm
  */
 
 
-export interface GoogleCacheData {
-    WeaponProperties: WeaponPropertyDefinition[];
-    WeaponConfigs: WeaponConfigDefinition[];
-    lastUpdated: string;
-}
 
 export class GoogleSheetCache {
     private readonly cacheFilePath = path.join(process.cwd(), 'data', 'google-sheets-cache.json');
@@ -73,17 +70,19 @@ export class GoogleSheetCache {
 
             const weaponPropertiesSheet = workbook.Sheets['WeaponProperties'];
             const weaponConfigsSheet = workbook.Sheets['WeaponConfigs'];
+            const itemConfigsSheet = workbook.Sheets['ItemConfigs'];
 
-            if (!weaponPropertiesSheet || !weaponConfigsSheet) {
+            if (!weaponPropertiesSheet || !weaponConfigsSheet || !itemConfigsSheet) {
                 throw new Error('Required sheets not found in the workbook');
             }
 
             const weaponProperties = XLSX.utils.sheet_to_json<WeaponPropertyDefinition>(weaponPropertiesSheet);
             const weaponConfigs = XLSX.utils.sheet_to_json<WeaponConfigDefinition>(weaponConfigsSheet);
-
+            const itemConfigs = XLSX.utils.sheet_to_json<ItemConfigDefinition>(itemConfigsSheet);
             this.cacheData = {
                 WeaponProperties: weaponProperties,
                 WeaponConfigs: weaponConfigs,
+                ItemConfigs: itemConfigs,
                 lastUpdated: new Date().toISOString()
             };
 

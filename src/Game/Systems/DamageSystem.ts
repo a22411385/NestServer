@@ -3,6 +3,7 @@ import { ServerHero } from '../../Colyseus/Schema/Unit/Hero';
 import { ServerEnemy } from '../../Colyseus/Schema/Unit/Enemy';
 import { ServerGameUnit } from '../../Colyseus/Schema/Unit/GameUnit';
 import { UnitType } from '../../Colyseus/Schema/GameState';
+import { BattleMathUtils } from '../../Util/BattleMathUtils';
 
 export interface DamageInfo {
     attacker: ServerGameUnit;
@@ -63,7 +64,7 @@ export class DamageSystem {
 
         // 應用傷害
         const previousHp = target.hp;
-        target.hp = Math.max(0, target.hp - actualDamage);
+        target.hp = BattleMathUtils.atLeast(target.hp - actualDamage, 0);
         const realDamage = previousHp - target.hp;
 
         console.log(`   傷害後血量: ${target.hp}/${target.maxHp} (扣除 ${realDamage})`);
@@ -166,7 +167,7 @@ export class DamageSystem {
         if (damageType === 'physical') {
             // 物理傷害防禦計算
             const defense = this.getTargetDefense(target);
-            finalDamage = Math.max(1, finalDamage - defense); // 至少造成1點傷害
+            finalDamage = BattleMathUtils.atLeast(finalDamage - defense, 1); // 至少造成1點傷害
         }
 
         return Math.floor(finalDamage);
@@ -179,7 +180,7 @@ export class DamageSystem {
         if (attacker.type === UnitType.hero) {
             const hero = attacker as ServerHero;
             const critRate = hero.baseCritRate || 0.1; // 使用 baseCritRate
-            return Math.random() < critRate;
+            return BattleMathUtils.rollProbability(critRate);
         }
         return false;
     }
@@ -232,7 +233,7 @@ export class DamageSystem {
         // 計算擊退方向
         const dx = target.position.x - attacker.position.x;
         const dy = target.position.y - attacker.position.y;
-        const distance = Math.hypot(dx, dy);
+        const distance = BattleMathUtils.calculateDistance(attacker.position.x, attacker.position.y, target.position.x, target.position.y);
 
         if (distance === 0) return null;
 
@@ -245,11 +246,9 @@ export class DamageSystem {
         target.position.y += normalizedY * knockbackDistance;
 
         // 確保不超出地圖邊界
-        const halfMapWidth = this.room.mapWidth / 2;
-        const halfMapHeight = this.room.mapHeight / 2;
-
-        target.position.x = Math.max(-halfMapWidth, Math.min(halfMapWidth, target.position.x));
-        target.position.y = Math.max(-halfMapHeight, Math.min(halfMapHeight, target.position.y));
+        const clampedPosition = BattleMathUtils.clampToMapBounds(target.position, this.room.mapWidth, this.room.mapHeight);
+        target.position.x = clampedPosition.x;
+        target.position.y = clampedPosition.y;
 
         return {
             type: 'knockback',
@@ -304,10 +303,7 @@ export class DamageSystem {
         for (const [, unit] of this.room.state.gameCore.allUnits) {
             if (unit.type !== targetType || unit.isDead) continue;
 
-            const distance = Math.hypot(
-                unit.position.x - centerPosition.x,
-                unit.position.y - centerPosition.y
-            );
+            const distance = BattleMathUtils.calculateDistanceVector(unit.position, centerPosition);
 
             if (distance <= radius) {
                 targets.push(unit);

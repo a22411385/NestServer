@@ -1,4 +1,5 @@
 import { ServerEnemy } from "../../Colyseus/Schema/Unit/Enemy";
+import { BattleMathUtils } from "../../Util/BattleMathUtils";
 
 /**
  * 敵人協調系統 - 處理敵人間的群體行為和避免相互干擾
@@ -46,10 +47,7 @@ export class EnemyCoordinationSystem {
             for (const other of enemies) {
                 if (processed.has(other.id) || other === enemy) continue;
 
-                const distance = Math.hypot(
-                    other.position.x - enemy.position.x,
-                    other.position.y - enemy.position.y
-                );
+                const distance = BattleMathUtils.calculateDistanceVector(other.position, enemy.position);
 
                 if (distance < this.coordinationRadius && group.length < this.maxCoordinationGroup) {
                     group.push(other);

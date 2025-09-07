@@ -28,7 +28,8 @@ export interface BulletCreateConfig {
     bulletType?: BulletType;
     pierceCount?: number;
     areaOfEffect?: number;
-    lifeTime?: number;
+    maxDistance?: number; // 🆕 推薦：最大飛行距離（像素）
+    lifeTime?: number; // ⚠️ 向後兼容：將轉換為 maxDistance
     scale?: number;
     weaponId?: string; // 武器ID，用於獲取武器屬性
 }
