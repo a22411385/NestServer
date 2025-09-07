@@ -366,31 +366,6 @@ export class DropSystem {
             basePosition.y + Math.sin(angle) * distance
         );
     }
-    // /**
-    //  * 清理過期物品
-    //  */
-    // public cleanupExpiredItems(): void {
-    //     const expiredItems: number[] = [];
-
-    //     for (let i = 0; i < this.room.state.gameCore.mapItems.length; i++) {
-    //         const item = this.room.state.gameCore.mapItems[i];
-    //         if (item.isExpired()) {
-    //             expiredItems.push(i);
-    //         }
-    //     }
-
-    //     // 從後往前刪除，避免索引混亂
-    //     for (let i = expiredItems.length - 1; i >= 0; i--) {
-    //         const index = expiredItems[i];
-    //         const item = this.room.state.gameCore.mapItems[index];
-    //         console.log(`🗑️ 清理過期物品: ${item.itemType}`);
-    //         this.room.state.gameCore.mapItems.splice(index, 1);
-    //     }
-
-    //     if (expiredItems.length > 0) {
-    //         console.log(`🧹 清理了 ${expiredItems.length} 個過期物品`);
-    //     }
-    // }
 
     /**
      * 清理系統資源

@@ -201,13 +201,6 @@ export class GameRoom extends MiddleRoom<GameRoomState> {
         // 🔧 更新敵人 AI（只設置速度向量）
         this.enemySystem.updateEnemyAI(deltaTime, currentTime);
 
-        // �🆕 定期清理過期物品（每30秒）
-        // const now = Date.now();
-        // if (!this.lastItemCleanup || now - this.lastItemCleanup > 30000) {
-        //     this.dropSystem.cleanupExpiredItems();
-        //     this.lastItemCleanup = now;
-        // }
-
         // 🔧 攻擊和傷害處理由敵人AI內部處理，不再需要外部傷害報告
 
         // 檢查玩家死亡
