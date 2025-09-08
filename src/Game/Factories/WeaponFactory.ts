@@ -118,23 +118,6 @@ export class WeaponFactory {
     }
 
     /**
-     * 🆕 批量創建武器
-     */
-    public static createMultipleWeapons(weaponIds: string[]): WeaponBasic[] {
-        const weapons: WeaponBasic[] = [];
-
-        for (const weaponId of weaponIds) {
-            const weapon = this.createWeapon(weaponId);
-            if (weapon) {
-                weapons.push(weapon);
-            }
-        }
-
-        console.log(`🔧 批量創建武器: ${weapons.length}/${weaponIds.length} 成功`);
-        return weapons;
-    }
-
-    /**
      * 🆕 根據類型獲取武器ID列表
      */
     public static getWeaponIdsByType(weaponType: string): string[] {

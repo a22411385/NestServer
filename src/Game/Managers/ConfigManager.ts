@@ -9,7 +9,7 @@ import * as path from 'path';
  * 負責載入和管理所有來自 Google Sheets 的配置資料
  */
 export class ConfigManager {
-    private static cache: any = null;
+    private static cache: GoogleCacheData;
     private static cachePath = path.join(process.cwd(), 'data', 'google-sheets-cache.json');
 
     /**
@@ -20,8 +20,7 @@ export class ConfigManager {
             try {
                 if (!fs.existsSync(this.cachePath)) {
                     console.warn(`⚠️ 配置檔案不存在: ${this.cachePath}`);
-                    this.cache = {};
-                    return this.cache;
+                    throw new Error("配置檔案不存在");
                 }
 
                 const cacheData = fs.readFileSync(this.cachePath, 'utf8');
@@ -31,9 +30,10 @@ export class ConfigManager {
                 console.log(`📦 載入配置: WeaponConfigs(${this.cache.WeaponConfigs?.length || 0}), WeaponProperties(${this.cache.WeaponProperties?.length || 0}), ItemConfigs(${this.cache.ItemConfigs?.length || 0})`);
             } catch (error) {
                 console.error('❌ 載入 Google Sheets 快取失敗:', error);
-                this.cache = {};
+                throw new Error("載入 Google Sheets 快取失敗");
             }
         }
+
         return this.cache;
     }
 
@@ -102,6 +102,22 @@ export class ConfigManager {
     }
 
     /**
+     * 🆕 根據NPC ID獲取可販賣的物品列表
+     */
+    public static getItemsByNpcId(npcId: string): ItemConfigDefinition[] {
+        const items = this.getItemConfigs();
+        return items.filter(item => item.enabled && item.npcId === npcId);
+    }
+
+    /**
+     * 🆕 驗證物品是否可以被指定NPC販賣
+     */
+    public static canNpcSellItem(npcId: string, itemId: string): boolean {
+        const item = this.getItemConfigById(itemId);
+        return item ? item.enabled && item.npcId === npcId : false;
+    }
+
+    /**
      * 獲取啟用的物品列表
      */
     public static getEnabledItems(): ItemConfigDefinition[] {
@@ -121,7 +137,7 @@ export class ConfigManager {
      * 重新載入快取
      */
     public static reloadCache(): void {
-        this.cache = null;
+        this.cache = {} as GoogleCacheData;
         console.log('🔄 重新載入配置快取');
         this.loadCache();
     }

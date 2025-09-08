@@ -63,8 +63,8 @@ export class DropSystem {
         const items: ServerItem[] = [];
 
         // 1. 必定掉落：經驗值
-        const expAmount = this.calculateExpDrop(enemy);
-        items.push(ServerItem.createExp(x, y, expAmount));
+        //  const expAmount = this.calculateExpDrop(enemy);
+        //items.push(ServerItem.createExp(x, y, expAmount));
 
         // 2. 高機率掉落：金幣
         if (this.rollDrop(BASIC_DROP_CONFIG.gold.dropRate)) {
@@ -103,7 +103,7 @@ export class DropSystem {
         const droppedItems: Array<{ config: ItemConfigDefinition, quantity: number }> = [];
 
         // 獲取啟用的非武器物品
-        const enabledItems = ConfigManager.getEnabledItems().filter(item => item.type !== 'WEAPON');
+        const enabledItems = ConfigManager.getEnabledItems().filter(item => item.type !== ItemType.WEAPON);
 
         for (const itemConfig of enabledItems) {
             // 計算掉落機率
@@ -246,20 +246,20 @@ export class DropSystem {
         const finalY = y + randomOffset.y;
         const name = itemConfig.name;
         switch (itemConfig.type) {
-            case 'CURRENCY':
+            case ItemType.CURRENCY:
                 if (itemConfig.id === 'gold') {
                     return ServerItem.createGold(finalX, finalY, quantity);
                 } else {
                     return ServerItem.createMaterial(finalX, finalY, itemConfig.id, name, quantity);
                 }
 
-            case 'MATERIAL':
+            case ItemType.MATERIAL:
                 return ServerItem.createMaterial(finalX, finalY, itemConfig.id, name, quantity);
 
-            case 'CONSUMABLE':
+            case ItemType.CONSUMABLE:
                 return ServerItem.createMaterial(finalX, finalY, itemConfig.id, name, quantity);
 
-            case 'MISC':
+            case ItemType.MISC:
                 return ServerItem.createMaterial(finalX, finalY, itemConfig.id, name, quantity);
 
             default:
@@ -303,7 +303,12 @@ export class DropSystem {
         // 等級基於敵人等級 ±1
         const level = Math.max(1, (enemy.lv || 1) + Math.floor(Math.random() * 3) - 1);
 
-        return { weaponId, quality, level, name: weaponConfig.name };
+        return {
+            weaponId,
+            quality,
+            level,
+            name: weaponConfig.name
+        };
     }
 
     /**

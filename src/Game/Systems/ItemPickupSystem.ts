@@ -51,7 +51,7 @@ export class ItemPickupSystem {
         }
 
         // 找到物品
-        const itemIndex = this.room.state.gameCore.mapItems.findIndex(item => item.id === itemId);
+        const itemIndex = this.room.state.gameCore.mapItems.findIndex(item => item.uniqueId === itemId);
         if (itemIndex === -1) {
             console.warn(`❌ 撿取請求失敗: 物品不存在 (${itemId})`);
             return false;
@@ -103,7 +103,7 @@ export class ItemPickupSystem {
         let success = false;
 
         switch (item.itemType) {
-            case ItemType.GOLD:
+            case ItemType.CURRENCY:
                 success = this.pickupGold(hero, item);
                 break;
 

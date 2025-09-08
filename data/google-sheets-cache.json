@@ -450,7 +450,7 @@
       "sellPrice": 100,
       "category": "currency",
       "usable": false,
-      "enabled": true
+      "enabled": false
     },
     {
       "id": "crystal",
@@ -463,7 +463,7 @@
       "sellPrice": 1000,
       "category": "currency",
       "usable": false,
-      "enabled": true
+      "enabled": false
     },
     {
       "id": "iron_ore",
@@ -476,7 +476,7 @@
       "sellPrice": 2,
       "category": "ore",
       "usable": false,
-      "enabled": true
+      "enabled": false
     },
     {
       "id": "copper_ore",
@@ -489,7 +489,7 @@
       "sellPrice": 1,
       "category": "ore",
       "usable": false,
-      "enabled": true
+      "enabled": false
     },
     {
       "id": "wood",
@@ -502,7 +502,7 @@
       "sellPrice": 1,
       "category": "crafting",
       "usable": false,
-      "enabled": true
+      "enabled": false
     },
     {
       "id": "stone",
@@ -515,7 +515,7 @@
       "sellPrice": 1,
       "category": "crafting",
       "usable": false,
-      "enabled": true
+      "enabled": false
     },
     {
       "id": "leather",
@@ -528,7 +528,7 @@
       "sellPrice": 3,
       "category": "crafting",
       "usable": false,
-      "enabled": true
+      "enabled": false
     },
     {
       "id": "bone",
@@ -541,7 +541,7 @@
       "sellPrice": 2,
       "category": "crafting",
       "usable": false,
-      "enabled": true
+      "enabled": false
     },
     {
       "id": "fiber",
@@ -554,20 +554,7 @@
       "sellPrice": 1,
       "category": "crafting",
       "usable": false,
-      "enabled": true
-    },
-    {
-      "id": "oil",
-      "name": "機油",
-      "type": "MATERIAL",
-      "description": "工業用油",
-      "baseValue": 15,
-      "rarity": "uncommon",
-      "stackSize": 99,
-      "sellPrice": 8,
-      "category": "crafting",
-      "usable": false,
-      "enabled": true
+      "enabled": false
     },
     {
       "id": "silver_ore",
@@ -580,7 +567,7 @@
       "sellPrice": 12,
       "category": "ore",
       "usable": false,
-      "enabled": true
+      "enabled": false
     },
     {
       "id": "gold_ore",
@@ -593,7 +580,7 @@
       "sellPrice": 25,
       "category": "ore",
       "usable": false,
-      "enabled": true
+      "enabled": false
     },
     {
       "id": "mithril_ore",
@@ -606,7 +593,7 @@
       "sellPrice": 100,
       "category": "ore",
       "usable": false,
-      "enabled": true
+      "enabled": false
     },
     {
       "id": "adamant_ore",
@@ -619,7 +606,7 @@
       "sellPrice": 500,
       "category": "ore",
       "usable": false,
-      "enabled": true
+      "enabled": false
     },
     {
       "id": "magic_crystal",
@@ -632,7 +619,7 @@
       "sellPrice": 50,
       "category": "magic",
       "usable": false,
-      "enabled": true
+      "enabled": false
     },
     {
       "id": "elemental_core",
@@ -645,7 +632,7 @@
       "sellPrice": 150,
       "category": "magic",
       "usable": false,
-      "enabled": true
+      "enabled": false
     },
     {
       "id": "dragon_scale",
@@ -658,7 +645,7 @@
       "sellPrice": 250,
       "category": "rare_drop",
       "usable": false,
-      "enabled": true
+      "enabled": false
     },
     {
       "id": "phoenix_feather",
@@ -671,7 +658,7 @@
       "sellPrice": 400,
       "category": "rare_drop",
       "usable": false,
-      "enabled": true
+      "enabled": false
     },
     {
       "id": "herb_common",
@@ -684,7 +671,7 @@
       "sellPrice": 1,
       "category": "herb",
       "usable": false,
-      "enabled": true
+      "enabled": false
     },
     {
       "id": "herb_healing",
@@ -697,7 +684,7 @@
       "sellPrice": 5,
       "category": "herb",
       "usable": false,
-      "enabled": true
+      "enabled": false
     },
     {
       "id": "herb_mana",
@@ -710,7 +697,7 @@
       "sellPrice": 6,
       "category": "herb",
       "usable": false,
-      "enabled": true
+      "enabled": false
     },
     {
       "id": "herb_rare",
@@ -723,7 +710,7 @@
       "sellPrice": 25,
       "category": "herb",
       "usable": false,
-      "enabled": true
+      "enabled": false
     },
     {
       "id": "mushroom_red",
@@ -736,7 +723,7 @@
       "sellPrice": 4,
       "category": "herb",
       "usable": false,
-      "enabled": true
+      "enabled": false
     },
     {
       "id": "mushroom_blue",
@@ -749,7 +736,7 @@
       "sellPrice": 7,
       "category": "herb",
       "usable": false,
-      "enabled": true
+      "enabled": false
     },
     {
       "id": "health_potion_small",
@@ -805,7 +792,7 @@
       "category": "potion",
       "usable": true,
       "effects": "mana:30",
-      "enabled": true
+      "enabled": false
     },
     {
       "id": "mana_potion_medium",
@@ -819,7 +806,7 @@
       "category": "potion",
       "usable": true,
       "effects": "mana:100",
-      "enabled": true
+      "enabled": false
     },
     {
       "id": "mana_potion_large",
@@ -833,7 +820,7 @@
       "category": "potion",
       "usable": true,
       "effects": "mana:250",
-      "enabled": true
+      "enabled": false
     },
     {
       "id": "stamina_potion",
@@ -847,7 +834,7 @@
       "category": "potion",
       "usable": true,
       "effects": "stamina:100",
-      "enabled": true
+      "enabled": false
     },
     {
       "id": "buff_strength",
@@ -861,7 +848,7 @@
       "category": "buff",
       "usable": true,
       "effects": "buff:strength:1800",
-      "enabled": true
+      "enabled": false
     },
     {
       "id": "buff_speed",
@@ -875,7 +862,7 @@
       "category": "buff",
       "usable": true,
       "effects": "buff:speed:1800",
-      "enabled": true
+      "enabled": false
     },
     {
       "id": "buff_defense",
@@ -889,7 +876,7 @@
       "category": "buff",
       "usable": true,
       "effects": "buff:defense:1800",
-      "enabled": true
+      "enabled": false
     },
     {
       "id": "bread",
@@ -903,7 +890,7 @@
       "category": "food",
       "usable": true,
       "effects": "heal:20",
-      "enabled": true
+      "enabled": false
     },
     {
       "id": "meat",
@@ -917,7 +904,7 @@
       "category": "food",
       "usable": true,
       "effects": "heal:40,buff:strength:300",
-      "enabled": true
+      "enabled": false
     },
     {
       "id": "fruit",
@@ -931,7 +918,7 @@
       "category": "food",
       "usable": true,
       "effects": "heal:25,mana:15",
-      "enabled": true
+      "enabled": false
     },
     {
       "id": "fish",
@@ -945,7 +932,7 @@
       "category": "food",
       "usable": true,
       "effects": "heal:60,mana:30",
-      "enabled": true
+      "enabled": false
     },
     {
       "id": "cake",
@@ -959,8 +946,8 @@
       "category": "food",
       "usable": true,
       "effects": "heal:100,mana:50,buff:happiness:600",
-      "enabled": true
+      "enabled": false
     }
   ],
-  "lastUpdated": "2025-09-05T07:49:08.620Z"
+  "lastUpdated": "2025-09-08T13:43:51.509Z"
 }
