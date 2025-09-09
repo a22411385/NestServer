@@ -17,16 +17,16 @@ export class PoisonDagger extends MeleeWeapon {
      */
     protected applyMeleeSpecificConfig(): void {
         // 毒刃特有邏輯
-        console.log(`🗡️ 毒刃特定配置已應用 - 配置來自: ${this.weaponConfig?.name}`);
+        // console.log(`🗡️ 毒刃特定配置已應用 - 配置來自: ${this.weaponConfig?.name}`);
 
-        // 根據配置的固定屬性進行特殊設置
-        const fixedProps = this.getFixedProperties();
-        if (fixedProps.includes('poison')) {
-            console.log(`☠️ 毒刃具有中毒效果`);
-        }
-        if (fixedProps.includes('attack_speed')) {
-            console.log(`⚡ 毒刃具有攻速提升`);
-        }
+        // // 根據配置的固定屬性進行特殊設置
+        // const fixedProps = this.getFixedProperties();
+        // if (fixedProps.includes('poison')) {
+        //     console.log(`☠️ 毒刃具有中毒效果`);
+        // }
+        // if (fixedProps.includes('attack_speed')) {
+        //     console.log(`⚡ 毒刃具有攻速提升`);
+        // }
     }
 
     // 使用父類 MeleeWeapon 的 tryAttack 邏輯

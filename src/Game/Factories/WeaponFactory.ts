@@ -16,14 +16,6 @@ export class WeaponFactory {
     private static dynamicWeaponClassMap = new Map<string, any>();
     private static isInitialized = false;
 
-    // 保留向下兼容的靜態映射（作為備用）
-    private static weaponClassMap = new Map<string, any>([
-        ['baseball_bat', BaseballBat],
-        ['fireball', Fireball],
-        ['healing_potion', HealingPotion]
-        // 新武器類需要在這裡註冊
-    ]);
-
     /**
      * 🆕 初始化武器工廠 - 從配置載入動態類別映射
      */
@@ -51,7 +43,6 @@ export class WeaponFactory {
 
             this.isInitialized = true;
             console.log('✅ 武器工廠初始化完成');
-            console.log(`📊 載入統計: 動態類別 ${this.dynamicWeaponClassMap.size} 個, 靜態類別 ${this.weaponClassMap.size} 個`);
 
         } catch (error) {
             console.error('❌ 武器工廠初始化失敗:', error);
@@ -81,11 +72,6 @@ export class WeaponFactory {
 
         // 🆕 優先使用動態類別映射
         let weaponClass = this.dynamicWeaponClassMap.get(weaponId);
-
-        // 備用方案：使用靜態映射
-        if (!weaponClass) {
-            weaponClass = this.weaponClassMap.get(weaponId);
-        }
 
         // 🆕 第三備用方案：通過配置中的 weaponClass 查找
         if (!weaponClass && config.weaponClass) {
@@ -177,8 +163,6 @@ export class WeaponFactory {
     public static registerWeaponClass(weaponId: string, weaponClass: any): void {
         // 🆕 更新動態映射
         this.dynamicWeaponClassMap.set(weaponId, weaponClass);
-        // 保持向下兼容
-        this.weaponClassMap.set(weaponId, weaponClass);
         console.log(`🔧 註冊武器類別: ${weaponId} -> ${weaponClass.name}`);
     }
 
@@ -191,16 +175,6 @@ export class WeaponFactory {
         await this.initialize();
     }
 
-    /**
-     * 🆕 獲取武器類別映射統計
-     */
-    public static getClassMappingStats(): { dynamic: number, static: number, total: number } {
-        return {
-            dynamic: this.dynamicWeaponClassMap.size,
-            static: this.weaponClassMap.size,
-            total: new Set([...this.dynamicWeaponClassMap.keys(), ...this.weaponClassMap.keys()]).size
-        };
-    }
 
     /**
      * 🆕 檢查武器類別是否可用
@@ -211,9 +185,6 @@ export class WeaponFactory {
 
         // 檢查動態映射
         if (this.dynamicWeaponClassMap.has(weaponId)) return true;
-
-        // 檢查靜態映射
-        if (this.weaponClassMap.has(weaponId)) return true;
 
         // 檢查類別註冊器
         if (config.weaponClass && WeaponClassRegistry.isClassRegistered(config.weaponClass)) return true;
