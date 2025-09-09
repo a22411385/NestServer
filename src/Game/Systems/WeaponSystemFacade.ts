@@ -47,21 +47,6 @@ export class WeaponSystemFacade {
     }
 
     /**
-     * 🎯 便利方法：批量處理武器
-     */
-    public static processWeaponBatch(weaponDataList: WeaponData[]): Array<{
-        data: WeaponData;
-        instance: WeaponBasic | null;
-        stats: FinalWeaponStats;
-    }> {
-        return weaponDataList.map(data => ({
-            data,
-            instance: WeaponInstanceManager.getOrCreateInstance(data),
-            stats: WeaponDataService.calculateFinalStats(data)
-        }));
-    }
-
-    /**
      * 🎯 便利方法：武器升級（組合多個服務的操作）
      */
     public static upgradeWeapon(weaponData: WeaponData, expAmount: number): boolean {
@@ -99,24 +84,6 @@ export class WeaponSystemFacade {
         return WeaponDataService.canLevelUp(weaponData);
     }
 
-    /**
-     * 🎯 便利方法：批量升級多個武器
-     */
-    public static upgradeWeaponBatch(weapons: Array<{ data: WeaponData; expAmount: number }>): Array<{
-        success: boolean;
-        weaponId: string;
-        newLevel: number
-    }> {
-        return weapons.map(({ data, expAmount }) => {
-            const oldLevel = data.level;
-            const success = this.upgradeWeapon(data, expAmount);
-            return {
-                success,
-                weaponId: data.weaponId,
-                newLevel: data.level
-            };
-        });
-    }
 
     /**
      * 🔧 系統管理：清理所有子系統

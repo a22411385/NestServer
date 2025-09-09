@@ -5,6 +5,7 @@
 
 import { ItemConfigDefinition } from "./Equipment/ItemTypes";
 import { WeaponConfigDefinition, WeaponPropertyDefinition } from "./Equipment/WeaponPropertyTypes";
+import { TalentConfig, TalentEffect } from "./Game/TalentTypes";
 
 /**
  * JWT 載荷接口
@@ -65,5 +66,7 @@ export interface GoogleCacheData {
     WeaponProperties: WeaponPropertyDefinition[];
     WeaponConfigs: WeaponConfigDefinition[];
     ItemConfigs: ItemConfigDefinition[];
+    TalentConfigs: TalentConfig[];
+    TalentEffects: TalentEffect[];
     lastUpdated: string;
 }
