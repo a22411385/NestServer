@@ -696,10 +696,10 @@ export class ServerEnemy extends ServerGameUnit {
     attackTarget(target: ServerGameUnit): boolean {
         const distanceToTarget = this.getDistanceTo(target);
         if (distanceToTarget <= this.attackRange) {
-            console.log(`Enemy ${this.id} deals ${this.damage} damage to ${target.id}`);
+            //    console.log(`Enemy ${this.id} deals ${this.damage} damage to ${target.id}`);
             return target.takeDamage(this.damage);
         }
-        console.log(`Enemy ${this.id} attack missed - target out of range`);
+        //  console.log(`Enemy ${this.id} attack missed - target out of range`);
         return false;
     }
 

@@ -297,7 +297,7 @@
     {
       "id": "baseball_bat",
       "name": "球棒",
-      "subName": "棍棒",
+      "type": "棍棒",
       "description": "一把普通的球棒，適合近距離戰鬥",
       "enabled": true,
       "weaponClass": "BaseballBat",
@@ -311,7 +311,7 @@
     {
       "id": "fireball",
       "name": "火球術",
-      "subName": "法術書",
+      "type": "法術書",
       "description": "燃燒的火焰球，擅長範圍攻擊",
       "enabled": true,
       "weaponClass": "Fireball",
@@ -325,7 +325,7 @@
     {
       "id": "iceball",
       "name": "冰球術",
-      "subName": "法術書",
+      "type": "法術書",
       "description": "冰凍之球，能控制敵人行動",
       "enabled": true,
       "weaponClass": "IceBall",
@@ -339,7 +339,7 @@
     {
       "id": "lightning_bolt",
       "name": "閃電鏈",
-      "subName": "法術書",
+      "type": "法術書",
       "description": "閃電般的攻擊，可以跳躍到多個敵人",
       "enabled": true,
       "weaponClass": "LightningBolt",
@@ -353,7 +353,7 @@
     {
       "id": "poison_dagger",
       "name": "毒刃",
-      "subName": "匕首",
+      "type": "匕首",
       "description": "塗有劇毒的短刃，攻速極快",
       "enabled": true,
       "weaponClass": "PoisonDagger",
@@ -367,7 +367,7 @@
     {
       "id": "war_hammer",
       "name": "戰錘",
-      "subName": "錘子",
+      "type": "錘子",
       "description": "沉重的戰錘，一擊可以震撼多個敵人",
       "enabled": true,
       "weaponClass": "WarHammer",
@@ -381,7 +381,7 @@
     {
       "id": "magic_missile",
       "name": "祕法權杖",
-      "subName": "法杖",
+      "type": "法杖",
       "description": "精準的魔法攻擊，可以穿透多個目標",
       "enabled": true,
       "weaponClass": "MagicMissile",
@@ -395,7 +395,7 @@
     {
       "id": "healing_staff",
       "name": "治療法杖",
-      "subName": "法杖",
+      "type": "法杖",
       "description": "神聖的治療法杖，專注於支援隊友",
       "enabled": true,
       "weaponClass": "HealingStaff",
@@ -409,7 +409,7 @@
     {
       "id": "shadow_blade",
       "name": "暗影刃",
-      "subName": "匕首",
+      "type": "匕首",
       "description": "來自暗影的利刃，暴擊率極高",
       "enabled": true,
       "weaponClass": "ShadowBlade",
@@ -419,19 +419,6 @@
       "attackRange": 70,
       "fixedProperties": "critical_chance,life_steal",
       "randomProperties": "agility,strength,critical_damage,piercing"
-    },
-    {
-      "id": "explosive_arrow",
-      "name": "爆裂箭",
-      "description": "爆炸性的箭矢，造成範圍傷害",
-      "enabled": true,
-      "weaponClass": "ExplosiveArrow",
-      "classModule": "ProjectileWeapon",
-      "baseDamage": 28,
-      "attackSpeed": 2200,
-      "attackRange": 450,
-      "fixedProperties": "splash_damage,knockback",
-      "randomProperties": "agility,strength,critical_damage,area_of_effect"
     }
   ],
   "ItemConfigs": [
@@ -1085,7 +1072,7 @@
       "is_active": true
     },
     {
-      "id": "support_team_aura",
+      "id": "prerequisites",
       "name": "激勵光環",
       "description": "隊伍全體攻擊+2%，每級提升",
       "icon": "empty",
@@ -1093,7 +1080,7 @@
       "position_x": 0,
       "position_y": 0,
       "max_points": 5,
-      "prerequisites": "support_mana_regen",
+      "prerequisites": "support_mana_regen, combat_dmg_boost_1",
       "is_active": true
     }
   ],
@@ -1111,7 +1098,7 @@
     {
       "talent_id": "combat_maxhp_boost_1",
       "effect_type": "PROPERTY_MODIFIER",
-      "property_name": "maxhp",
+      "property_name": "max_health",
       "modifier_type": "PERCENTAGE_MULTIPLY",
       "base_value": 0,
       "per_point_value": 25,
@@ -1121,7 +1108,7 @@
     {
       "talent_id": "combat_crit_boost_1",
       "effect_type": "PROPERTY_MODIFIER",
-      "property_name": "crit_chance",
+      "property_name": "critical_chance",
       "modifier_type": "PERCENTAGE_ADD",
       "base_value": 2,
       "per_point_value": 2,
@@ -1219,5 +1206,5 @@
       "stack_type": "ADDITIVE"
     }
   ],
-  "lastUpdated": "2025-09-09T09:49:39.099Z"
+  "lastUpdated": "2025-09-10T11:55:44.268Z"
 }

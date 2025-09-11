@@ -9,6 +9,7 @@ import { getWeaponConfig } from "../../../../Game/Factories/WeaponConfig";
 // 🆕 支持配置驅動的初始化，無需構造函數參數
 export abstract class WeaponBasic {
     public weaponId: string = "";
+
     public weaponType: WeaponType = WeaponType.MELEE_WEAPON;
     public attackRange: number = 0;
     public baseDamage: number = 0; // 基礎傷害

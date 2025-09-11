@@ -6,9 +6,9 @@ import md5 from 'md5';
 import { IsNotEmpty } from 'class-validator';
 import { HttpResponse, JWTPayload } from '@/Types';
 
-import { DataCenter, UserData } from 'src/Provider/DataCenter';
-import { AccountORM } from 'src/ORM/account.entity';
-import { CharacterORM } from 'src/ORM/charater.entity';
+import { DataCenter, UserData } from '../Provider/DataCenter';
+import { AccountORM } from '../ORM/account.entity';
+import { CharacterORM } from '../ORM/charater.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ErrorCode } from './ErrorCode';
 

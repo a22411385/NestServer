@@ -8,6 +8,7 @@ import { HttpResponse } from '@/Types';
 import { SetMetadata } from '@nestjs/common';
 import { ColyseusServer } from './Colyseus/ColyseusServer';
 import { GoogleSheetCache } from './Tasks/GoogleSheetCache';
+import { TalentSystemInitializer } from './Game/Systems/TalentSystemInitializer';
 
 export const IS_PUBLIC_KEY = 'isPublic';
 export const IsPublic = () => SetMetadata(IS_PUBLIC_KEY, true);
@@ -48,8 +49,17 @@ async function bootstrap() {
 
   console.log(`NestJS server running on: http://localhost:${process.env.PORT ?? 8000}`);
   console.log(`Colyseus server running on: http://localhost:3001`);
+
+  // 初始化 Google Sheets 快取
   const googlesheet = new GoogleSheetCache();
   await googlesheet.init();
+
+  // 初始化天賦系統
+  try {
+    await TalentSystemInitializer.initialize();
+  } catch (error) {
+    console.error('天賦系統初始化失敗，伺服器將繼續運行但天賦功能可能不可用:', error);
+  }
 }
 bootstrap();
 

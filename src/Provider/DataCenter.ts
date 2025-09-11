@@ -1,8 +1,8 @@
-import { CharacterORM } from "src/ORM/charater.entity"
+import { CharacterORM } from "../ORM/charater.entity"
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import { Injectable } from "@nestjs/common";
-import { AccountORM } from "src/ORM/account.entity";
+import { AccountORM } from "../ORM/account.entity";
 
 export class UserData {
     account: AccountORM;

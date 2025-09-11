@@ -172,7 +172,7 @@ export class PlayerManager {
                 'magic_missile',     // 魔法飛彈 - 投射物
                 'healing_staff',     // 治療法杖 - 支援
                 'shadow_blade',      // 暗影刃 - 近戰
-                'explosive_arrow'    // 爆裂箭 - 投射物
+                //'explosive_arrow'    // 爆裂箭 - 投射物
             ];
 
             // 添加所有武器到背包

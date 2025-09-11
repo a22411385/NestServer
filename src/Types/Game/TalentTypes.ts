@@ -1,56 +1,52 @@
+import { PropertyType, PropertyTypeValue } from "../Equipment/WeaponPropertyTypes";
+
 /**
- * 天賦可影響的屬性類型 - 基於 WeaponProperties 定義
- * 直接使用武器屬性系統，確保一致性
+ * 天賦屬性類型 - 直接使用統一的屬性定義
+ * 這樣可以避免重複定義和不必要的轉換
  */
-export type TalentPropertyType =
-    // 基礎戰鬥屬性
-    | 'attack_damage'
-    | 'attack_speed'
-    | 'attack_range'
-    | 'critical_chance'
-    | 'critical_damage'
-    | 'life_steal'
+export type TalentPropertyType = PropertyTypeValue;
 
-    // 角色主屬性
-    | 'strength'
-    | 'intelligence'
-    | 'vitality'
-    | 'agility'
-
-    // 防禦屬性
-    | 'physical_resistance'
-    | 'magical_resistance'
-
-    // 武器專用屬性
-    | 'projectile_speed'
-    | 'area_of_effect'
-    | 'pierce_count'
-    | 'heal_amount'
-    | 'buff_duration'
-    | 'support_radius'
-    | 'sweep_angle'
-
-    // 戰鬥效果
-    | 'knockback'
-    | 'piercing'
-    | 'chain_attack'
-    | 'splash_damage'
-
-    // 狀態效果
-    | 'stun'
-    | 'freeze'
-    | 'burn'
-    | 'poison'
-    | 'slow'
-
-    // 天賦專用屬性
-    | 'max_health'
-    | 'max_mana'
-    | 'mana_regen'
-    | 'movement_speed'
-    | 'experience_gain'
-    | 'gold_find'
-    | 'magic_find';
+/**
+ * 天賦可影響的屬性白名單（如果需要限制天賦只能影響某些屬性）
+ * 目前允許所有屬性，未來可以根據需求調整
+ */
+export const TALENT_SUPPORTED_PROPERTIES = [
+    PropertyType.ATTACK_DAMAGE,
+    PropertyType.ATTACK_SPEED,
+    PropertyType.ATTACK_RANGE,
+    PropertyType.CRITICAL_CHANCE,
+    PropertyType.CRITICAL_DAMAGE,
+    PropertyType.LIFE_STEAL,
+    PropertyType.STRENGTH,
+    PropertyType.INTELLIGENCE,
+    PropertyType.VITALITY,
+    PropertyType.AGILITY,
+    PropertyType.PHYSICAL_RESISTANCE,
+    PropertyType.MAGICAL_RESISTANCE,
+    PropertyType.PROJECTILE_SPEED,
+    PropertyType.AREA_OF_EFFECT,
+    PropertyType.PIERCE_COUNT,
+    PropertyType.HEAL_AMOUNT,
+    PropertyType.BUFF_DURATION,
+    PropertyType.SUPPORT_RADIUS,
+    PropertyType.SWEEP_ANGLE,
+    PropertyType.KNOCKBACK,
+    PropertyType.PIERCING,
+    PropertyType.CHAIN_ATTACK,
+    PropertyType.SPLASH_DAMAGE,
+    PropertyType.STUN,
+    PropertyType.FREEZE,
+    PropertyType.BURN,
+    PropertyType.POISON,
+    PropertyType.SLOW,
+    PropertyType.MAX_HEALTH,
+    PropertyType.MAX_MANA,
+    PropertyType.MANA_REGEN,
+    PropertyType.MOVEMENT_SPEED,
+    PropertyType.EXPERIENCE_GAIN,
+    PropertyType.GOLD_FIND,
+    PropertyType.MAGIC_FIND
+] as const;
 
 export interface TalentConfig {
     id: string;
@@ -61,7 +57,7 @@ export interface TalentConfig {
     position_x: number;
     position_y: number;
     max_points: number;
-    prerequisites: string[];
+    prerequisites: string; //用,分開
     is_active: boolean;
 }
 

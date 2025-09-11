@@ -1,5 +1,5 @@
-import { GoogleSheetCache } from "@/Tasks/GoogleSheetCache";
-import { TalentConfig, TalentEffect, TalentCategory, TalentPropertyType } from "@/Types/Game/TalentTypes";
+import { GoogleSheetCache } from "../../Tasks/GoogleSheetCache";
+import { TalentConfig, TalentEffect, TalentCategory, TalentPropertyType } from "../../Types/Game/TalentTypes";
 
 /**
  * 天賦服務 - 負責天賦資料管理和配置載入
@@ -140,12 +140,15 @@ export class TalentService {
         const config = this.getTalentConfig(talentId);
         if (!config) return false;
 
-        if (!config.prerequisites || config.prerequisites.length === 0) {
+        if (!config.prerequisites || config.prerequisites.trim() === '') {
             return true;
         }
 
+        // 解析逗號分隔的前置天賦ID
+        const prerequisiteIds = config.prerequisites.split(',').map(id => id.trim()).filter(id => id.length > 0);
+
         // 檢查每個前置天賦是否已點滿
-        for (const prerequisiteId of config.prerequisites) {
+        for (const prerequisiteId of prerequisiteIds) {
             const prerequisiteConfig = this.getTalentConfig(prerequisiteId);
             if (!prerequisiteConfig) return false;
 

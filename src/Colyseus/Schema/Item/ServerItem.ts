@@ -85,14 +85,10 @@ export class ServerItem extends Schema {
     /**
      * 創建武器物品（掉落時已確定品質）
      */
-    static createWeapon(x: number, y: number, weaponId: string, name: string, quality: string, level: number = 1): ServerItem {
+    static createWeapon(x: number, y: number, weaponId: string, name: string, quality: string): ServerItem {
         const item = new ServerItem(weaponId, ItemType.WEAPON, name, x, y);
         item.weaponId = weaponId;
-        item.name = name;
         item.quality = quality;
-        item.level = level;
-        item.enhanceLevel = 0;
-        item.durability = 100;
         return item;
     }
 

@@ -16,7 +16,7 @@ export class WeaponData extends Schema {
     @type("string") weaponId: string = "";              // 武器類型ID
     @type("string") weaponType: string = "";            // 武器類型
     @type("string") name: string = "";                  // 武器英文名
-    // @type("string") displayName: string = "";           // 武器顯示名稱
+
     @type("string") description: string = "";           // 武器描述
     @type("string") rarity: string = "common";          // 稀有度
 

@@ -220,8 +220,8 @@ export class ItemPickupSystem {
      */
     private pickupWeapon(hero: ServerHero, item: ServerItem): boolean {
         // 檢查武器背包空間
-        if (hero.weaponInventory.length >= 10) { // 假設武器背包上限10個
-            console.log(`⚔️ 武器背包已滿，無法拾取武器`);
+        if (hero.weaponInventory.length >= 255) { // 假設武器背包上限10個
+            console.log(`⚔️ 武器背包已滿，無拾取武器`);
             return false;
         }
 

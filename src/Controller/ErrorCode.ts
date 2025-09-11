@@ -1,7 +1,6 @@
 export enum ErrorCode {
     SUCCESS = 1,
     ACCOUNT_OR_PASSWORD_ERROR = 101,
-
     ACCOUNT_ALREADY_EXIST = 102,
     OUT_OF_RANGE = 103,
     NAME_ALREADY_USED = 104,
@@ -11,4 +10,11 @@ export enum ErrorCode {
     PARAMETER_ERROR = 408,
     ALREADY_IN_ROOM = 409,
     ROOM_NOT_EXISTS = 410,
+
+    // 天賦系統錯誤代碼
+    SYSTEM_NOT_READY = 500,
+    INTERNAL_ERROR = 501,
+    CHARACTER_NOT_FOUND = 502,
+    TALENT_ALLOCATION_FAILED = 503,
+    TALENT_NOT_FOUND = 504,
 }

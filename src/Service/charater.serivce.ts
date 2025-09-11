@@ -5,7 +5,7 @@ import { Repository } from 'typeorm';
 import { Cache } from 'cache-manager';
 import { Inject } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import { CharacterORM } from 'src/ORM/charater.entity';
+import { CharacterORM } from '../ORM/charater.entity';
 
 @Injectable()
 export class CharacterService {
@@ -48,6 +48,29 @@ export class CharacterService {
     /**
      * 擴充儲存資料的機制（可自訂邏輯）
      */
+    async updateCharacterData(id: number, data: Partial<CharacterORM>): Promise<CharacterORM | null> {
+        const character = await this.getCharacterById(id);
+        if (!character) return null;
+
+        Object.assign(character, data);
+        return await this.saveCharacter(character);
+    }
+
+    /**
+     * 根據 ID 和用戶 ID 獲取角色（安全檢查）
+     */
+    async getCharacterByIdAndUserId(characterId: number, userId: number): Promise<CharacterORM | null> {
+        const character = await this.characterRepo.findOne({
+            where: { id: characterId },
+            relations: ['user']
+        });
+
+        if (!character || character.user.id !== userId) {
+            return null;
+        }
+
+        return character;
+    }
     async saveGameLogicData(characterId: number, updates: Partial<CharacterORM>): Promise<CharacterORM> {
         const char = await this.getCharacterById(characterId);
         if (!char) throw new Error('角色不存在');

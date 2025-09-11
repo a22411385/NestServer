@@ -80,6 +80,7 @@ export class GameRoom extends MiddleRoom<GameRoomState> {
         this.combatSystem = new CombatSystem(this); // 🆕 初始化戰鬥系統
         this.equipmentManager = new EquipmentManager(this); // 🆕 初始化裝備管理器
         this.dropSystem = new DropSystem(this); // 🆕 初始化掉落系統
+        this.dropSystem.initialize(); // 🆕 初始化掉落系統配置
         this.itemPickupSystem = new ItemPickupSystem(this); // 🆕 初始化拾取系統
 
         this.gameManager = new GameManager(this);

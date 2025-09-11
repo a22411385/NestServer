@@ -1,5 +1,5 @@
 
-import { PropertyType, PropertyValue, WeaponQuality } from "@/Types/Equipment/WeaponPropertyTypes";
+import { PropertyType, PropertyValue, PropertyTypeValue, WeaponQuality } from "../../Types/Equipment/WeaponPropertyTypes";
 import { GoogleSheetCache } from "../../Tasks/GoogleSheetCache";
 
 /**
@@ -115,15 +115,20 @@ export class WeaponPropertyService {
                 continue;
             }
 
-            // 固定屬性使用最大值
-            const value = this.generatePropertyValue(propertyDef, true);
-            properties.push({
-                type: propType as PropertyType,
-                value: value,
-                isPercentage: this.isPercentageProperty(propType),
-                description: propertyDef.displayName,
-                isDynamic: false
-            });
+            try {
+                // 固定屬性使用最大值
+                const value = this.generatePropertyValue(propertyDef, true);
+                properties.push({
+                    type: propType as PropertyTypeValue,
+                    value: value,
+                    isPercentage: this.isPercentageProperty(propType),
+                    description: propertyDef.displayName,
+                    isDynamic: false
+                });
+            } catch (error) {
+                console.error(`❌ 生成固定屬性失敗: ${propType}`, error);
+                console.error(`屬性定義:`, propertyDef);
+            }
         }
 
         return properties;
@@ -161,7 +166,7 @@ export class WeaponPropertyService {
             // 隨機屬性使用隨機值
             const value = this.generatePropertyValue(propertyDef, false, rng);
             properties.push({
-                type: propType as PropertyType,
+                type: propType as PropertyTypeValue,
                 value: value,
                 isPercentage: this.isPercentageProperty(propType),
                 description: propertyDef.displayName,
@@ -239,47 +244,101 @@ export class WeaponPropertyService {
                 return this.parseCompositeValue(valueMin, valueMax, useMaxValue, rng);
 
             default:
-                console.warn(`⚠️ 未知的值類型: ${valueType}`);
+                console.warn(`⚠️ 未知的值類型: ${valueType} for property: ${propertyDef.propertyType}`);
                 return 0;
         }
     }
 
     /**
      * 解析複合值 (使用 | 分隔符)
-     * @param minStr 最小值字符串
-     * @param maxStr 最大值字符串  
+     * @param minValue 最小值字符串或數字
+     * @param maxValue 最大值字符串或數字
      * @param useMaxValue 是否使用最大值
      * @param rng 隨機數生成器
      * @returns 複合值數組
      */
     private parseCompositeValue(
-        minStr: string,
-        maxStr: string,
+        minValue: string | number,
+        maxValue: string | number,
         useMaxValue: boolean = false,
         rng?: () => number
     ): number[] {
-        const minValues = minStr.split('|').map(v => parseFloat(v.trim()));
-        const maxValues = maxStr.split('|').map(v => parseFloat(v.trim()));
+        try {
+            // 檢查輸入是否為 null 或 undefined
+            if (minValue === null || minValue === undefined || maxValue === null || maxValue === undefined) {
+                console.warn(`⚠️ 複合值輸入為空: minValue=${minValue}, maxValue=${maxValue}`);
+                return [0];
+            }
 
-        if (minValues.length !== maxValues.length) {
-            console.warn(`⚠️ 複合值長度不匹配: ${minStr} vs ${maxStr}`);
-            return minValues;
+            // 將輸入轉換為字符串
+            const minStr = String(minValue);
+            const maxStr = String(maxValue);
+
+            console.log(`🔧 解析複合值: minStr="${minStr}", maxStr="${maxStr}"`);
+
+            // 檢查是否包含分隔符
+            if (!minStr.includes('|') && !maxStr.includes('|')) {
+                // 不是複合值，返回單個值
+                const min = parseFloat(minStr);
+                const max = parseFloat(maxStr);
+
+                if (isNaN(min) || isNaN(max)) {
+                    console.warn(`⚠️ 無法解析數值: minStr="${minStr}", maxStr="${maxStr}"`);
+                    return [0];
+                }
+
+                if (useMaxValue) {
+                    return [max];
+                }
+
+                const random = rng ? rng() : Math.random();
+                return [Math.floor(min + random * (max - min + 1))];
+            }
+
+            // 解析複合值
+            const minValues = minStr.split('|').map(v => {
+                const parsed = parseFloat(v.trim());
+                if (isNaN(parsed)) {
+                    console.warn(`⚠️ 無法解析最小值: "${v.trim()}"`);
+                    return 0;
+                }
+                return parsed;
+            });
+
+            const maxValues = maxStr.split('|').map(v => {
+                const parsed = parseFloat(v.trim());
+                if (isNaN(parsed)) {
+                    console.warn(`⚠️ 無法解析最大值: "${v.trim()}"`);
+                    return 0;
+                }
+                return parsed;
+            });
+
+            if (minValues.length !== maxValues.length) {
+                console.warn(`⚠️ 複合值長度不匹配: ${minStr} (${minValues.length}) vs ${maxStr} (${maxValues.length})`);
+                return minValues;
+            }
+
+            if (useMaxValue) {
+                return maxValues;
+            }
+
+            const result: number[] = [];
+            const random = rng || Math.random;
+
+            for (let i = 0; i < minValues.length; i++) {
+                const min = minValues[i];
+                const max = maxValues[i];
+                result.push(Math.floor(min + random() * (max - min + 1)));
+            }
+
+            console.log(`✅ 複合值解析結果: [${result.join(', ')}]`);
+            return result;
+
+        } catch (error) {
+            console.error(`❌ 解析複合值失敗: minValue=${minValue}, maxValue=${maxValue}`, error);
+            return [0];
         }
-
-        if (useMaxValue) {
-            return maxValues;
-        }
-
-        const result: number[] = [];
-        const random = rng || Math.random;
-
-        for (let i = 0; i < minValues.length; i++) {
-            const min = minValues[i];
-            const max = maxValues[i];
-            result.push(Math.floor(min + random() * (max - min + 1)));
-        }
-
-        return result;
     }
 
     /**

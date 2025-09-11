@@ -15,6 +15,9 @@ import {
     BASIC_DROP_CONFIG
 } from "./DropRates";
 import { ItemConfigDefinition } from "@/Types/Equipment/ItemTypes";
+import { WeaponSystemFacade } from "./WeaponSystemFacade";
+import { WeaponData } from "../../Colyseus/Schema/Weapon/WeaponData";
+import { WeaponQuality } from "@/Types/Equipment/WeaponPropertyTypes";
 
 /**
  * 掉落表項目（兼容舊系統）
@@ -37,6 +40,19 @@ export class DropSystem {
 
     constructor(room: GameRoom) {
         this.room = room;
+    }
+
+    /**
+     * 🔧 初始化掉落系統
+     */
+    public async initialize(): Promise<void> {
+        try {
+            // 確保武器系統已初始化
+            WeaponSystemFacade.initialize();
+            console.log('✅ DropSystem 初始化完成');
+        } catch (error) {
+            console.error('❌ DropSystem 初始化失敗:', error);
+        }
     }
 
     /**
@@ -67,30 +83,44 @@ export class DropSystem {
         //items.push(ServerItem.createExp(x, y, expAmount));
 
         // 2. 高機率掉落：金幣
-        if (this.rollDrop(BASIC_DROP_CONFIG.gold.dropRate)) {
-            const goldAmount = this.calculateGoldDrop(enemy);
-            items.push(ServerItem.createGold(x, y, goldAmount));
-        }
+        // if (this.rollDrop(BASIC_DROP_CONFIG.gold.dropRate)) {
+        //     const goldAmount = this.calculateGoldDrop(enemy);
+        //     items.push(ServerItem.createGold(x, y, goldAmount));
+        // }
 
         // 3. 🎯 智能物品掉落：基於物品配置表
-        const droppedItems = this.rollItemDrops(enemy);
-        droppedItems.forEach(itemDrop => {
-            const dropItem = this.createItemFromConfig(itemDrop.config, x, y, itemDrop.quantity);
-            if (dropItem) {
-                items.push(dropItem);
-            }
-        });
+        // const droppedItems = this.rollItemDrops(enemy);
+        // droppedItems.forEach(itemDrop => {
+        //     const dropItem = this.createItemFromConfig(itemDrop.config, x, y, itemDrop.quantity);
+        //     if (dropItem) {
+        //         items.push(dropItem);
+        //     }
+        // });
 
-        // 4. 武器掉落：使用現有武器系統
+        // 4. 🎯 武器掉落：使用武器管理器生成完整武器
         if (this.rollDrop(this.calculateWeaponDropRate(enemy))) {
-            const weaponDrop = this.generateRandomWeapon(enemy);
-            items.push(ServerItem.createWeapon(
-                x, y,
-                weaponDrop.weaponId,
-                weaponDrop.quality,
-                weaponDrop.name,
-                weaponDrop.level
-            ));
+            const weaponData = this.generateCompleteWeapon(enemy);
+            if (weaponData) {
+                try {
+                    // 使用 WeaponData 創建掉落物品（包含完整屬性）
+                    const weaponItem = ServerItem.createFromWeaponData(weaponData, x, y);
+                    items.push(weaponItem);
+                    console.log(`🗡️ 掉落武器: ${weaponData.name} (品質: ${weaponData.quality}, 等級: ${weaponData.level})`);
+                } catch (error) {
+                    console.error('❌ 創建武器掉落物品失敗:', error);
+                    // 使用簡單方式創建武器物品作為後備
+                    const simpleWeaponItem = ServerItem.createWeapon(
+                        x, y,
+                        weaponData.weaponId,
+                        weaponData.name || '未知武器',
+                        weaponData.quality || 'normal'
+                    );
+                    items.push(simpleWeaponItem);
+                    console.log(`🔄 使用簡單方式創建武器掉落: ${weaponData.weaponId}`);
+                }
+            } else {
+                console.warn(`⚠️ 無法生成武器，跳過武器掉落`);
+            }
         }
 
         return items;
@@ -124,7 +154,7 @@ export class DropSystem {
     /**
      * 🎯 計算物品掉落機率
      */
-    private calculateItemDropRate(itemConfig: any, enemy: ServerEnemy): number {
+    private calculateItemDropRate(itemConfig: ItemConfigDefinition, enemy: ServerEnemy): number {
         // 基礎稀有度機率
         let baseRate = RARITY_DROP_RATES[itemConfig.rarity as keyof typeof RARITY_DROP_RATES] || 0.1;
 
@@ -149,7 +179,7 @@ export class DropSystem {
     /**
      * 🎯 等級相關的掉落機率調整
      */
-    private calculateLevelMultiplier(itemConfig: any, enemy: ServerEnemy): number {
+    private calculateLevelMultiplier(itemConfig: ItemConfigDefinition, enemy: ServerEnemy): number {
         const enemyLevel = enemy.lv || 1;
 
         // 根據物品類型和稀有度調整等級需求
@@ -172,7 +202,7 @@ export class DropSystem {
     /**
      * 🎯 獲取物品的建議等級需求
      */
-    private getItemLevelRequirement(itemConfig: any): number {
+    private getItemLevelRequirement(itemConfig: ItemConfigDefinition): number {
         // 基於稀有度的基礎等級需求
         let baseLevel: number = RARITY_LEVEL_REQUIREMENTS[itemConfig.rarity as keyof typeof RARITY_LEVEL_REQUIREMENTS] || 1;
 
@@ -203,7 +233,7 @@ export class DropSystem {
     /**
      * 🎯 計算掉落數量
      */
-    private calculateDropQuantity(itemConfig: any, enemy: ServerEnemy): number {
+    private calculateDropQuantity(itemConfig: ItemConfigDefinition, enemy: ServerEnemy): number {
         let baseQuantity = 1;
         const enemyLevel = enemy.lv || 1;
 
@@ -284,13 +314,108 @@ export class DropSystem {
     }
 
     /**
-     * 🎯 生成隨機武器
+     * 🎯 生成完整武器數據（使用武器管理器）
+     */
+    private generateCompleteWeapon(enemy: ServerEnemy): WeaponData | null {
+        try {
+            const enabledWeapons = ConfigManager.getEnabledWeapons();
+            if (enabledWeapons.length === 0) {
+                console.warn('❌ 沒有可用的武器配置');
+                return null;
+            }
+
+            // 隨機選擇武器
+            const weaponConfig = enabledWeapons[Math.floor(Math.random() * enabledWeapons.length)];
+            const weaponId = weaponConfig.id;
+
+            // 使用 WeaponSystemFacade 創建完整武器
+            const { data: weaponData } = WeaponSystemFacade.createAndGetWeapon(weaponId);
+            if (!weaponData) {
+                console.warn(`❌ 無法創建武器數據: ${weaponId}`);
+                return null;
+            }
+
+            // 根據敵人等級調整武器等級
+            const enemyLevel = enemy.lv || 1;
+            const weaponLevel = Math.max(1, enemyLevel + Math.floor(Math.random() * 3) - 1);
+
+            // 設置武器等級（這會觸發重新計算屬性）
+            weaponData.level = weaponLevel;
+
+            // 根據配置的品質機率重新確定品質（可選）
+            const desiredQuality = this.rollQualityFromConfig(WEAPON_DROP_CONFIG.qualityRates);
+            if (desiredQuality !== weaponData.quality) {
+                // 如果需要不同品質，重新生成（簡化處理）
+                weaponData.quality = desiredQuality;
+            }
+
+            console.log(`🔧 生成完整武器: ${weaponId} Lv.${weaponLevel} (品質: ${weaponData.quality})`);
+            return weaponData;
+        } catch (error) {
+            console.error('❌ 生成完整武器失敗:', error);
+            // 回退到簡單武器生成
+            return this.fallbackSimpleWeapon(enemy);
+        }
+    }
+
+    /**
+     * 🔄 後備簡單武器生成（當武器管理器失敗時使用）
+     */
+    private fallbackSimpleWeapon(enemy: ServerEnemy): WeaponData | null {
+        try {
+            const enabledWeapons = ConfigManager.getEnabledWeapons();
+            if (enabledWeapons.length === 0) return null;
+
+            const weaponConfig = enabledWeapons[Math.floor(Math.random() * enabledWeapons.length)];
+            const weaponData = new WeaponData(weaponConfig.id);
+
+            // 設置基本屬性
+            const enemyLevel = enemy.lv || 1;
+            weaponData.level = Math.max(1, enemyLevel + Math.floor(Math.random() * 3) - 1);
+            weaponData.quality = this.rollQualityFromConfig(WEAPON_DROP_CONFIG.qualityRates);
+
+            console.log(`🔄 使用後備方式生成武器: ${weaponConfig.id}`);
+            return weaponData;
+        } catch (error) {
+            console.error('❌ 後備武器生成也失敗:', error);
+            return null;
+        }
+    }
+
+    /**
+     * 🎯 根據配置機率抽取品質（轉換為 WeaponQuality 枚舉）
+     */
+    private rollQualityFromConfig(rates: Record<string, number>): WeaponQuality {
+        const qualityString = this.rollQuality(rates);
+
+        // 轉換字符串到 WeaponQuality 枚舉
+        switch (qualityString.toLowerCase()) {
+            case 'common':
+            case 'normal':
+                return WeaponQuality.NORMAL;
+            case 'uncommon':
+            case 'magic':
+                return WeaponQuality.MAGIC;
+            case 'rare':
+                return WeaponQuality.RARE;
+            case 'epic':
+                return WeaponQuality.EPIC;
+            case 'legendary':
+                return WeaponQuality.LEGENDARY;
+            default:
+                return WeaponQuality.NORMAL;
+        }
+    }
+
+    /**
+     * 🎯 生成隨機武器（舊方法，保留作為後備）
+     * @deprecated 請使用 generateCompleteWeapon 代替
      */
     private generateRandomWeapon(enemy: ServerEnemy): {
         weaponId: string;
         name: string;
         quality: string;
-        level: number;
+        //level: number;
     } {
         const enabledWeapons = ConfigManager.getEnabledWeapons();
         // 隨機選擇武器
@@ -301,12 +426,12 @@ export class DropSystem {
         const quality = this.rollQuality(WEAPON_DROP_CONFIG.qualityRates);
 
         // 等級基於敵人等級 ±1
-        const level = Math.max(1, (enemy.lv || 1) + Math.floor(Math.random() * 3) - 1);
+        //   const level = Math.max(1, (enemy.lv || 1) + Math.floor(Math.random() * 3) - 1);
 
         return {
             weaponId,
             quality,
-            level,
+            //     level,
             name: weaponConfig.name
         };
     }

@@ -32,10 +32,10 @@ export const RARITY_DROP_RATES = {
  * 基於物品類型的掉落機率調整
  */
 export const TYPE_DROP_MULTIPLIERS = {
-    CURRENCY: 1.5,    // 貨幣類較容易掉落
-    MATERIAL: 1.0,    // 材料類正常掉落
-    CONSUMABLE: 0.8,  // 消耗品稍微困難
-    MISC: 0.6         // 雜項物品較困難
+    CURRENCY: 0,    // 貨幣類較容易掉落
+    MATERIAL: 0,    // 材料類正常掉落
+    CONSUMABLE: 0,  // 消耗品稍微困難
+    MISC: 0         // 雜項物品較困難
 } as const;
 
 /**
@@ -80,9 +80,9 @@ export const RARITY_LEVEL_REQUIREMENTS = {
  * 武器掉落配置
  */
 export const WEAPON_DROP_CONFIG = {
-    baseDropRate: 0.05,      // 基礎5%掉落率
+    baseDropRate: 0.6,      // 基礎5%掉落率
     levelMultiplier: 0.002,  // 每級增加0.2%
-    maxDropRate: 0.1,        // 最大10%掉落率
+    maxDropRate: 1,        // 最大10%掉落率
     qualityRates: {
         'common': 0.6,       // 60%
         'uncommon': 0.25,    // 25%

@@ -7,7 +7,7 @@ import {
 
 import { JwtService } from '@nestjs/jwt';
 import { Request } from 'express';
-import { ErrorCode } from '@/Controller/ErrorCode';
+import { ErrorCode } from '../Controller/ErrorCode';
 // ?? ????????
 import { HttpResponse, JWTPayload } from '@/Types';
 

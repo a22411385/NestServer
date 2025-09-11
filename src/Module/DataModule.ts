@@ -1,8 +1,8 @@
 import { Module } from "@nestjs/common";
 import { TypeOrmModule } from "@nestjs/typeorm";
 
-import { AccountORM } from "src/ORM/account.entity";
-import { DataCenter } from "src/Provider/DataCenter";
+import { AccountORM } from "../ORM/account.entity";
+import { DataCenter } from "../Provider/DataCenter";
 
 @Module({
     imports: [

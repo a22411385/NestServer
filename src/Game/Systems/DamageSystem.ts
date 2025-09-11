@@ -58,16 +58,16 @@ export class DamageSystem {
         const actualDamage = isCritical ? Math.floor(finalDamage * 1.5) : finalDamage;
 
         // 🔧 添加調試日誌
-        console.log(`💥 [傷害計算] ${attacker.name} 攻擊 ${target.name}:`);
-        console.log(`   基礎傷害: ${baseDamage}, 最終傷害: ${finalDamage}, 實際傷害: ${actualDamage}`);
-        console.log(`   目標血量: ${target.hp}/${target.maxHp}`);
+        // console.log(`💥 [傷害計算] ${attacker.name} 攻擊 ${target.name}:`);
+        //console.log(`   基礎傷害: ${baseDamage}, 最終傷害: ${finalDamage}, 實際傷害: ${actualDamage}`);
+        // console.log(`   目標血量: ${target.hp}/${target.maxHp}`);
 
         // 應用傷害
         const previousHp = target.hp;
         target.hp = BattleMathUtils.atLeast(target.hp - actualDamage, 0);
         const realDamage = previousHp - target.hp;
 
-        console.log(`   傷害後血量: ${target.hp}/${target.maxHp} (扣除 ${realDamage})`);
+        // console.log(`   傷害後血量: ${target.hp}/${target.maxHp} (扣除 ${realDamage})`);
 
         // 檢查目標是否死亡
         const wasKilled = target.hp <= 0;

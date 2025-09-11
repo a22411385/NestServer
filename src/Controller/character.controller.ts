@@ -1,11 +1,11 @@
 import { Controller, Post, Body, Req, Get } from '@nestjs/common';
-import { CharacterORM } from 'src/ORM/charater.entity';
+import { CharacterORM } from '../ORM/charater.entity';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNotEmpty } from 'class-validator';
 import { HttpResponse, JWTPayload } from '@/Types';
 import { JwtService } from '@nestjs/jwt';
-import { AccountORM } from 'src/ORM/account.entity';
+import { AccountORM } from '../ORM/account.entity';
 import { ErrorCode } from './ErrorCode';
 
 const MAX_CHAR_NUM = 8;
