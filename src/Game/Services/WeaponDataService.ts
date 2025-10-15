@@ -221,19 +221,127 @@ export class WeaponDataService {
     /**
      * 生成武器的唯一緩存鍵
      * 用於實例管理器的緩存系統
+     * 
+     * 🔧 改進版：包含所有影響屬性計算的因素，使用哈希避免 key 過長
      */
     static generateStatsKey(weaponData: WeaponData): string {
-        return `${weaponData.weaponId}_${weaponData.level}_${weaponData.enhanceLevel}_${weaponData.durability}`;
+        // 如果有 uniqueId，直接使用（最可靠的唯一標識）
+        if (weaponData.uniqueId) {
+            return `weapon_${weaponData.uniqueId}`;
+        }
+
+        // 構建完整的屬性字符串
+        const keyComponents = [
+            weaponData.weaponId,
+            weaponData.level,
+            weaponData.enhanceLevel,
+            weaponData.exp,
+            weaponData.durability,
+            weaponData.quality || weaponData.rarity || 'normal',
+            // 包含固定屬性
+            this.serializeProperties(weaponData.fixedProperties),
+            // 包含隨機屬性
+            this.serializeProperties(weaponData.randomProperties)
+        ];
+
+        // 生成完整字符串
+        const fullString = keyComponents.join('|');
+
+        // 使用哈希縮短 key 長度，同時保持唯一性
+        const hash = this.generateSimpleHash(fullString);
+
+        // 返回包含基本信息和哈希的 key
+        return `${weaponData.weaponId}_lv${weaponData.level}_enh${weaponData.enhanceLevel}_${hash}`;
+    }
+
+    /**
+     * 🔧 序列化屬性數組為字符串
+     */
+    private static serializeProperties(properties: any): string {
+        if (!properties || !properties.toArray) {
+            return '';
+        }
+
+        try {
+            const props = properties.toArray();
+            return props.map((prop: any) =>
+                `${prop.type || ''}:${prop.value || 0}:${prop.subType || ''}`
+            ).sort().join(','); // 排序確保相同屬性產生相同字符串
+        } catch (error) {
+            return '';
+        }
+    }
+
+    /**
+     * 🔧 生成簡單哈希（避免使用複雜的加密算法）
+     */
+    private static generateSimpleHash(str: string): string {
+        let hash = 0;
+        if (str.length === 0) return '0';
+
+        for (let i = 0; i < str.length; i++) {
+            const char = str.charCodeAt(i);
+            hash = ((hash << 5) - hash) + char;
+            hash = hash & hash; // 轉換為32位整數
+        }
+
+        // 轉換為正數並轉為36進制縮短長度
+        return Math.abs(hash).toString(36);
     }
 
     /**
      * 檢查兩個武器數據是否在屬性計算上相等
      * 用於緩存優化
+     * 
+     * 🔧 改進版：檢查所有影響屬性計算的因素
      */
     static areStatsEqual(weapon1: WeaponData, weapon2: WeaponData): boolean {
+        // 快速檢查：如果都有 uniqueId，直接比較
+        if (weapon1.uniqueId && weapon2.uniqueId) {
+            return weapon1.uniqueId === weapon2.uniqueId;
+        }
+
+        // 詳細檢查所有相關屬性
         return weapon1.weaponId === weapon2.weaponId &&
             weapon1.level === weapon2.level &&
             weapon1.enhanceLevel === weapon2.enhanceLevel &&
-            weapon1.durability === weapon2.durability;
+            weapon1.exp === weapon2.exp &&
+            weapon1.durability === weapon2.durability &&
+            (weapon1.quality || weapon1.rarity) === (weapon2.quality || weapon2.rarity) &&
+            this.arePropertiesEqual(weapon1.fixedProperties, weapon2.fixedProperties) &&
+            this.arePropertiesEqual(weapon1.randomProperties, weapon2.randomProperties);
+    }
+
+    /**
+     * 🔧 比較兩個屬性數組是否相等
+     */
+    private static arePropertiesEqual(props1: any, props2: any): boolean {
+        if (!props1 && !props2) return true;
+        if (!props1 || !props2) return false;
+
+        try {
+            const array1 = props1.toArray ? props1.toArray() : [];
+            const array2 = props2.toArray ? props2.toArray() : [];
+
+            if (array1.length !== array2.length) return false;
+
+            // 排序後比較，確保順序不影響結果
+            const sorted1 = array1.slice().sort((a: any, b: any) =>
+                `${a.type}:${a.value}:${a.subType}`.localeCompare(`${b.type}:${b.value}:${b.subType}`)
+            );
+            const sorted2 = array2.slice().sort((a: any, b: any) =>
+                `${a.type}:${a.value}:${a.subType}`.localeCompare(`${b.type}:${b.value}:${b.subType}`)
+            );
+
+            return sorted1.every((prop1: any, index: number) => {
+                const prop2 = sorted2[index];
+                return prop1.type === prop2.type &&
+                    prop1.value === prop2.value &&
+                    prop1.subType === prop2.subType;
+            });
+        } catch (error) {
+            console.warn('屬性比較失敗:', error);
+            return false;
+        }
     }
 }

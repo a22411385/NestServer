@@ -2,6 +2,7 @@
  * 子彈相關的類型定義
  */
 
+import { WeaponBasic } from "@/Colyseus/Schema/Weapon/Baisc";
 import { Vector2 } from "../BaseTypes";
 
 /**
@@ -29,7 +30,7 @@ export interface BulletCreateConfig {
     pierceCount?: number;
     areaOfEffect?: number;
     maxDistance?: number; // 🆕 推薦：最大飛行距離（像素）
-    lifeTime?: number; // ⚠️ 向後兼容：將轉換為 maxDistance
+
     scale?: number;
     weaponId?: string; // 武器ID，用於獲取武器屬性
 }
@@ -38,7 +39,7 @@ export interface BulletCreateConfig {
  * 武器子彈配置
  */
 export interface WeaponBulletConfig {
-    weapon: any; // WeaponBasic 的引用，避免循環依賴
+    weapon: WeaponBasic; // WeaponBasic 的引用，避免循環依賴
     startPosition: Vector2;
     direction: Vector2;
     ownerId: string;

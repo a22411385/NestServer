@@ -47,7 +47,7 @@ export class ProjectileWeapon extends WeaponBasic {
         attacker: ServerGameUnit,
         potentialTargets: ServerGameUnit[]
     ): AttackResult {
-        // ??????
+        // 檢查武器冷卻時間
         if (!this.canAttack()) {
             return {
                 success: false,
@@ -57,7 +57,7 @@ export class ProjectileWeapon extends WeaponBasic {
             };
         }
 
-        // ??????
+        // 選擇主要攻擊目標（距離最近的敵人）
         const primaryTarget = this.selectPrimaryTarget(attacker, potentialTargets);
 
         if (!primaryTarget) {
@@ -69,13 +69,13 @@ export class ProjectileWeapon extends WeaponBasic {
             };
         }
 
-        // ??????
+        // 更新最後攻擊時間
         this.updateLastAttackTime();
 
-        // ??????????????
+        // 計算射擊方向（朝向主要目標）
         const shootDirection = this.calculateShootDirection(attacker, primaryTarget);
 
-        // ??????????????????/AOE???
+        // 計算可能受影響的目標（包含穿透和AOE邏輯）
         const affectedTargets = this.calculateAffectedTargets(
             attacker,
             potentialTargets,
@@ -99,7 +99,7 @@ export class ProjectileWeapon extends WeaponBasic {
     }
 
     /**
-     * ????????
+     * 選擇主要攻擊目標（距離最近的敵人）
      */
     protected selectPrimaryTarget(
         attacker: ServerGameUnit,
@@ -110,13 +110,13 @@ export class ProjectileWeapon extends WeaponBasic {
     }
 
     /**
-     * ???????????????
+     * 計算射擊方向（朝向目標）
      */
     protected calculateShootDirection(
         attacker: ServerGameUnit,
         target: ServerGameUnit
     ): { x: number, y: number } {
-        // ??????
+        // 計算方向向量
         const dx = target.position.x - attacker.position.x;
         const dy = target.position.y - attacker.position.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
@@ -125,8 +125,8 @@ export class ProjectileWeapon extends WeaponBasic {
             return { x: 1, y: 0 };
         }
 
-        // ??????????????
-        // TODO: ??????????????????????
+        // 歸一化方向向量，這裡可以加入精度偏差
+        // TODO: 加入武器精度影響，低精度武器會有隨機偏差
         return {
             x: dx / distance,
             y: dy / distance
@@ -134,7 +134,7 @@ export class ProjectileWeapon extends WeaponBasic {
     }
 
     /**
-     * ????????????AOE?
+     * 計算受影響的目標（包含穿透和AOE邏輯）
      */
     protected calculateAffectedTargets(
         attacker: ServerGameUnit,
@@ -144,7 +144,7 @@ export class ProjectileWeapon extends WeaponBasic {
     ): ServerGameUnit[] {
         const affectedTargets: ServerGameUnit[] = [primaryTarget];
 
-        // ????
+        // 穿透邏輯
         if (this.pierceCount > 0) {
             const pierceTargets = this.findPierceTargets(
                 attacker,
@@ -156,14 +156,14 @@ export class ProjectileWeapon extends WeaponBasic {
             affectedTargets.push(...pierceTargets);
         }
 
-        // AOE??
+        // AOE邏輯
         if (this.areaOfEffect > 0) {
             const aoeTargets = this.findAOETargets(
                 potentialTargets,
                 primaryTarget,
                 this.areaOfEffect
             );
-            // ??????
+            // 避免重複添加
             aoeTargets.forEach(target => {
                 if (!affectedTargets.includes(target)) {
                     affectedTargets.push(target);
@@ -175,7 +175,7 @@ export class ProjectileWeapon extends WeaponBasic {
     }
 
     /**
-     * ??????
+     * 查找穿透目標
      */
     protected findPierceTargets(
         attacker: ServerGameUnit,
@@ -184,13 +184,13 @@ export class ProjectileWeapon extends WeaponBasic {
         direction: { x: number, y: number },
         maxPierce: number
     ): ServerGameUnit[] {
-        // ??????????
+        // 找出在射擊路徑上的敵人
         const pierceTargets: ServerGameUnit[] = [];
 
         for (const target of potentialTargets) {
             if (target === primaryTarget || pierceTargets.length >= maxPierce) continue;
 
-            // ????????????
+            // 檢查目標是否在射擊路徑上
             if (this.isTargetOnShootPath(attacker, target, direction)) {
                 pierceTargets.push(target);
             }
@@ -200,7 +200,7 @@ export class ProjectileWeapon extends WeaponBasic {
     }
 
     /**
-     * ??AOE??
+     * 查找AOE範圍內的目標
      */
     protected findAOETargets(
         potentialTargets: ServerGameUnit[],
@@ -219,7 +219,7 @@ export class ProjectileWeapon extends WeaponBasic {
     }
 
     /**
-     * ????????????
+     * 檢查目標是否在射擊路徑上
      */
     protected isTargetOnShootPath(
         attacker: ServerGameUnit,
@@ -234,7 +234,7 @@ export class ProjectileWeapon extends WeaponBasic {
         const targetDistance = Math.sqrt(targetVector.x * targetVector.x + targetVector.y * targetVector.y);
         if (targetDistance === 0 || targetDistance > this.attackRange) return false;
 
-        // ???????????????
+        // 歸一化目標方向向量
         const targetDirection = {
             x: targetVector.x / targetDistance,
             y: targetVector.y / targetDistance
@@ -243,7 +243,7 @@ export class ProjectileWeapon extends WeaponBasic {
         const dotProduct = direction.x * targetDirection.x + direction.y * targetDirection.y;
         const angle = Math.acos(Math.max(-1, Math.min(1, dotProduct)));
 
-        // ?????????5??
+        // 允許誤差角度（約5度）
         return angle < (5 * Math.PI / 180);
     }
 
@@ -283,13 +283,13 @@ export class ProjectileWeapon extends WeaponBasic {
     public get hitAccuracy(): number { return this.accuracy; }
 
     /**
-     * ??????????? - ??????
+     * 投射武器找到有效目標 - 最近的敵人優先
      */
     protected findValidTargets(
         attacker: ServerGameUnit,
         potentialTargets: ServerGameUnit[]
     ): ServerGameUnit[] {
-        // ???????????????????
+        // 投射武器只瞄準最近的一個敵人，創建投射物去攻擊
         const targetsInRange = this.findTargetsInRange(attacker, potentialTargets, this.attackRange, 1);
         return targetsInRange;
     }

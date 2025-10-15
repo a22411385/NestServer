@@ -5,6 +5,7 @@ import { WeaponFactory } from "../Factories/WeaponFactory";
 import { WeaponDataService } from "../Services/WeaponDataService";
 import { WeaponPropertyService } from "../Services/WeaponPropertyService";
 import { BattleMathUtils } from "../../Util/BattleMathUtils";
+import { UniqueIdGenerator } from "../../Util/UniqueIdGenerator";
 
 /**
  * 武器實例管理器 - 專注於實例的創建、緩存和生命周期管理
@@ -151,13 +152,34 @@ export class WeaponInstanceManager {
 
     /**
      * 生成穩定的種子確保同一武器數據總是產生相同的隨機屬性
+     * 🔧 改進版：確保即使沒有 uniqueId 也有足夠的區分度
      */
     private static generateSeed(weaponData: WeaponData): number {
-        let seed = 0;
-        const str = `${weaponData.weaponId}_${weaponData.level}_${weaponData.enhanceLevel}_${weaponData.uniqueId || ''}`;
-        for (let i = 0; i < str.length; i++) {
-            seed = ((seed << 5) - seed + str.charCodeAt(i)) & 0xffffffff;
+        // 如果有 uniqueId，優先使用它來生成種子
+        if (weaponData.uniqueId) {
+            let seed = 0;
+            const str = weaponData.uniqueId;
+            for (let i = 0; i < str.length; i++) {
+                seed = ((seed << 5) - seed + str.charCodeAt(i)) & 0xffffffff;
+            }
+            return Math.abs(seed);
         }
+
+        // 沒有 uniqueId 時，使用安全的隨機種子但保持一致性
+        // 組合所有會影響屬性的因素
+        const baseString = `${weaponData.weaponId}_${weaponData.level}_${weaponData.enhanceLevel}_${weaponData.exp || 0}`;
+
+        // 為了確保相同屬性的武器有一致的隨機性，但不同武器有不同的種子
+        // 我們使用基礎屬性的哈希作為種子
+        let seed = 0;
+        for (let i = 0; i < baseString.length; i++) {
+            seed = ((seed << 5) - seed + baseString.charCodeAt(i)) & 0xffffffff;
+        }
+
+        // 添加一些額外的混合因子，但保持確定性
+        seed = seed ^ (weaponData.level << 16);
+        seed = seed ^ (weaponData.enhanceLevel << 8);
+
         return Math.abs(seed);
     }
 

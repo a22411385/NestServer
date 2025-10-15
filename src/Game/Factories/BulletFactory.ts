@@ -2,29 +2,34 @@ import { ServerBullet } from "../../Colyseus/Schema/Bullet";
 import { Vector2 } from "../../Colyseus/Schema/Unit/GameUnit";
 import { WeaponBasic } from "../../Colyseus/Schema/Weapon/Baisc/WeaponBasic";
 import { WeaponType, BulletCreateConfig, WeaponBulletConfig, BulletType } from "@/Types";
+import { UniqueIdGenerator } from "../../Util/UniqueIdGenerator";
+import { rotateVector } from "@/Util/BattleMathUtils";
 
 // 移除重複的interface和enum定義，已搬移到Types資料夾
 
 /**
- * 子彈工廠類 - 負責創建不同類型的子彈
+ * 子彈工廠類 - 負責創建 ServerBullet 實例
+ * 
+ * 🎯 職責分工：
+ * - BulletFactory: 負責創建 ServerBullet 實例 (物理移動載體)
+ * - ProjectileFactory: 負責創建投射物邏輯類 (命中效果處理)
+ * 
+ * 📝 注意：子彈的命中邏輯現在由 ProjectileFactory 處理
  */
 export class BulletFactory {
 
     /**
-     * 創建基礎子彈
+     * 創建基礎子彈實例
+     * 
+     * 🎯 只負責創建 ServerBullet 的移動載體
+     * 🔧 命中邏輯由 ProjectileFactory 處理
      */
     public static createBullet(config: BulletCreateConfig): ServerBullet {
         const bullet = new ServerBullet();
-        const bulletId = this.generateBulletId();
+        const bulletId = UniqueIdGenerator.generateBulletId();
 
         // 計算最大距離
-        let maxDistance = 400; // 默認值
-        if (config.maxDistance !== undefined) {
-            maxDistance = config.maxDistance;
-        } else if (config.lifeTime !== undefined) {
-            const speed = config.speed || 300;
-            maxDistance = (config.lifeTime / 1000) * speed;
-        }
+        let maxDistance = config.maxDistance;
 
         bullet.initialize(
             bulletId,
@@ -47,7 +52,10 @@ export class BulletFactory {
     }
 
     /**
-     * 根據武器創建子彈
+     * 根據武器創建子彈實例
+     * 
+     * 🎯 根據武器屬性設定子彈的物理參數
+     * 🔧 命中邏輯由 ProjectileFactory 根據 bulletType 處理
      */
     public static createBulletFromWeapon(config: WeaponBulletConfig): ServerBullet {
         const weapon = config.weapon;
@@ -63,77 +71,12 @@ export class BulletFactory {
             bulletType: this.getWeaponBulletType(weapon),
             pierceCount: this.getWeaponPierceCount(weapon),
             areaOfEffect: this.getWeaponAreaOfEffect(weapon),
-            lifeTime: this.getWeaponBulletLifeTime(weapon),
+
             scale: this.getWeaponBulletScale(weapon),
             weaponId: weapon.weaponId // 添加武器ID
         };
 
         return this.createBullet(bulletConfig);
-    }
-
-    /**
-     * 批量創建子彈（用於散彈等）
-     */
-    public static createMultipleBullets(configs: BulletCreateConfig[]): ServerBullet[] {
-        return configs.map(config => this.createBullet(config));
-    }
-
-    /**
-     * 創建散彈
-     */
-    public static createShotgunBullets(
-        baseConfig: BulletCreateConfig,
-        bulletCount: number = 3,
-        spreadAngle: number = Math.PI / 6 // 30度擴散
-    ): ServerBullet[] {
-        const bullets: ServerBullet[] = [];
-        const baseDirection = new Vector2(baseConfig.direction.x, baseConfig.direction.y);
-
-        // 計算每個子彈的角度偏移
-        const angleStep = spreadAngle / (bulletCount - 1);
-        const startAngle = -spreadAngle / 2;
-
-        for (let i = 0; i < bulletCount; i++) {
-            const angle = startAngle + (angleStep * i);
-            const rotatedDirection = this.rotateVector(baseDirection, angle);
-
-            const bulletConfig: BulletCreateConfig = {
-                ...baseConfig,
-                direction: { x: rotatedDirection.x, y: rotatedDirection.y },
-                damage: Math.floor(baseConfig.damage * 0.8) // 散彈傷害稍微降低
-            };
-
-            bullets.push(this.createBullet(bulletConfig));
-        }
-
-        return bullets;
-    }
-
-    /**
-     * 創建爆炸子彈
-     */
-    public static createExplosiveBullet(config: BulletCreateConfig): ServerBullet {
-        const explosiveConfig: BulletCreateConfig = {
-            ...config,
-            bulletType: BulletType.EXPLOSIVE,
-            areaOfEffect: config.areaOfEffect || 100, // 默認爆炸範圍
-            speed: (config.speed || 300) * 0.8, // 爆炸彈速度稍慢
-        };
-
-        return this.createBullet(explosiveConfig);
-    }
-
-    /**
-     * 創建穿透子彈
-     */
-    public static createPiercingBullet(config: BulletCreateConfig, pierceCount: number = 3): ServerBullet {
-        const piercingConfig: BulletCreateConfig = {
-            ...config,
-            bulletType: BulletType.PIERCING,
-            pierceCount: pierceCount
-        };
-
-        return this.createBullet(piercingConfig);
     }
 
     /**
@@ -209,25 +152,6 @@ export class BulletFactory {
     }
 
     /**
-     * 旋轉向量
-     */
-    private static rotateVector(vector: Vector2, angle: number): Vector2 {
-        const cos = Math.cos(angle);
-        const sin = Math.sin(angle);
-        return new Vector2(
-            vector.x * cos - vector.y * sin,
-            vector.x * sin + vector.y * cos
-        );
-    }
-
-    /**
-     * 生成唯一的子彈 ID
-     */
-    private static generateBulletId(): string {
-        return `bullet_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    }
-
-    /**
      * 獲取預設子彈配置
      */
     public static getDefaultBulletConfig(): Partial<BulletCreateConfig> {
@@ -236,7 +160,6 @@ export class BulletFactory {
             bulletType: BulletType.BASIC,
             pierceCount: 0,
             areaOfEffect: 0,
-            lifeTime: 3000,
             scale: 1.0
         };
     }

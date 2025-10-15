@@ -183,11 +183,11 @@ export class EquipmentHandler extends BaseMessageHandler {
 
         // 首先嘗試作為 uniqueId 裝備（已存在的武器實例）
         if (hero.isWeaponEquipped(weaponId) || hero.weaponInventory.find(w => w.uniqueId === weaponId)) {
-            success = hero.equipWeaponById(weaponId);
+            success = hero.equipWeapon(weaponId);
         } else {
             // 如果不是 uniqueId，則作為新武器類型ID添加到背包並裝備
             const weaponUniqueId = hero.addWeaponToInventory(weaponId);
-            success = hero.equipWeaponById(weaponUniqueId);
+            success = hero.equipWeapon(weaponUniqueId);
         }
 
         if (success) {
@@ -219,7 +219,7 @@ export class EquipmentHandler extends BaseMessageHandler {
             throw new Error("玩家不存在");
         }
 
-        const success = hero.unequipWeaponById(weaponId);
+        const success = hero.unequipWeapon(weaponId);
 
         if (success) {
             // 🎯 簡化回傳，Schema會自動同步狀態到前端

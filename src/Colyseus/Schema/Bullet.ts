@@ -93,9 +93,8 @@ export class ServerBullet extends Schema {
         return new Vector2(currentX, currentY);
     }
 
-    // 處理命中
+    // 處理命中 - 簡化版本，只負責基本狀態管理
     onHit(): boolean {
-
         this.pierceCount--;
 
         // 返回是否應該繼續存在

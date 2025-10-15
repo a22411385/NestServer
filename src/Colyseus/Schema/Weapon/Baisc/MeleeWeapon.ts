@@ -116,7 +116,7 @@ export abstract class MeleeWeapon extends WeaponBasic {
         return effects;
     }
 
-    public tryAttack(
+    public override tryAttack(
         attacker: ServerGameUnit,
         potentialTargets: ServerGameUnit[]
     ): AttackResult {

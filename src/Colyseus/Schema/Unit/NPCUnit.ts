@@ -26,7 +26,7 @@ export class ServerNPC extends ServerGameUnit {
             const item = new ServerItem(itemConfig.id, itemConfig.type, itemConfig.name, this.position.x, this.position.y);
             item.uniqueId = `npc_${this.id}_${itemConfig.id}`;
             item.value = itemConfig.sellPrice; // 使用販賣價格作為顯示價格
-            item.materialId = itemConfig.id; // 保存原始配置ID
+            item.itemId = itemConfig.id; // 保存原始配置ID
             item.createdAt = Date.now();
             item.expiresAt = 0; // NPC商品不會過期
 

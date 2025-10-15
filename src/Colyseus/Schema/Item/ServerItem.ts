@@ -1,6 +1,7 @@
 import { Schema, type } from "@colyseus/schema";
 import { Vector2 } from "../Unit/GameUnit";
 import { WeaponData } from "../Weapon/WeaponData";
+import { UniqueIdGenerator } from "../../../Util/UniqueIdGenerator";
 
 export enum ItemType {
     CURRENCY = "CURRENCY",
@@ -25,7 +26,6 @@ export class ServerItem extends Schema {
     @type("number") expiresAt: number = Date.now() + 30000; // 30秒後消失
 
     // 武器相關屬性（只有武器類型才使用）
-    @type("string") weaponId: string = "";
     @type("string") quality: string = "";
     @type("number") level: number = 1;
     @type("number") enhanceLevel: number = 0;
@@ -33,12 +33,9 @@ export class ServerItem extends Schema {
     @type("number") durability: number = 100;
     @type("string") weaponPropertiesJson: string = ""; // 武器屬性數據（序列化存儲）
 
-    // 材料相關屬性
-    @type("string") materialId: string = "";
-
     constructor(id: string, itemType: ItemType, name: string, x: number = 0, y: number = 0) {
         super();
-        this.uniqueId = this.generateId();
+        this.uniqueId = this.generateId(itemType);
         this.name = name;
         this.itemId = id;
         this.itemType = itemType;
@@ -46,8 +43,16 @@ export class ServerItem extends Schema {
         this.y = y;
     }
 
-    private generateId(): string {
-        return `item_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    private generateId(itemType: ItemType): string {
+        const typeMap: Record<ItemType, string> = {
+            [ItemType.CURRENCY]: 'currency',
+            [ItemType.EXP]: 'exp',
+            [ItemType.MATERIAL]: 'material',
+            [ItemType.WEAPON]: 'weapon',
+            [ItemType.CONSUMABLE]: 'consumable',
+            [ItemType.MISC]: 'misc'
+        };
+        return UniqueIdGenerator.generateItemId(typeMap[itemType] || 'generic');
     }
 
     public isExpired(): boolean {
@@ -75,9 +80,9 @@ export class ServerItem extends Schema {
     /**
      * 創建材料物品
      */
-    static createMaterial(x: number, y: number, materialId: string, name: string, quantity: number = 1): ServerItem {
-        const item = new ServerItem(materialId, ItemType.MATERIAL, name, x, y);
-        item.materialId = materialId;
+    static createMaterial(x: number, y: number, itemId: string, name: string, quantity: number = 1): ServerItem {
+        const item = new ServerItem(itemId, ItemType.MATERIAL, name, x, y);
+        item.itemId = itemId;
         item.value = quantity;
         return item;
     }
@@ -87,7 +92,7 @@ export class ServerItem extends Schema {
      */
     static createWeapon(x: number, y: number, weaponId: string, name: string, quality: string): ServerItem {
         const item = new ServerItem(weaponId, ItemType.WEAPON, name, x, y);
-        item.weaponId = weaponId;
+        item.itemId = weaponId;
         item.quality = quality;
         return item;
     }
@@ -99,7 +104,7 @@ export class ServerItem extends Schema {
         const item = new ServerItem(weaponData.weaponId, ItemType.WEAPON, weaponData.name, x, y);
 
         // 複製武器基本屬性
-        item.weaponId = weaponData.weaponId;
+        item.itemId = weaponData.weaponId;
         item.quality = weaponData.quality || weaponData.rarity;
         item.level = weaponData.level;
         item.enhanceLevel = weaponData.enhanceLevel;
@@ -127,7 +132,7 @@ export class ServerItem extends Schema {
         const weaponData = new WeaponData();
         weaponData.name = this.name;
         // 複製基本屬性
-        weaponData.weaponId = this.weaponId;
+        weaponData.weaponId = this.itemId;
         weaponData.quality = this.quality;
         weaponData.rarity = this.quality; // 保持兼容性
         weaponData.level = this.level;
@@ -176,7 +181,7 @@ export class ServerItem extends Schema {
     }
 
     private generateUniqueWeaponId(): string {
-        return `weapon_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        return UniqueIdGenerator.generateWeaponId();
     }
 }
 

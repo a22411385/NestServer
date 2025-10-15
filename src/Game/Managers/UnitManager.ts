@@ -95,12 +95,12 @@ export class UnitManager {
     /**
      * 獲取所有存活的英雄
      */
-    public getAllAliveHeroes() {
+    public getAllAliveHeroes(): ServerHero[] {
         const aliveHeroes = [];
 
         for (const [, unit] of this.room.state.gameCore.allUnits) {
             if (unit.type === UnitType.hero && !unit.isDead) {
-                aliveHeroes.push(unit);
+                aliveHeroes.push(unit as ServerHero);
             }
         }
 

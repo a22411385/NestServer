@@ -164,19 +164,19 @@ export class ItemPickupSystem {
      * 🎯 拾取材料
      */
     private pickupMaterial(hero: ServerHero, item: ServerItem): boolean {
-        const materialId = item.materialId || 'unknown';
+        const itemId = item.itemId || 'unknown';
         const quantity = item.value || 1;
 
         // 檢查材料是否在配置表中
-        const itemConfig = ConfigManager.getItemConfigById(materialId);
+        const itemConfig = ConfigManager.getItemConfigById(itemId);
         if (!itemConfig) {
-            console.warn(`未找到材料配置: ${materialId}`);
+            console.warn(`未找到材料配置: ${itemId}`);
             // 仍然允許拾取，使用默認設置
         }
 
         // 檢查是否可以堆疊 - 查找已有的相同材料
         const existingMaterialIndex = hero.inventory.findIndex(invItem =>
-            invItem.itemType === ItemType.MATERIAL && invItem.materialId === materialId
+            invItem.itemType === ItemType.MATERIAL && invItem.itemId === itemId
         );
 
         if (existingMaterialIndex !== -1) {
@@ -188,29 +188,29 @@ export class ItemPickupSystem {
 
             if (canAdd > 0) {
                 existingMaterial.value = currentQuantity + canAdd;
-                console.log(`📦 材料 ${materialId} 堆疊 +${canAdd} (總計: ${existingMaterial.value})`);
+                console.log(`📦 材料 ${itemId} 堆疊 +${canAdd} (總計: ${existingMaterial.value})`);
 
                 // 如果有剩餘，創建新的物品掉在地上
                 if (canAdd < quantity) {
-                    this.createOverflowItem(hero, materialId, item.name, quantity - canAdd);
+                    this.createOverflowItem(hero, itemId, item.name, quantity - canAdd);
                 }
                 return true;
             } else {
-                console.log(`📦 材料 ${materialId} 已達最大堆疊數量 (${maxStack})`);
+                console.log(`📦 材料 ${itemId} 已達最大堆疊數量 (${maxStack})`);
                 return false;
             }
         } else {
             // 檢查背包空間
             if (hero.inventory.length >= 30) { // 假設背包上限30個不同物品
-                console.log(`🎒 背包已滿，無法拾取 ${materialId}`);
+                console.log(`🎒 背包已滿，無法拾取 ${itemId}`);
                 return false;
             }
 
             // 添加新材料到背包
-            const newMaterial = ServerItem.createMaterial(0, 0, materialId, item.name, quantity);
+            const newMaterial = ServerItem.createMaterial(0, 0, itemId, item.name, quantity);
             hero.inventory.push(newMaterial);
 
-            console.log(`📦 獲得新材料: ${itemConfig?.name || materialId} x${quantity}`);
+            console.log(`📦 獲得新材料: ${itemConfig?.name || itemId} x${quantity}`);
             return true;
         }
     }
@@ -228,7 +228,7 @@ export class ItemPickupSystem {
         // 將 ServerItem 轉換為 WeaponData
         const weaponData = item.toWeaponData();
         if (!weaponData) {
-            console.error(`❌ 無法轉換武器數據: ${item.weaponId}`);
+            console.error(`❌ 無法轉換武器數據: ${item.itemId}`);
             return false;
         }
 
@@ -242,17 +242,17 @@ export class ItemPickupSystem {
     /**
      * 🎯 創建溢出物品
      */
-    private createOverflowItem(hero: ServerHero, materialId: string, name: string, quantity: number): void {
+    private createOverflowItem(hero: ServerHero, itemId: string, name: string, quantity: number): void {
         const overflowItem = ServerItem.createMaterial(
             hero.position.x + 20,
             hero.position.y + 20,
-            materialId,
+            itemId,
             name,
             quantity
         );
 
         this.room.state.gameCore.mapItems.push(overflowItem);
-        console.log(`📦 創建溢出物品: ${materialId} x${quantity}`);
+        console.log(`📦 創建溢出物品: ${itemId} x${quantity}`);
     }
 
     /**

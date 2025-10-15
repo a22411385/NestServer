@@ -342,6 +342,7 @@ export abstract class WeaponBasic {
         potentialTargets: ServerGameUnit[]
     ): ServerGameUnit[];
 
+
     // Getter 方法
     public get range(): number { return this.attackRange; }
     public get damage(): number { return this.baseDamage; }

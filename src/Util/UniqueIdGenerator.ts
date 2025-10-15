@@ -6,7 +6,7 @@ import { randomBytes } from 'crypto';
  */
 export class UniqueIdGenerator {
     private static counter: number = 0;
-    private static machineId: string = this.generateMachineId();
+    // private static machineId: string = this.generateMachineId();
 
     /**
      * 生成武器唯一ID
@@ -15,7 +15,7 @@ export class UniqueIdGenerator {
     public static generateWeaponId(): string {
         const timestamp = Date.now().toString(36);
         const counter = (++this.counter).toString(36).padStart(3, '0');
-        return `weapon_${timestamp}_${this.machineId}_${counter}`;
+        return `weapon_${timestamp}_${counter}`;
     }
 
     /**
@@ -25,7 +25,7 @@ export class UniqueIdGenerator {
     public static generatePlayerId(): string {
         const timestamp = Date.now().toString(36);
         const counter = (++this.counter).toString(36).padStart(3, '0');
-        return `player_${timestamp}_${this.machineId}_${counter}`;
+        return `player_${timestamp}_${counter}`;
     }
 
     /**
@@ -35,7 +35,7 @@ export class UniqueIdGenerator {
     public static generateUnitId(): string {
         const timestamp = Date.now().toString(36);
         const counter = (++this.counter).toString(36).padStart(3, '0');
-        return `unit_${timestamp}_${this.machineId}_${counter}`;
+        return `unit_${timestamp}_${counter}`;
     }
 
     /**
@@ -45,18 +45,44 @@ export class UniqueIdGenerator {
     public static generateRoomId(): string {
         const timestamp = Date.now().toString(36);
         const counter = (++this.counter).toString(36).padStart(3, '0');
-        return `room_${timestamp}_${this.machineId}_${counter}`;
+        return `room_${timestamp}_${counter}`;
     }
 
     /**
-     * 生成機器識別碼 (4位隨機字符)
+     * 生成物品唯一ID
+     * 格式: item_{type}_{timestamp}_{machineId}_{counter}
      */
-    private static generateMachineId(): string {
+    public static generateItemId(itemType: string = 'generic'): string {
+        const timestamp = Date.now().toString(36);
+        const counter = (++this.counter).toString(36).padStart(3, '0');
+        return `item_${itemType}_${timestamp}_${counter}`;
+    }
+
+    /**
+     * 生成子彈唯一ID
+     * 格式: bullet_{timestamp}_{machineId}_{counter}
+     */
+    public static generateBulletId(): string {
+        const timestamp = Date.now().toString(36);
+        const counter = (++this.counter).toString(36).padStart(3, '0');
+        return `bullet_${timestamp}_${counter}`;
+    }
+
+    /**
+     * 生成安全的隨機種子
+     * 用於需要穩定隨機性的場景（如武器屬性生成）
+     */
+    public static generateSecureSeed(): number {
         try {
-            return randomBytes(2).toString('hex');
+            // 使用加密隨機數生成種子
+            const buffer = randomBytes(4);
+            return buffer.readUInt32BE(0);
         } catch (error) {
-            // 如果無法使用 crypto，使用時間戳和隨機數
-            return Math.random().toString(36).substring(2, 6);
+            // 後備方案：組合時間戳、計數器和隨機數
+            const timestamp = Date.now() & 0xFFFFFFFF;
+            const counter = (++this.counter) & 0xFFFF;
+            const random = Math.floor(Math.random() * 0xFFFF);
+            return (timestamp ^ (counter << 16) ^ random) >>> 0; // 無符號32位
         }
     }
 
@@ -90,13 +116,4 @@ export class UniqueIdGenerator {
         this.counter = 0;
     }
 
-    /**
-     * 獲取統計信息
-     */
-    public static getStats(): { counter: number; machineId: string } {
-        return {
-            counter: this.counter,
-            machineId: this.machineId
-        };
-    }
 }

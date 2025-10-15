@@ -298,7 +298,7 @@ export class ItemPickupHandler extends BaseMessageHandler implements IMessageHan
         }
 
         // 獲取物品配置來計算賣價
-        const itemConfig = ConfigManager.getItemConfigById(playerItem.materialId || playerItem.itemType);
+        const itemConfig = ConfigManager.getItemConfigById(playerItem.itemId || playerItem.itemType);
         if (!itemConfig) {
             client.send('sellFail', { error: "ITEM_CONFIG_NOT_FOUND", message: "找不到物品配置" });
             return;
