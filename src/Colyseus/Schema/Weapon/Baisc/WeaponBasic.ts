@@ -9,7 +9,7 @@ import { getWeaponConfig } from "../../../../Game/Factories/WeaponConfig";
 // 🆕 支持配置驅動的初始化，無需構造函數參數
 export abstract class WeaponBasic {
     public weaponId: string = "";
-
+    public projectileClass: string = ""; // 投射物類型
     public weaponType: WeaponType = WeaponType.MELEE_WEAPON;
     public attackRange: number = 0;
     public baseDamage: number = 0; // 基礎傷害
@@ -58,31 +58,14 @@ export abstract class WeaponBasic {
         this.attackRange = this.weaponConfig.attackRange;
         this.enabled = this.weaponConfig.enabled !== false;
 
-        // 根據 classModule 設置武器類型
-        this.weaponType = this.getWeaponTypeFromModule(this.weaponConfig.classModule);
+        this.projectileClass = this.weaponConfig.projectileClass;
+        this.weaponType = this.weaponConfig.classModule as WeaponType;
 
         // 調用子類的配置特定初始化
         this.applyWeaponSpecificConfig();
 
         console.log(`✅ 武器已從配置初始化: ${this.name} (${this.weaponId})`);
         return true;
-    }
-
-    /**
-     * 🆕 根據模組名稱獲取武器類型
-     */
-    private getWeaponTypeFromModule(classModule: string): WeaponType {
-        switch (classModule) {
-            case 'MeleeWeapon':
-                return WeaponType.MELEE_WEAPON;
-            case 'ProjectileWeapon':
-                return WeaponType.PROJECTILE_WEAPON;
-            case 'SupportWeapon':
-                return WeaponType.SUPPORT_WEAPON;
-            default:
-                console.warn(`⚠️ 未知的武器模組: ${classModule}，使用預設類型`);
-                return WeaponType.MELEE_WEAPON;
-        }
     }
 
     /**

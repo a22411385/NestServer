@@ -14,37 +14,17 @@ export class PiercingProjectile extends ProjectileBasic {
         this.bounceCount = 0;
     }
 
-    public onHit(
+    /**
+     * 覆寫視覺效果 - 穿透效果
+     */
+    protected createDefaultVisualEffects(
         bullet: ServerBullet,
-        hitTarget: ServerGameUnit,
-        gameRoom: GameRoom
-    ): AttackResult {
-        const owner = gameRoom.state.gameCore.allUnits.get(bullet.ownerId);
-        if (!owner) {
-            return {
-                success: false,
-                weaponId: this.weaponId,
-                baseDamage: 0,
-                reason: AttackFailReason.NO_TARGET
-            };
-        }
-
-        const affectedTargets = this.findAffectedTargets(bullet, hitTarget, gameRoom);
-
-        return {
-            success: true,
-            weaponId: this.weaponId,
-            targetIds: affectedTargets.map(target => target.id),
-            baseDamage: this.baseDamage,
-            attackData: {
-                position: bullet.getCurrentPosition(),
-                direction: { x: bullet.direction.x, y: bullet.direction.y },
-                range: 0
-            },
-            visualEffects: this.createVisualEffects(bullet, 'pierce', {
-                remainingPierce: bullet.pierceCount - 1
-            })
-        };
+        affectedTargets: ServerGameUnit[]
+    ): any[] {
+        return this.createVisualEffects(bullet, 'hit', {
+            remainingPierce: bullet.pierceCount - 1,
+            isPierce: true
+        });
     }
 
     protected findAffectedTargets(

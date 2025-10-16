@@ -189,8 +189,8 @@ export class PlayerManager {
 
             // 默認裝備前兩個武器（球棒和火球）
             if (addedWeapons.length >= 2) {
-                hero.equipWeaponById(addedWeapons[0]); // 球棒
-                hero.equipWeaponById(addedWeapons[1]); // 火球
+                hero.equipWeapon(addedWeapons[0]); // 球棒
+                hero.equipWeapon(addedWeapons[1]); // 火球
                 console.log(`  🔧 默認裝備: ${availableWeapons[0]} 和 ${availableWeapons[1]}`);
             }
 

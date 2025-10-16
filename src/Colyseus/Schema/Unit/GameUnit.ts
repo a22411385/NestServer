@@ -42,6 +42,10 @@ export class ServerGameUnit extends Schema {
 
     @type("number") attackRange: number = 100; // 攻擊範圍
     // @type("number") radius: number = 20; // 體積/碰撞半徑 (保留向後兼容)
+    //體力回復
+    @type("number") hpRegen: number = 0;
+    //魔力回復
+    @type("number") mpRegen: number = 0;
 
     //體型縮放
     @type("number") scale: number = 1;
@@ -65,7 +69,8 @@ export class ServerGameUnit extends Schema {
     // === 基礎數值 (固定，不受裝備影響) - 不需要同步給客戶端 ===
     protected baseHp: number = 100;
     protected baseAttackDamage: number = 10;
-    protected baseMoveSpeed: number = 1;
+    protected baseMoveSpeed: number = 30;
+
 
 
 

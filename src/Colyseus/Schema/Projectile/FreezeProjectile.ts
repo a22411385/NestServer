@@ -16,41 +16,36 @@ export class FreezeProjectile extends ProjectileBasic {
         this.bounceCount = 0;
     }
 
+    /**
+     * 覆寫 onHit 以在基類邏輯後應用冰凍效果
+     */
     public onHit(
         bullet: ServerBullet,
         hitTarget: ServerGameUnit,
         gameRoom: GameRoom
     ): AttackResult {
-        const owner = gameRoom.state.gameCore.allUnits.get(bullet.ownerId);
-        if (!owner) {
-            return {
-                success: false,
-                weaponId: this.weaponId,
-                baseDamage: 0,
-                reason: AttackFailReason.NO_TARGET
-            };
+        // 先執行基類的通用邏輯（檢查擁有者、碰撞範圍等）
+        const result = super.onHit(bullet, hitTarget, gameRoom);
+
+        // 如果攻擊成功，應用冰凍效果
+        if (result.success) {
+            this.applyFreezeEffect(hitTarget);
         }
 
-        const affectedTargets = this.findAffectedTargets(bullet, hitTarget, gameRoom);
+        return result;
+    }
 
-        // 應用冰凍效果
-        this.applyFreezeEffect(hitTarget);
-
-        return {
-            success: true,
-            weaponId: this.weaponId,
-            targetIds: affectedTargets.map(target => target.id),
-            baseDamage: this.baseDamage,
-            attackData: {
-                position: bullet.getCurrentPosition(),
-                direction: { x: bullet.direction.x, y: bullet.direction.y },
-                range: 0
-            },
-            visualEffects: this.createVisualEffects(bullet, 'freeze', {
-                duration: this.freezeDuration,
-                targetId: hitTarget.id
-            })
-        };
+    /**
+     * 覆寫視覺效果 - 冰凍效果
+     */
+    protected createDefaultVisualEffects(
+        bullet: ServerBullet,
+        affectedTargets: ServerGameUnit[]
+    ): any[] {
+        return this.createVisualEffects(bullet, 'freeze', {
+            duration: this.freezeDuration,
+            targetId: affectedTargets[0]?.id
+        });
     }
 
     protected findAffectedTargets(

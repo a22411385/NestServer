@@ -2,12 +2,12 @@
  * 武器系統類型定義 - 基於 Class 基底名稱分類
  */
 
-import { AttackResult, AttackEffect, VisualEffect, AttackFailReason } from "../Game/AttackTypes";
+import { AttackResult, BufferEffect, VisualEffect, AttackFailReason } from "../Game/AttackTypes";
 
 /**
  * 重新導出攻擊相關類型，方便武器系統使用
  */
-export { AttackResult, AttackEffect, VisualEffect, AttackFailReason };
+export { AttackResult, BufferEffect as AttackEffect, VisualEffect, AttackFailReason };
 
 /**
  * 武器類型枚舉 - 基於武器類別基底名稱

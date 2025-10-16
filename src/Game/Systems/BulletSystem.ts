@@ -7,8 +7,9 @@ import { ServerEnemy } from "../../Colyseus/Schema/Unit/Enemy";
 import { ServerHero } from "../../Colyseus/Schema/Unit/Hero";
 import { UnitType } from "../../Colyseus/Schema/GameState";
 import { BattleMathUtils } from "../../Util/BattleMathUtils";
-import { ProjectileFactory } from "../../Colyseus/Schema/Projectile";
+
 import { Vector2 } from "@/Colyseus/Schema/Unit/GameUnit";
+import { ProjectileFactory } from "../Factories/ProjectileFactory";
 
 /**
  * 子彈系統 - 負責子彈的創建、更新和碰撞檢測
@@ -29,18 +30,7 @@ export class BulletSystem {
         const bullet = BulletFactory.createBullet(config);
         this.bullets.set(bullet.id, bullet);
 
-        console.log(`🚀 子彈創建: ${bullet.id} by ${config.ownerId} (${config.bulletType})`);
-        return bullet.id;
-    }
-
-    /**
-     * 使用武器配置創建子彈
-     */
-    public spawnBulletFromWeapon(config: WeaponBulletConfig): string {
-        const bullet = BulletFactory.createBulletFromWeapon(config);
-        this.bullets.set(bullet.id, bullet);
-
-        console.log(`🎯 武器子彈創建: ${bullet.id} 來自 ${config.weapon.weaponId}`);
+        console.log(`🚀 子彈創建: ${bullet.id} by ${config.ownerId} (${config.bulletClass})`);
         return bullet.id;
     }
 

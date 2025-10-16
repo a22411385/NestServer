@@ -104,6 +104,7 @@ export interface WeaponConfigDefinition {
     attackSpeed: number;
     attackRange: number;
     enabled: boolean;
+    projectileClass: string;
     weaponClass: string;
     classModule: string;
     fixedProperties: string;    // 逗號分隔的屬性字符串

@@ -1,7 +1,6 @@
 import { WeaponBasic } from "./WeaponBasic";
 import { AttackFailReason, VisualEffect, AttackResult, PropertyType } from "@/Types";
 import { ServerGameUnit } from "../../Unit/GameUnit";
-import { WeaponType } from "@/Types";
 import { StatusEffectData } from "@/Types/Equipment/WeaponPropertyTypes";
 
 /**

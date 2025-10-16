@@ -1,7 +1,7 @@
 import { GameRoom } from "../../Colyseus/Rooms/GameRoom";
 import { ServerHero } from "../../Colyseus/Schema/Unit/Hero";
 import { ServerGameUnit } from "../../Colyseus/Schema/Unit/GameUnit";
-import { AttackResult, WeaponType } from "@/Types";
+import { AttackResult, VisualEffect, WeaponType } from "@/Types";
 
 import { BattleLogSystem } from "./BattleLogSystem";
 import { DamageResult } from "./DamageSystem";
@@ -23,11 +23,19 @@ export class CombatSystem {
      * 更新所有英雄的自動攻擊
      */
     public updateHeroAutoAttacks(): void {
+        // 取得場上所有活著的單位
         const aliveEnemies = this.gameRoom.unitManager.getAllAliveEnemies();
+
+        // 取得所有活的英雄
         const allHero = this.gameRoom.unitManager.getAllAliveHeroes();
-        for (const i in allHero) {
-            const hero = allHero[i];
+
+        // 使用 for...of 遍歷英雄
+        for (const hero of allHero) {
+            // 嘗試讓英雄攻擊
             this.processHeroAttacks(hero, aliveEnemies);
+
+            // 英雄每秒回復生命和法力
+            hero.regenerate();
         }
     }
 
@@ -35,12 +43,11 @@ export class CombatSystem {
      * 處理單個英雄的攻擊
      */
     private processHeroAttacks(hero: ServerHero, enemies: ServerGameUnit[]): void {
-
-        //取得所有可能的攻擊
+        // 取得所有可能的攻擊
         const attackResults = hero.tryAttack(enemies);
 
         for (const result of attackResults) {
-            //如果攻擊成功
+            // 如果攻擊成功
             if (result.success) {
                 this.handleAttackResult(hero, result);
             }
@@ -67,6 +74,9 @@ export class CombatSystem {
 
         // 根據武器類型處理攻擊
         const attackData = this.processAttackByWeaponType(hero, weapon, targets, result);
+
+        // 處理視覺效果（包括投射物創建）
+        this.handleVisualEffects(hero, result, attackData);
 
         // 廣播攻擊結果
         this.broadcastAttackResult(hero, result, attackData);
@@ -106,6 +116,94 @@ export class CombatSystem {
         }
 
         return attackData;
+    }
+
+    /**
+     * 處理視覺效果（包括投射物創建）
+     */
+    private handleVisualEffects(
+        hero: ServerHero,
+        result: AttackResult,
+        attackData: CombatExecution
+    ): void {
+        // 如果需要創建投射物，處理投射武器的視覺效果
+        if (attackData.shouldCreateProjectile && result.visualEffects) {
+            for (const visualEffect of result.visualEffects) {
+                if (visualEffect.type === 'projectile') {
+                    this.createProjectileFromVisualEffect(hero, visualEffect, result);
+                }
+            }
+        }
+
+        // 處理其他視覺效果
+        if (result.visualEffects) {
+            for (const visualEffect of result.visualEffects) {
+                if (visualEffect.type !== 'projectile') {
+                    this.processVisualEffect(hero, visualEffect, result);
+                }
+            }
+        }
+    }
+
+    /**
+     * 從視覺效果創建投射物
+     */
+    private createProjectileFromVisualEffect(
+        hero: ServerHero,
+        visualEffect: VisualEffect,
+        attackResult: AttackResult
+    ): void {
+        if (visualEffect.data) {
+            const bulletDamage = attackResult.baseDamage || visualEffect.data.damage || 10;
+
+            this.gameRoom.bulletSystem.spawnBullet({
+                ownerId: hero.id,
+                startPosition: visualEffect.data.startPosition || visualEffect.position,
+                direction: visualEffect.data.direction || visualEffect.direction,
+                damage: bulletDamage,
+                speed: visualEffect.data.speed || 300,
+                bulletClass: visualEffect.data.bulletType || 'basic',
+                weaponId: attackResult.weaponId || ""
+            });
+
+            console.log(`🚀 創建投射物子彈: ${attackResult.weaponId} 傷害=${bulletDamage}`);
+        }
+    }
+
+    /**
+     * 處理其他視覺效果
+     */
+    private processVisualEffect(
+        hero: ServerHero,
+        visualEffect: VisualEffect,
+        attackResult: AttackResult
+    ): void {
+        switch (visualEffect.type) {
+            case 'swing':
+                this.gameRoom.broadcast('melee_swing', {
+                    heroId: hero.id,
+                    position: visualEffect.position,
+                    direction: visualEffect.direction,
+                    weaponData: visualEffect.data
+                });
+                break;
+
+            case 'slash':
+                this.gameRoom.broadcast('slash_effect', {
+                    heroId: hero.id,
+                    position: visualEffect.position,
+                    direction: visualEffect.direction,
+                    data: visualEffect.data
+                });
+                break;
+
+            case 'explosion':
+                this.gameRoom.broadcast('explosion_effect', {
+                    position: visualEffect.position,
+                    data: visualEffect.data
+                });
+                break;
+        }
     }
 
     /**

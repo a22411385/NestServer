@@ -61,7 +61,6 @@ export class ServerHero extends ServerGameUnit {
     // === 能量系統 ===
     @type("number") public maxMp: number = 100;
     @type("number") public mp: number = 100;
-    @type("number") public mpRegen: number = 1; // 每秒回復的能量值
 
     // === 副屬性 - 不需要同步給客戶端 ===
     public baseExpMultiplier: number = 30;
@@ -84,6 +83,9 @@ export class ServerHero extends ServerGameUnit {
 
         this.type = UnitType.hero;
         this.attackRange = 1000;
+        this.hpRegen = 1;
+        this.mpRegen = 0.5;
+
 
         // 初始化屬性點
         this.vit = 10;
@@ -110,6 +112,26 @@ export class ServerHero extends ServerGameUnit {
 
         // 🆕 初始化武器管理器
         this.weaponManager = new HeroWeaponManager(this as any);
+    }
+
+    /**
+     * 每秒回復生命/法力
+     * 如果回復後超過最大值，則設定為最大值
+     */
+    public regenerate(): void {
+        if (this.isDead) return;
+
+        // 回復生命值，確保不超過最大值
+        if (this.hp < this.maxHp) {
+            const hpRegenAmount = this.hpRegen + this.vit * 0.1;
+            this.hp = Math.min(this.hp + hpRegenAmount, this.maxHp);
+        }
+
+        // 回復魔力值，確保不超過最大值
+        if (this.mp < this.maxMp) {
+            const mpRegenAmount = this.mpRegen + this.int * 0.1;
+            this.mp = Math.min(this.mp + mpRegenAmount, this.maxMp);
+        }
     }
 
     /**
@@ -190,6 +212,7 @@ export class ServerHero extends ServerGameUnit {
 
         this.maxMp = Math.floor(finalMp);
         this.moveSpeed = Math.floor(finalSpeed);
+
         // 4. 處理當前血量/魔力的變化
         this.adjustCurrentValues(oldMaxHp, oldMaxMp);
     }

@@ -14,36 +14,7 @@ export class BasicProjectile extends ProjectileBasic {
         this.bounceCount = 0;
     }
 
-    public onHit(
-        bullet: ServerBullet,
-        hitTarget: ServerGameUnit,
-        gameRoom: GameRoom
-    ): AttackResult {
-        const owner = gameRoom.state.gameCore.allUnits.get(bullet.ownerId);
-        if (!owner) {
-            return {
-                success: false,
-                weaponId: this.weaponId,
-                baseDamage: 0,
-                reason: AttackFailReason.NO_TARGET
-            };
-        }
-
-        const affectedTargets = this.findAffectedTargets(bullet, hitTarget, gameRoom);
-
-        return {
-            success: true,
-            weaponId: this.weaponId,
-            targetIds: affectedTargets.map(target => target.id),
-            baseDamage: this.baseDamage,
-            attackData: {
-                position: bullet.getCurrentPosition(),
-                direction: { x: bullet.direction.x, y: bullet.direction.y },
-                range: 0 // 投射物沒有範圍概念
-            },
-            visualEffects: this.createVisualEffects(bullet, 'hit')
-        };
-    }
+    // onHit 使用基類的虛擬實現，無需覆寫
 
     protected findAffectedTargets(
         bullet: ServerBullet,

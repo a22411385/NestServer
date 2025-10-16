@@ -1,7 +1,7 @@
 import { ServerBullet } from "../../Colyseus/Schema/Bullet";
 import { Vector2 } from "../../Colyseus/Schema/Unit/GameUnit";
 import { WeaponBasic } from "../../Colyseus/Schema/Weapon/Baisc/WeaponBasic";
-import { WeaponType, BulletCreateConfig, WeaponBulletConfig, BulletType } from "@/Types";
+import { WeaponType, BulletCreateConfig, WeaponBulletConfig } from "@/Types";
 import { UniqueIdGenerator } from "../../Util/UniqueIdGenerator";
 import { rotateVector } from "@/Util/BattleMathUtils";
 
@@ -38,7 +38,7 @@ export class BulletFactory {
             new Vector2(config.direction.x, config.direction.y),
             config.damage,
             config.speed || 300,
-            config.bulletType?.toString() || BulletType.BASIC,
+            config.bulletClass.toString(),
             config.weaponId || "",
             maxDistance
         );
@@ -52,34 +52,6 @@ export class BulletFactory {
     }
 
     /**
-     * 根據武器創建子彈實例
-     * 
-     * 🎯 根據武器屬性設定子彈的物理參數
-     * 🔧 命中邏輯由 ProjectileFactory 根據 bulletType 處理
-     */
-    public static createBulletFromWeapon(config: WeaponBulletConfig): ServerBullet {
-        const weapon = config.weapon;
-        const damageMultiplier = config.damageMultiplier || 1;
-
-        // 根據武器類型決定子彈屬性
-        const bulletConfig: BulletCreateConfig = {
-            ownerId: config.ownerId,
-            startPosition: { x: config.startPosition.x, y: config.startPosition.y },
-            direction: { x: config.direction.x, y: config.direction.y },
-            damage: Math.floor(weapon.baseDamage * damageMultiplier),
-            speed: this.getWeaponProjectileSpeed(weapon),
-            bulletType: this.getWeaponBulletType(weapon),
-            pierceCount: this.getWeaponPierceCount(weapon),
-            areaOfEffect: this.getWeaponAreaOfEffect(weapon),
-
-            scale: this.getWeaponBulletScale(weapon),
-            weaponId: weapon.weaponId // 添加武器ID
-        };
-
-        return this.createBullet(bulletConfig);
-    }
-
-    /**
      * 根據武器獲取投射物速度
      */
     private static getWeaponProjectileSpeed(weapon: WeaponBasic): number {
@@ -89,22 +61,6 @@ export class BulletFactory {
             case WeaponType.MELEE_WEAPON: return 500; // 近戰武器如果有投射物效果
             case WeaponType.SUPPORT_WEAPON: return 250;
             default: return 300;
-        }
-    }
-
-    /**
-     * 根據武器獲取子彈類型
-     */
-    private static getWeaponBulletType(weapon: WeaponBasic): BulletType {
-        switch (weapon.weaponType) {
-            case WeaponType.PROJECTILE_WEAPON:
-                return BulletType.ARROW;
-            case WeaponType.SUPPORT_WEAPON:
-                return BulletType.MAGIC;
-            case WeaponType.MELEE_WEAPON:
-                return BulletType.BASIC;
-            default:
-                return BulletType.BASIC;
         }
     }
 
@@ -149,18 +105,5 @@ export class BulletFactory {
             case WeaponType.PROJECTILE_WEAPON: return 1.2;
             default: return 1.0;
         }
-    }
-
-    /**
-     * 獲取預設子彈配置
-     */
-    public static getDefaultBulletConfig(): Partial<BulletCreateConfig> {
-        return {
-            speed: 300,
-            bulletType: BulletType.BASIC,
-            pierceCount: 0,
-            areaOfEffect: 0,
-            scale: 1.0
-        };
     }
 }

@@ -31,7 +31,7 @@ export class ServerBullet extends Schema {
         targetDir: Vector2,
         damage: number,
         speed: number = 200,
-        bulletType: string = "basic",
+        bulletType: string,
         weaponId: string = "",
         maxDistance: number = 400
     ): void {

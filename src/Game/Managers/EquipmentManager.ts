@@ -60,7 +60,7 @@ export class EquipmentManager {
 
         // 如果是武器槽
         if (slotIndex < hero.equippedWeaponIds.length) {
-            return hero.unequipWeaponBySlot(slotIndex);
+            return hero.equipWeapon(slotIndex);
         }
 
         // 其他裝備槽的處理
@@ -83,7 +83,7 @@ export class EquipmentManager {
             // 通過背包遍歷查找匹配的武器
             for (const weaponData of hero.weaponInventory) {
                 if (weaponData.uniqueId === weaponUniqueId && weaponData.weaponId === itemId) {
-                    return hero.unequipWeaponBySlot(i);
+                    return hero.equipWeapon(weaponData.weaponId);
                 }
             }
         }
@@ -202,7 +202,7 @@ export class EquipmentManager {
         const weaponId = this.convertItemToWeaponId(item);
         if (weaponId) {
             const weaponUniqueId = hero.addWeaponToInventory(weaponId);
-            return hero.equipWeaponById(weaponUniqueId);
+            return hero.equipWeapon(weaponUniqueId);
         }
         return false;
     }

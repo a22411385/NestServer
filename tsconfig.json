@@ -16,6 +16,7 @@
     "strictNullChecks": true,
     "forceConsistentCasingInFileNames": true,
     "noImplicitAny": true,
+
     "strictBindCallApply": false,
     "noFallthroughCasesInSwitch": true,
     "paths": {

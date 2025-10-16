@@ -14,38 +14,24 @@ export class ExplosiveProjectile extends ProjectileBasic {
         this.bounceCount = 0;
     }
 
-    public onHit(
+    /**
+     * 覆寫傷害計算 - 爆炸傷害降低
+     */
+    protected calculateDamage(bullet: ServerBullet, hitTarget: ServerGameUnit): number {
+        return Math.floor(this.baseDamage * 0.8); // 爆炸傷害稍微降低
+    }
+
+    /**
+     * 覆寫視覺效果 - 爆炸效果
+     */
+    protected createDefaultVisualEffects(
         bullet: ServerBullet,
-        hitTarget: ServerGameUnit,
-        gameRoom: GameRoom
-    ): AttackResult {
-        const owner = gameRoom.state.gameCore.allUnits.get(bullet.ownerId);
-        if (!owner) {
-            return {
-                success: false,
-                weaponId: this.weaponId,
-                baseDamage: 0,
-                reason: AttackFailReason.NO_TARGET
-            };
-        }
-
-        const affectedTargets = this.findAffectedTargets(bullet, hitTarget, gameRoom);
-
-        return {
-            success: true,
-            weaponId: this.weaponId,
-            targetIds: affectedTargets.map(target => target.id),
-            baseDamage: Math.floor(this.baseDamage * 0.8), // 爆炸傷害稍微降低
-            attackData: {
-                position: bullet.getCurrentPosition(),
-                direction: { x: bullet.direction.x, y: bullet.direction.y },
-                range: this.areaOfEffect
-            },
-            visualEffects: this.createVisualEffects(bullet, 'explosion', {
-                radius: this.areaOfEffect,
-                targets: affectedTargets.length
-            })
-        };
+        affectedTargets: ServerGameUnit[]
+    ): any[] {
+        return this.createVisualEffects(bullet, 'explosion', {
+            radius: this.areaOfEffect,
+            targets: affectedTargets.length
+        });
     }
 
     protected findAffectedTargets(

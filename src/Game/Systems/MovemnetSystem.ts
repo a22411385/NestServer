@@ -70,7 +70,7 @@ export class MovementSystem {
     }
     private MoveUnit(unit: ServerGameUnit): void {
         // 獲取單位速度
-        const speed = this.getUnitSpeed(unit.id);
+        const speed = unit.moveSpeed;
 
         // 使用與客戶端相同的移動計算公式
         const moveDistance = speed * MOVEMENT_CONFIG.FIXED_DELTA * MOVEMENT_CONFIG.MOVEMENT_SCALE;
@@ -101,7 +101,7 @@ export class MovementSystem {
     // }
 
     /**
-     * 處理玩家移動向量
+     * 設定玩家移動向量
      */
     handlePlayerMoveVector(client: Client, vx: number, vy: number): void {
         const hero = this.room.state.getHero(client.sessionId);
@@ -109,8 +109,6 @@ export class MovementSystem {
         if (hero) {
             hero.vx = vx;
             hero.vy = vy;
-            this.MoveUnit(hero);
-
         }
     }
 }

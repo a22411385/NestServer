@@ -315,6 +315,7 @@
       "description": "燃燒的火焰球，擅長範圍攻擊",
       "enabled": true,
       "weaponClass": "Fireball",
+      "projectileClass": "FireExplosiveProjectile",
       "classModule": "ProjectileWeapon",
       "baseDamage": 30,
       "attackSpeed": 2000,
@@ -329,6 +330,7 @@
       "description": "冰凍之球，能控制敵人行動",
       "enabled": true,
       "weaponClass": "IceBall",
+      "projectileClass": "FreezeProjectile",
       "classModule": "ProjectileWeapon",
       "baseDamage": 28,
       "attackSpeed": 2200,
@@ -343,6 +345,7 @@
       "description": "閃電般的攻擊，可以跳躍到多個敵人",
       "enabled": true,
       "weaponClass": "LightningBolt",
+      "projectileClass": "BasicProjectile",
       "classModule": "ProjectileWeapon",
       "baseDamage": 35,
       "attackSpeed": 1800,
@@ -1206,5 +1209,5 @@
       "stack_type": "ADDITIVE"
     }
   ],
-  "lastUpdated": "2025-09-10T11:55:44.268Z"
+  "lastUpdated": "2025-10-16T03:04:27.411Z"
 }
