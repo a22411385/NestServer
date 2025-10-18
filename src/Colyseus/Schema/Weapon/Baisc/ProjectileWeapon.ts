@@ -134,11 +134,8 @@ export class ProjectileWeapon extends WeaponBasic {
                     y: primaryTarget.position.y,
                 },
             },
-            visualEffects: this.createProjectileVisualEffects(
-                attacker,
-                primaryTarget,
-                shootDirection,
-            ),
+            // 🆕 投射武器使用 projectileConfig 替代 visualEffects
+            projectileConfig: this.getProjectileConfig(attacker, shootDirection),
         };
     }
 
@@ -278,40 +275,33 @@ export class ProjectileWeapon extends WeaponBasic {
     }
 
     /**
-     * 創建投射物視覺效果
-     *
-     * 📝 注意：投射物不需要廣播事件，因為通過 Schema 同步
-     * bulletClass 用於客戶端 ClientProjectileRegistry 匹配渲染器
+     * 🆕 獲取投射物配置（替代 createProjectileVisualEffects）
      * 
-     * 🎯 重構後的配置流程：
-     * 1. 武器通過 projectileClass 指定彈藥類型
-     * 2. 武器可選通過 getAmmoOverride() 覆蓋彈藥配置
-     * 3. CombatSystem 合併：彈藥默認值 + 武器覆蓋
-     * 4. 創建 ServerBullet 使用最終配置
+     * 📝 職責：
+     * - 創建投射物配置對象
+     * - 合併武器屬性和彈藥覆蓋
+     * - 包含狀態效果配置
+     * - 直接傳遞給 CombatSystem
+     * 
+     * @returns ProjectileConfig - 投射物完整配置
      */
-    protected createProjectileVisualEffects(
+    protected getProjectileConfig(
         attacker: ServerGameUnit,
-        target: ServerGameUnit,
         direction: { x: number; y: number },
-    ): VisualEffect[] {
+    ): import('@/Types').ProjectileConfig {
         // 獲取武器的彈藥配置覆蓋（如果有）
         const ammoOverride = this.getAmmoOverride();
 
-        const projectileEffect: VisualEffect = {
-            type: 'projectile',
-            position: { x: attacker.position.x, y: attacker.position.y },
-            direction: direction,
-            data: {
-                bulletClass: this.projectileClass,  // ✅ 使用武器的 projectileClass 屬性
-                speed: this.projectileSpeed,        // ✅ 武器速度
-                damage: this.baseDamage,            // ✅ 武器傷害
-                maxDistance: this.attackRange,      // ✅ 武器射程
+        return {
+            bulletClass: this.projectileClass,  // ✅ 彈藥類型
+            speed: this.projectileSpeed,        // ✅ 武器速度
+            damage: this.baseDamage,            // ✅ 武器傷害
+            maxDistance: this.attackRange,      // ✅ 武器射程
+            statusEffects: this.generateStatusEffects(), // 🆕 從屬性生成狀態效果
 
-                // ✅ 彈藥配置覆蓋（類型安全，自動展開）
-                ...ammoOverride,
-            },
+            // ✅ 彈藥配置覆蓋（類型安全，自動展開）
+            ...ammoOverride,
         };
-        return [projectileEffect];
     }
 
     // Getter - 武器屬性

@@ -105,7 +105,7 @@ export class GameRoom extends MiddleRoom<GameRoomState> {
             this.state.maxPlayers = options.maxPlayers;
             this.state.state = "waiting";
             this.state.roomType = options.roomType || "normal"; // 設置房間類型
-            this.state.isTestMode = options.roomType === "test"; // 設置測試模式
+            this.state.isTestMode = true; // 設置測試模式
 
             // 初始化遊戲數據，避免 undefined
             this.state.gameCore = new GameCoreState;

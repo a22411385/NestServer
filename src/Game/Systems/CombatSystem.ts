@@ -1,11 +1,12 @@
 import { GameRoom } from '../../Colyseus/Rooms/GameRoom';
 import { ServerHero } from '../../Colyseus/Schema/Unit/Hero';
 import { ServerGameUnit } from '../../Colyseus/Schema/Unit/GameUnit';
-import { AttackResult, VisualEffect, WeaponType } from '@/Types';
+import { AttackResult, VisualEffect, WeaponType, StatusEffectConfig } from '@/Types';
 
 import { BattleLogSystem } from './BattleLogSystem';
 import { DamageResult } from './DamageSystem';
 import { WeaponBasic } from '@/Colyseus/Schema/Weapon/Baisc';
+import { StatusEffect } from '@/Colyseus/Schema/Unit/GameUnit';
 
 /**
  * 戰鬥系統 - 負責處理所有戰鬥相關邏輯（英雄攻擊、敵人攻擊、戰鬥協調）
@@ -122,6 +123,17 @@ export class CombatSystem {
                 );
             console.log(`⚔️ 近戰武器攻擊: ${result.weaponId} - 立即傷害`);
 
+            // 🆕 近戰武器立即應用狀態效果
+            if (result.statusEffects && result.statusEffects.length > 0) {
+                for (const target of targets) {
+                    this.applyStatusEffects(
+                        target,
+                        result.statusEffects,
+                        { x: hero.position.x, y: hero.position.y }
+                    );
+                }
+            }
+
             // 處理戰報
             this.handleBattleLog(hero, attackData.damageResults);
         }
@@ -130,79 +142,53 @@ export class CombatSystem {
     }
 
     /**
-     * 從攻擊結果創建投射物實體
+     * 🆕 從攻擊結果創建投射物實體（重構版）
      * 
      * 🎯 職責：
-     * - 遍歷 visualEffects 中的 'projectile' 類型
-     * - 調用 bulletSystem.spawnBullet() 創建伺服器端實體
+     * - 直接使用 projectileConfig 創建 ServerBullet
+     * - 不再需要 visualEffects 作為中轉層
      * - ServerBullet 通過 Colyseus Schema 自動同步到客戶端
+     * 
+     * 📝 配置優先級：
+     * 1. 武器覆蓋配置（projectileConfig 中的可選屬性）
+     * 2. 彈藥默認配置（ProjectileBasic.getConfig）
+     * 
+     * ⚠️ 注意：BulletCreateConfig 只支持部分屬性
+     * - bounceCount, collisionRadius 將在未來版本添加到 BulletCreateConfig
      */
     private createProjectilesFromAttackResult(
         hero: ServerHero,
         result: AttackResult,
     ): void {
-        if (!result.visualEffects) return;
-
-        for (const visualEffect of result.visualEffects) {
-            if (visualEffect.type === 'projectile') {
-                this.createProjectileFromVisualEffect(hero, visualEffect, result);
-            }
-        }
-    }
-
-    /**
-     * 從視覺效果創建投射物
-     * 
-     * 🎯 重構後的配置優先級：
-     * 1. 武器覆蓋配置（getAmmoOverride）- 最高優先級
-     * 2. 彈藥默認配置（ProjectileBasic.getConfig）- 回退值
-     * 
-     * 📝 配置流程：
-     * - 武器通過 VisualEffect.data 傳遞覆蓋配置
-     * - CombatSystem 從 ProjectileBasic 獲取默認配置
-     * - 合併：武器覆蓋 > 彈藥默認值
-     */
-    private createProjectileFromVisualEffect(
-        hero: ServerHero,
-        visualEffect: VisualEffect,
-        attackResult: AttackResult,
-    ): void {
-        // 類型守衛：確保是投射物效果
-        if (visualEffect.type !== 'projectile') {
-            console.warn(`⚠️ 嘗試從非投射物效果創建子彈: ${visualEffect.type}`);
+        if (!result.projectileConfig || !result.attackData) {
+            console.warn(`⚠️ 投射武器攻擊缺少配置: weaponId=${result.weaponId}`);
             return;
         }
 
-        // TypeScript 現在知道這是 ProjectileVisualEffect
-        const projectileData = visualEffect.data;
-        const bulletDamage = attackResult.baseDamage || projectileData.damage || 10;
+        const config = result.projectileConfig;
+        const attackData = result.attackData;
 
-        // 獲取彈藥類型和默認配置
-        const bulletClass = projectileData.bulletClass || projectileData.bulletType || 'BasicProjectile';
-        const defaultConfig = this.getProjectileConfig(bulletClass);
+        // 獲取彈藥默認配置
+        const defaultConfig = this.getProjectileConfig(config.bulletClass);
 
         // 🎯 配置合併：武器覆蓋 > 彈藥默認值
-        const finalPierceCount = projectileData.pierceCount ?? defaultConfig.initialPierceCount;
-        const finalAOE = projectileData.areaOfEffect ?? defaultConfig.areaOfEffect;
+        const finalPierceCount = config.pierceCount ?? defaultConfig.initialPierceCount;
+        const finalAOE = config.areaOfEffect ?? defaultConfig.areaOfEffect;
 
+        // 直接創建 ServerBullet
         this.gameRoom.bulletSystem.spawnBullet({
             ownerId: hero.id,
-            startPosition: visualEffect.position,
-            direction: visualEffect.direction,
-            damage: bulletDamage,
-            speed: projectileData.speed ?? 300,
-            bulletClass: bulletClass,
-            weaponId: attackResult.weaponId || '',
+            startPosition: attackData.position,
+            direction: attackData.direction,
+            damage: config.damage,
+            speed: config.speed,
+            bulletClass: config.bulletClass,
+            weaponId: result.weaponId || '',
             pierceCount: finalPierceCount,
             areaOfEffect: finalAOE,
-            maxDistance: projectileData.maxDistance ?? 400,
+            maxDistance: config.maxDistance,
+            statusEffects: config.statusEffects, // 傳遞狀態效果配置
         });
-
-        // 日誌顯示配置來源
-        const hasOverride = projectileData.pierceCount !== undefined || projectileData.areaOfEffect !== undefined;
-        console.log(
-            `🚀 創建投射物: ${bulletClass} 傷害=${bulletDamage} 穿透=${finalPierceCount} AOE=${finalAOE}${hasOverride ? ' (武器覆蓋)' : ' (彈藥默認)'}`,
-        );
     }
 
     /**
@@ -258,6 +244,78 @@ export class CombatSystem {
         damageResults: DamageResult[],
     ): void {
         this.battleLogSystem.handleAttackBattleLog(hero, damageResults);
+    }
+
+    /**
+     * 🆕 應用狀態效果到目標單位
+     * 將 StatusEffectConfig 轉換為 StatusEffect Schema 並應用到單位
+     * 自動同步到客戶端 (通過 Colyseus Schema)
+     * 
+     * @param target 目標單位
+     * @param effectConfigs 狀態效果配置數組
+     * @param attackerPosition 攻擊者位置 (用於擊退方向計算)
+     */
+    public applyStatusEffects(
+        target: ServerGameUnit,
+        effectConfigs: StatusEffectConfig[],
+        attackerPosition?: { x: number; y: number },
+    ): void {
+        for (const config of effectConfigs) {
+            // 檢查機率觸發
+            if (config.chance !== undefined) {
+                const roll = Math.random() * 100;
+                if (roll > config.chance) {
+                    continue; // 未觸發
+                }
+            }
+
+            // 生成唯一ID
+            const effectId = `${config.type}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+            // 創建 StatusEffect Schema
+            const statusEffect = new StatusEffect();
+            statusEffect.id = effectId;
+            statusEffect.type = config.type;
+            statusEffect.duration = config.duration;
+            statusEffect.value = config.value || 0;
+
+            // 應用到目標單位 (自動同步到客戶端)
+            target.addStatusEffect(statusEffect);
+
+            console.log(`✨ 狀態效果已應用: ${config.type} → ${target.id} (持續 ${config.duration}ms)`);
+
+            // 特殊處理：擊退效果
+            if (config.type === 'knockback' && attackerPosition) {
+                this.applyKnockback(target, attackerPosition, config.value || 0);
+            }
+        }
+    }
+
+    /**
+     * 🆕 應用擊退效果
+     * 計算擊退方向並設置單位速度
+     */
+    private applyKnockback(
+        target: ServerGameUnit,
+        attackerPosition: { x: number; y: number },
+        force: number,
+    ): void {
+        // 計算擊退方向 (遠離攻擊者)
+        const dx = target.position.x - attackerPosition.x;
+        const dy = target.position.y - attackerPosition.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+
+        if (distance === 0) return;
+
+        // 歸一化方向
+        const directionX = dx / distance;
+        const directionY = dy / distance;
+
+        // 應用擊退力量
+        target.vx = directionX * force;
+        target.vy = directionY * force;
+
+        console.log(`💨 擊退效果: ${target.id} 力量=${force}`);
     }
 
     /**

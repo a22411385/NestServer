@@ -46,6 +46,11 @@ export class BulletFactory {
             bullet.pierceCount = config.pierceCount;
         }
 
+        // 🆕 設置狀態效果配置
+        if (config.statusEffects) {
+            bullet.statusEffects = config.statusEffects;
+        }
+
         return bullet;
     }
 }

@@ -6,6 +6,26 @@ import { Vector2 } from '../BaseTypes';
 import { PropertyValue } from '../Equipment/WeaponPropertyTypes';
 
 /**
+ * 投射物配置接口 - 直接傳遞給 BulletSystem
+ * 
+ * 🎯 職責：替代 VisualEffect 作為投射武器的配置傳遞
+ * - 武器通過 projectileConfig 直接傳遞投射物配置
+ * - CombatSystem 直接使用配置創建 ServerBullet
+ * - 不再需要 VisualEffect 作為中轉層
+ */
+export interface ProjectileConfig {
+    bulletClass: string;      // 投射物類名（用於 ProjectileFactory）
+    speed: number;            // 武器速度
+    damage: number;           // 武器傷害
+    maxDistance: number;      // 武器射程
+    pierceCount?: number;     // 彈藥配置（可選覆蓋）
+    areaOfEffect?: number;    // 彈藥配置（可選覆蓋）
+    bounceCount?: number;     // 彈藥配置（可選覆蓋）
+    collisionRadius?: number; // 彈藥配置（可選覆蓋）
+    statusEffects?: StatusEffectConfig[]; // 🆕 命中時應用的狀態效果
+}
+
+/**
  * 統一的攻擊結果接口 - 合併了所有攻擊相關的結果
  */
 export interface AttackResult {
@@ -19,9 +39,14 @@ export interface AttackResult {
     actualDamage?: number; // 實際造成的傷害
     isCritical?: boolean;
 
-    // 效果和視覺
-    effects?: BufferEffect[];
-    visualEffects?: VisualEffect[];
+    // 🆕 狀態效果 (從武器屬性生成)
+    // - 近戰武器: CombatSystem 立即應用到 ServerGameUnit.statusEffects
+    // - 遠程武器: 存在 ProjectileConfig 中,命中時應用
+    statusEffects?: StatusEffectConfig[];
+
+    // 視覺效果
+    visualEffects?: VisualEffect[];  // 🎯 近戰武器使用（swing, slash）
+    projectileConfig?: ProjectileConfig;  // 🆕 投射武器使用（替代 visualEffects）
 
     // 失敗原因
     reason?: AttackFailReason;
@@ -48,14 +73,25 @@ export enum AttackFailReason {
 }
 
 /**
- * 攻擊效果
+ * 狀態效果配置 - 從武器屬性生成,應用到 ServerGameUnit.statusEffects
+ * 
+ * 🎯 職責：武器系統 → 戰鬥系統 的狀態效果傳遞
+ * - 武器從 properties 解析生成 StatusEffectConfig[]
+ * - 近戰: CombatSystem 立即轉換為 StatusEffect Schema 並應用
+ * - 遠程: 存在 ProjectileConfig 中,命中時應用
+ * - 客戶端: 透過 ServerGameUnit.statusEffects (Schema) 自動同步
+ * 
+ * 📝 與 StatusEffectData 的差異:
+ * - StatusEffectData: 武器屬性系統內部使用 (from properties)
+ * - StatusEffectConfig: 攻擊結果傳遞使用 (in AttackResult)
+ * - StatusEffect: Colyseus Schema,同步到客戶端
  */
-export interface BufferEffect {
-    type: 'knockback' | 'stun' | 'slow' | 'burn' | 'freeze' | 'poison';
-    targetId: string;
-    value: number | number[]; // 支援複合值
-    duration?: number; // 持續時間（狀態效果用）
-    direction?: Vector2; // 方向（擊退用）
+export interface StatusEffectConfig {
+    type: 'stun' | 'slow' | 'burn' | 'freeze' | 'poison' | 'knockback';
+    duration: number;           // 持續時間 (毫秒)
+    value?: number;             // 效果數值 (減速百分比、每秒傷害)
+    chance?: number;            // 觸發機率 (0-100)
+    direction?: Vector2;        // 方向 (擊退效果用)
 }
 
 /**
@@ -64,7 +100,9 @@ export interface BufferEffect {
 interface BaseVisualEffect {
     position: Vector2;
     direction: Vector2;
-} /**
+}
+
+/**
  * 近戰攻擊視覺效果（揮砍、斬擊）
  */
 export interface MeleeVisualEffect extends BaseVisualEffect {
@@ -74,22 +112,6 @@ export interface MeleeVisualEffect extends BaseVisualEffect {
         damage: number;
         attackRange?: number;
         sweepAngle?: number;
-    };
-}
-
-/**
- * 投射物視覺效果
- */
-export interface ProjectileVisualEffect extends BaseVisualEffect {
-    type: 'projectile';
-    data: {
-        bulletClass: string; // 投射物類名（如 'ExplosiveProjectile'）
-        bulletType?: string; // 兼容舊代碼
-        speed: number;
-        damage: number;
-        pierceCount?: number;
-        areaOfEffect?: number;
-        maxDistance?: number;
     };
 }
 
@@ -152,13 +174,14 @@ export interface SupportVisualEffect extends BaseVisualEffect {
  * - type 用於判斷邏輯，廣播時自動轉換為 `${type}_effect` 事件名稱
  *
  * 📡 事件廣播規則：
- * - 'projectile' → 不廣播（通過 Schema 同步）
+ * - 投射物 → 不使用 VisualEffect,使用 ProjectileConfig 通過 Schema 同步
  * - 其他類型 → broadcast(`${type}_effect`, data)
  */
 export type VisualEffect =
     | MeleeVisualEffect
-    | ProjectileVisualEffect
+    // ProjectileVisualEffect 已移除 - 投射武器使用 ProjectileConfig
     | ExplosionVisualEffect
     | FreezeVisualEffect
     | HitVisualEffect
     | SupportVisualEffect;
+

@@ -1,6 +1,8 @@
 ---
 mode: agent
 ---
+開始執行修正程式碼或是重構任務時，務必與我確認模糊不清的地方，避免有自行填充錯誤的流程或是錯誤的結構
+
 
 ## 開發環境
 
@@ -221,39 +223,3 @@ export const COMPOSITE_FORMATS = {
  */
 ```
 
-#### 屬性分類說明
-
-```typescript
-export const PROPERTY_CATEGORIES = {
-  basic: '基礎屬性', // 攻擊力、攻擊速度、射程
-  combat: '戰鬥效果', // 擊退、穿透、暴擊、連鎖
-  status: '狀態效果', // 暈眩、冰凍、燃燒、中毒、減速
-  attribute: '角色屬性', // 力量、智力、體力、敏捷
-} as const;
-```
-
-### 屬性生成流程
-
-1. **從 Google Sheets 載入配置**
-   - WeaponProperties: 屬性資料庫（全域共用）
-   - WeaponConfigs: 武器配置（引用屬性名稱）
-
-2. **武器實例化時生成屬性**
-   - 解析 `fixedProperties` 字串，應用所有固定屬性
-   - 根據武器品質確定隨機詞綴槽數量（0-4個）
-   - 解析 `randomProperties` 字串，從池中隨機抽取屬性
-   - 為每個隨機屬性生成範圍內的隨機值
-
-3. **屬性值處理**
-   - 單一值: 直接使用 valueMin 或 valueMax
-   - 範圍值: 在 valueMin-valueMax 間隨機
-   - 複合值: 解析管道符號分隔的字串，按 compositeFormat 定義處理
-
-### 設計優勢
-
-- ✅ **資料驅動**: 完全基於 Google Sheets 配置，無需程式碼修改
-- ✅ **屬性共用**: WeaponProperties 資料庫化，避免重複定義
-- ✅ **靈活引用**: WeaponConfigs 透過字串引用屬性，易於配置
-- ✅ **複合值標準**: 統一的複合值格式，支援複雜效果
-- ✅ **品質固定**: 簡化品質系統，隨機詞綴槽數量固定
-- ✅ **分類清晰**: 屬性按功能分類，便於管理和擴展

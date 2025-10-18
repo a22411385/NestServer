@@ -166,10 +166,9 @@ export abstract class MeleeWeapon extends WeaponBasic {
                 direction: facingDirection,
                 range: this.attackRange,
                 sweepAngle: this.sweepAngle,
-                // 新增：包含所有武器屬性
-                //properties: this.getAllProperties()
             },
             visualEffects: this.createMeleeVisualEffects(attacker, facingDirection),
+            statusEffects: this.generateStatusEffects(), // 🆕 從屬性生成狀態效果
         };
     }
 

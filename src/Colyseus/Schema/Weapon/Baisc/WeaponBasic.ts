@@ -83,9 +83,9 @@ export abstract class WeaponBasic {
     if (!this.weaponConfig) return [];
     return this.weaponConfig.fixedProperties
       ? this.weaponConfig.fixedProperties
-          .split(',')
-          .map((p) => p.trim())
-          .filter((p) => p)
+        .split(',')
+        .map((p) => p.trim())
+        .filter((p) => p)
       : [];
   }
 
@@ -96,9 +96,9 @@ export abstract class WeaponBasic {
     if (!this.weaponConfig) return [];
     return this.weaponConfig.randomProperties
       ? this.weaponConfig.randomProperties
-          .split(',')
-          .map((p) => p.trim())
-          .filter((p) => p)
+        .split(',')
+        .map((p) => p.trim())
+        .filter((p) => p)
       : [];
   }
 
@@ -239,6 +239,78 @@ export abstract class WeaponBasic {
    */
   public getAllProperties(): PropertyValue[] {
     return Array.from(this.properties.values());
+  }
+
+  /**
+   * 🆕 從武器屬性生成狀態效果配置
+   * 供 tryAttack 使用,將屬性轉換為可應用的狀態效果
+   * 
+   * @returns StatusEffectConfig[] - 狀態效果配置數組
+   */
+  protected generateStatusEffects(): import('@/Types').StatusEffectConfig[] {
+    const effects: import('@/Types').StatusEffectConfig[] = [];
+
+    // 暈眩效果 [機率, 持續時間]
+    const stunValue = this.getPropertyValue('stun');
+    if (Array.isArray(stunValue) && stunValue.length >= 2) {
+      effects.push({
+        type: 'stun',
+        chance: stunValue[0],
+        duration: stunValue[1] * 1000, // 轉換為毫秒
+      });
+    }
+
+    // 冰凍效果 [持續時間]
+    const freezeValue = this.getPropertyValue('freeze');
+    if (typeof freezeValue === 'number') {
+      effects.push({
+        type: 'freeze',
+        duration: freezeValue * 1000, // 轉換為毫秒
+      });
+    }
+
+    // 燃燒效果 [持續時間, 每秒傷害]
+    const burnValue = this.getPropertyValue('burn');
+    if (Array.isArray(burnValue) && burnValue.length >= 2) {
+      effects.push({
+        type: 'burn',
+        duration: burnValue[0] * 1000, // 轉換為毫秒
+        value: burnValue[1], // 每秒傷害
+      });
+    }
+
+    // 中毒效果 [持續時間, 每秒傷害]
+    const poisonValue = this.getPropertyValue('poison');
+    if (Array.isArray(poisonValue) && poisonValue.length >= 2) {
+      effects.push({
+        type: 'poison',
+        duration: poisonValue[0] * 1000, // 轉換為毫秒
+        value: poisonValue[1], // 每秒傷害
+      });
+    }
+
+    // 減速效果 [機率, 持續時間, 減速百分比]
+    const slowValue = this.getPropertyValue('slow');
+    if (Array.isArray(slowValue) && slowValue.length >= 3) {
+      effects.push({
+        type: 'slow',
+        chance: slowValue[0],
+        duration: slowValue[1] * 1000, // 轉換為毫秒
+        value: slowValue[2], // 減速百分比
+      });
+    }
+
+    // 擊退效果 [力量]
+    const knockbackValue = this.getPropertyValue('knockback');
+    if (typeof knockbackValue === 'number') {
+      effects.push({
+        type: 'knockback',
+        duration: 0, // 擊退是瞬間效果
+        value: knockbackValue,
+      });
+    }
+
+    return effects;
   }
 
   /**

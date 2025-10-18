@@ -1,5 +1,6 @@
 import { Schema, type } from "@colyseus/schema";
 import { Vector2 } from "./Unit/GameUnit";
+import { StatusEffectConfig } from "@/Types";
 
 // 子彈 Schema - Vampire Survivors 風格
 export class ServerBullet extends Schema {
@@ -22,6 +23,9 @@ export class ServerBullet extends Schema {
     damage: number = 0; // 傷害
     pierceCount: number = 1; // 穿透次數 (對於穿透彈)
     maxDistance: number = 400; // 最大飛行距離 (像素)
+
+    // 🆕 狀態效果配置 (不同步到客戶端,僅伺服器使用)
+    statusEffects: StatusEffectConfig[] = [];
 
     // 設置發射參數
     initialize(

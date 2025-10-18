@@ -96,9 +96,48 @@ export class GameManager {
         if (!this.state.isTestMode) {
             // 配置並啟動 WaveManager 的遊戲流程
             this.setupWaveManagerFlow();
+        } else {
+            // 🆕 測試模式：生成木樁殭屍
+            this.spawnTestDummies();
         }
 
         console.log(`✅ Game started - Wave: ${this.state.gameCore.waveNumber}, Heroes: ${this.state.getAllHeroes().size}`);
+    }
+
+    /**
+     * 🆕 測試模式：生成木樁殭屍
+     */
+    private spawnTestDummies(): void {
+        console.log('🎯 測試模式：生成木樁殭屍');
+
+        // 從環境變量讀取配置
+        const testDummyHP = parseInt(process.env.TEST_DUMMY_HP || '999999');
+        const testDummyCount = parseInt(process.env.TEST_DUMMY_COUNT || '1');
+
+        // 在玩家前方生成木樁
+        const heroes = Array.from(this.state.getAllHeroes().values());
+        if (heroes.length === 0) {
+            console.warn('⚠️ 沒有玩家，無法生成測試木樁');
+            return;
+        }
+
+        const firstHero = heroes[0];
+        const heroX = firstHero.position.x;
+        const heroY = firstHero.position.y;
+
+        // 根據數量生成多個木樁
+        for (let i = 0; i < testDummyCount; i++) {
+            // 在玩家前方150-250像素處生成，橫向分散
+            const offsetX = 200;
+            const offsetY = (i - Math.floor(testDummyCount / 2)) * 100; // 橫向間隔100px
+
+            const dummyX = heroX + offsetX;
+            const dummyY = heroY + offsetY;
+
+            this.enemySystem.spawnTestDummy(dummyX, dummyY, testDummyHP);
+        }
+
+        console.log(`✅ 已生成 ${testDummyCount} 個測試木樁 (HP=${testDummyHP})`);
     }
 
     /**

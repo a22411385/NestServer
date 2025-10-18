@@ -88,17 +88,17 @@ export abstract class ProjectileBasic {
       };
     }
 
-    // 2. 檢查碰撞範圍（如果需要）
-    if (!this.isWithinCollisionRange(bullet, hitTarget)) {
-      return {
-        success: false,
-        weaponId: bullet.weaponId, // ← 從 bullet 獲取
-        baseDamage: 0,
-        reason: AttackFailReason.OUT_OF_RANGE,
-      };
-    }
+    // 2. 🔧 移除碰撞範圍檢查 - BulletSystem 已經檢查過了
+    //    避免因為 collisionRadius=5px 而導致檢測失敗
+    // if (!this.isWithinCollisionRange(bullet, hitTarget)) {
+    //   return {
+    //     success: false,
+    //     weaponId: bullet.weaponId,
+    //     baseDamage: 0,
+    //     reason: AttackFailReason.OUT_OF_RANGE,
+    //   };
+    // }
 
-    // 如果命中
     // 3. 尋找受影響的目標（由子類實現）
     const affectedTargets = this.findAffectedTargets(
       bullet,
@@ -121,7 +121,6 @@ export abstract class ProjectileBasic {
     const finalDamage = this.calculateDamage(bullet, hitTarget);
 
     // 5. 減少子彈的穿透次數（直接修改 ServerBullet 的狀態）
-    console.log(`🔫 子彈 ${bullet.id} 命中 ${hitTarget.id}`);
     bullet.pierceCount--;
 
     // 6. 構建攻擊結果

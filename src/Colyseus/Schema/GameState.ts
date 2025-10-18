@@ -103,7 +103,7 @@ export class GameRoomState extends Schema {
     @type(MapData) mapData: MapData = new MapData();
 
     // === 測試房模式相關 ===
-    @type("boolean") isTestMode: boolean = false; // 測試模式標記
+    @type("boolean") isTestMode: boolean = true; // 測試模式標記
 
     get allUnits() {
         return this.gameCore.allUnits;

@@ -18,9 +18,12 @@ export class BulletSystem {
     private get bullets() {
         return this.gameRoom.state.gameCore.bullets;
     }
+
+    // 🆕 記錄子彈上一幀位置 (用於連續碰撞檢測)
+    private lastBulletPositions: Map<string, Vector2> = new Map();
+
     constructor(gameRoom: GameRoom) {
         this.gameRoom = gameRoom;
-
     }
 
     /**
@@ -29,6 +32,12 @@ export class BulletSystem {
     public spawnBullet(config: BulletCreateConfig): string {
         const bullet = BulletFactory.createBullet(config);
         this.bullets.set(bullet.id, bullet);
+
+        // 🆕 記錄初始位置
+        this.lastBulletPositions.set(bullet.id, new Vector2(
+            config.startPosition.x,
+            config.startPosition.y
+        ));
 
         console.log(`🚀 子彈創建: ${bullet.id} by ${config.ownerId} (${config.bulletClass})`);
         return bullet.id;
@@ -56,17 +65,19 @@ export class BulletSystem {
         const bulletsToRemove: string[] = [];
 
         for (const [bulletId, bullet] of this.bullets) {
+            // 先檢查碰撞,再檢查是否應該移除
+            // 這樣可以確保子彈在最後一幀也能檢測到碰撞
+            this.checkBulletCollisions(bullet);
+
             if (bullet.shouldDestroy()) {
                 bulletsToRemove.push(bulletId);
-                continue;
             }
-
-            // 檢查碰撞
-            this.checkBulletCollisions(bullet);
         }
 
         // 清理過期子彈
-        this.removeBullets(bulletsToRemove);
+        if (bulletsToRemove.length > 0) {
+            this.removeBullets(bulletsToRemove);
+        }
     }
 
     /**
@@ -75,15 +86,21 @@ export class BulletSystem {
     public removeBullets(bulletIds: string[]): void {
         for (const bulletId of bulletIds) {
             this.bullets.delete(bulletId);
-            console.log(`💥 子彈移除: ${bulletId}`);
+            this.lastBulletPositions.delete(bulletId); // 清理位置記錄
         }
     }
 
     /**
-     * 檢查子彈碰撞
+     * 檢查子彈碰撞 - 使用多點採樣連續碰撞檢測
+     * 
+     * 🎯 解決高速投射物穿透問題:
+     * - 在子彈路徑上採樣多個點
+     * - 檢查每個點是否與敵人碰撞
+     * - 簡單可靠,不易出錯
      */
     private checkBulletCollisions(bullet: ServerBullet): void {
         const currentPos = bullet.getCurrentPosition();
+        const lastPos = this.lastBulletPositions.get(bullet.id);
 
         // 檢查與敵人的碰撞
         for (const [enemyId, unit] of this.gameRoom.state.gameCore.allUnits) {
@@ -91,7 +108,18 @@ export class BulletSystem {
 
             const enemy = unit as ServerEnemy;
 
-            if (this.isBulletHitEnemy(bullet, enemy, currentPos)) {
+            // 使用多點採樣檢測
+            let isHit = false;
+
+            if (!lastPos) {
+                // 第一幀,只檢測當前位置
+                isHit = this.checkPointCollision(currentPos, enemy);
+            } else {
+                // 檢測路徑上的多個點
+                isHit = this.checkPathCollision(lastPos, currentPos, enemy);
+            }
+
+            if (isHit) {
                 this.handleBulletHit(bullet, enemy);
 
                 // 檢查子彈是否應該繼續存在
@@ -100,35 +128,88 @@ export class BulletSystem {
                 }
             }
         }
-    }
 
-    /**
-     * 檢查子彈是否命中敵人
+        // 更新上一幀位置
+        this.lastBulletPositions.set(bullet.id, new Vector2(currentPos.x, currentPos.y));
+    }    /**
+     * 🆕 檢測單點是否與敵人碰撞
+     * 
+     * @param point 檢測點位置
+     * @param enemy 敵人實例
+     * @returns 是否碰撞
      */
-    private isBulletHitEnemy(bullet: ServerBullet, enemy: ServerEnemy, bulletPos: Vector2): boolean {
-        const bulletWidth = 10;
-        const bulletHeight = 10;
+    private checkPointCollision(point: Vector2, enemy: ServerEnemy): boolean {
+        // 增大子彈碰撞半徑,提高命中率
+        const bulletRadius = 25;
+
         const enemyWidth = enemy.collisionWidth * (enemy.scale || 1);
         const enemyHeight = enemy.collisionHeight * (enemy.scale || 1);
 
+        // 計算擴展後的碰撞框
+        const halfWidth = (enemyWidth + bulletRadius * 2) / 2;
+        const halfHeight = (enemyHeight + bulletRadius * 2) / 2;
 
-        return BattleMathUtils.isRectCollide(
-            bulletPos.x, bulletPos.y, bulletWidth, bulletHeight,
-            enemy.position.x, enemy.position.y, enemyWidth, enemyHeight
-        );
+        // 計算距離
+        const distX = Math.abs(point.x - enemy.position.x);
+        const distY = Math.abs(point.y - enemy.position.y);
+
+        return distX <= halfWidth && distY <= halfHeight;
     }
 
     /**
+     * 🆕 檢測路徑是否與敵人碰撞 - 多點採樣法
+     * 
+     * 在路徑上採樣多個點,檢查是否有任何點與敵人碰撞
+     * 這比線段相交算法更簡單可靠
+     * 
+     * @param startPos 起點位置
+     * @param endPos 終點位置
+     * @param enemy 敵人實例
+     * @returns 是否碰撞
+     */
+    private checkPathCollision(
+        startPos: Vector2,
+        endPos: Vector2,
+        enemy: ServerEnemy
+    ): boolean {
+        // 計算路徑長度
+        const dx = endPos.x - startPos.x;
+        const dy = endPos.y - startPos.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+
+        // 根據距離決定採樣點數量
+        // 每 10 像素採樣一個點,至少 3 個點 (起點、中點、終點)
+        const samples = Math.max(3, Math.ceil(distance / 10));
+
+        // 🐛 調試日誌
+        // console.log(`🔍 路徑檢測: 距離=${distance.toFixed(1)} 採樣點=${samples}`);
+
+        // 在路徑上採樣多個點
+        for (let i = 0; i <= samples; i++) {
+            const t = i / samples;
+            const samplePoint = new Vector2(
+                startPos.x + dx * t,
+                startPos.y + dy * t
+            );
+
+            if (this.checkPointCollision(samplePoint, enemy)) {
+                return true;
+            }
+        }
+
+        return false;
+    }    /**
      * 處理子彈命中 - 使用新的投射物系統
      */
     private handleBulletHit(bullet: ServerBullet, enemy: ServerEnemy): void {
         const owner = this.gameRoom.state.gameCore.allUnits.get(bullet.ownerId);
-        if (!owner) return;
+        if (!owner) {
+            console.warn(`⚠️ 找不到子彈擁有者: ${bullet.ownerId}`);
+            return;
+        }
 
-        // 🆕 使用投射物系統處理命中（單例模式）
+        // 使用投射物系統處理命中（單例模式）
         const projectile = ProjectileFactory.getProjectile(bullet.bulletType);
-        //                                                    ▲
-        //                        只需要類名，返回單例實例
 
         // 投射物處理命中邏輯，返回標準的 AttackResult
         const attackResult = projectile.onHit(bullet, enemy, this.gameRoom);
@@ -144,19 +225,33 @@ export class BulletSystem {
             // 對所有受影響的目標造成傷害
             for (const targetId of attackResult.targetIds || []) {
                 const target = this.gameRoom.state.gameCore.allUnits.get(targetId);
-                if (target && !target.isDead) {
-                    const damageResult = this.gameRoom.damageSystem.dealDamageToTarget({
-                        attacker: owner,
-                        target: target,
-                        baseDamage: attackResult.baseDamage,
-                        damageType: 'physical',
-                        source: `projectile_${bullet.bulletType}`,
-                        position: bullet.getCurrentPosition()
-                    });
+                if (!target) {
+                    console.warn(`⚠️ 找不到目標單位: ${targetId}`);
+                    continue;
+                }
 
-                    if (damageResult.targetKilled) {
-                        this.handleEnemyKilled(bullet, target as ServerEnemy, targetId);
-                    }
+                if (target.isDead) continue;
+
+                const damageResult = this.gameRoom.damageSystem.dealDamageToTarget({
+                    attacker: owner,
+                    target: target,
+                    baseDamage: attackResult.baseDamage,
+                    damageType: 'physical',
+                    source: `projectile_${bullet.bulletType}`,
+                    position: bullet.getCurrentPosition()
+                });
+
+                // 投射物命中時應用狀態效果
+                if (bullet.statusEffects && bullet.statusEffects.length > 0) {
+                    this.gameRoom.combatSystem.applyStatusEffects(
+                        target,
+                        bullet.statusEffects,
+                        bullet.getCurrentPosition()
+                    );
+                }
+
+                if (damageResult.targetKilled) {
+                    this.handleEnemyKilled(bullet, target as ServerEnemy, targetId);
                 }
             }
         }
@@ -203,6 +298,9 @@ export class BulletSystem {
         // 移除所有子彈
         const allBulletIds = Array.from(this.bullets.keys());
         this.removeBullets(allBulletIds);
+
+        // 🆕 清理位置記錄
+        this.lastBulletPositions.clear();
     }
 
     /**

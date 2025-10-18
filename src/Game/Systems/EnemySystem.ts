@@ -160,6 +160,57 @@ export class EnemySystem {
     }
 
     /**
+     * 🆕 測試模式：生成木樁殭屍（不會動、血量極高）
+     * 
+     * @param x X 座標
+     * @param y Y 座標
+     * @param hp 血量（默認 999999）
+     * @returns 敵人ID
+     */
+    spawnTestDummy(x: number, y: number, hp: number = 999999): string {
+        const enemy = new ServerEnemy();
+        enemy.id = IdGenerator.generateTestEnemyId(999); // 特殊類型ID
+
+        // 設置為木樁殭屍
+        enemy.name = "木樁殭屍";
+        enemy.type = UnitType.enemy;
+        enemy.lv = 999; // 特殊等級標記
+
+        // 極高血量
+        enemy.hp = hp;
+        enemy.maxHp = hp;
+
+        // 不會移動
+        enemy.moveSpeed = 0;
+
+        // 不會攻擊
+        enemy.damage = 0;
+        enemy.attackSpeed = 999999;
+        enemy.attackRange = 0;
+
+        // 無經驗獎勵
+        enemy.expReward = 0;
+
+        // 設置碰撞框
+        enemy.collisionWidth = 64;
+        enemy.collisionHeight = 64;
+        enemy.scale = 1.2; // 稍微大一點以便觀察
+
+        // 設置位置
+        enemy.position = new Vector2(
+            BattleMathUtils.clamp(x, 0, 1000),
+            BattleMathUtils.clamp(y, 0, 800)
+        );
+
+        // 添加到遊戲狀態
+        this.state.addEnemy(enemy);
+
+        console.log(`🎯 生成測試木樁殭屍: ${enemy.id} at (${x}, ${y}) HP=${hp}`);
+
+        return enemy.id;
+    }
+
+    /**
      * 更新所有敵人的 AI - 效能優化版本
      */
     public updateEnemyAI(deltaTime: number, currentTime: number): void {

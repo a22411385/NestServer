@@ -5,8 +5,6 @@ import { ServerGameUnit } from "./GameUnit";
 import { WeaponBasic } from "../Weapon/Baisc/WeaponBasic";
 import { ServerItem } from "../Item/ServerItem";
 import { WeaponData } from "../Weapon/WeaponData";
-import { WeaponSystemFacade } from "../../../Game/Systems/WeaponSystemFacade";
-import { WeaponInstanceManager } from "../../../Game/Managers/WeaponInstanceManager";
 import { HeroWeaponManager } from "../../../Game/Managers/HeroWeaponManager";
 import { AttackResult, AttributeBonus, BuffEffect, StatType } from "@/Types";
 // 玩家操控的主要單位
