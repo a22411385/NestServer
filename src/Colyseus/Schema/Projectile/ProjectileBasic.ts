@@ -1,201 +1,227 @@
-import { ServerGameUnit } from "../Unit/GameUnit";
-import { AttackResult, AttackFailReason, VisualEffect, VisualEffectType } from "../../../Types";
-import { ServerBullet } from "../Bullet";
-import { GameRoom } from "../../Rooms/GameRoom";
+import { ServerGameUnit } from '../Unit/GameUnit';
+import { AttackResult, AttackFailReason, VisualEffect } from '../../../Types';
+import { ServerBullet } from '../Bullet';
+import { GameRoom } from '../../Rooms/GameRoom';
 
 /**
- * 投射物基礎類 - 類似武器系統的架構
+ * 投射物基礎類 - 單例模式
  * 負責投射物命中時的邏輯處理，返回標準的 AttackResult
+ * 
+ * 🎯 設計理念：
+ * - ProjectileBasic 定義**行為邏輯**（如何爆炸、如何穿透）+ **默認配置**
+ * - 武器定義**實際數值**（穿透次數、AOE 範圍）- 可通過強化/品質改變
+ * - ServerBullet 儲存**運行時狀態**（當前穿透次數、位置、方向）
+ * - 使用單例模式避免重複創建實例
+ * 
+ * � 配置優先級：武器配置 > 投射物默認值
+ * 
+ * �📝 使用方式：
+ * ```typescript
+ * // 獲取默認配置
+ * const projectile = ExplosiveProjectile.getInstance();
+ * const defaultConfig = projectile.getConfig(); // { initialPierceCount: 1, areaOfEffect: 80 }
+ * 
+ * // 武器可以覆蓋默認值
+ * const weaponConfig = { pierceCount: 3, areaOfEffect: 150 }; // +10 強化
+ * ```
  */
 export abstract class ProjectileBasic {
-    public projectileType: string = "";
-    public weaponId: string = "";
-    public baseDamage: number = 0;
-    public enabled: boolean = true;
+  // 投射物默認配置（可被武器覆蓋）
+  protected initialPierceCount: number = 1;
+  protected areaOfEffect: number = 0;
+  protected bounceCount: number = 0;
+  protected collisionRadius: number = 5;
 
-    // 投射物特有屬性
-    public pierceCount: number = 1;
-    public areaOfEffect: number = 0; // 0表示無AOE
-    public bounceCount: number = 0;
+  /**
+   * 受保護的構造函數 - 強制使用單例模式
+   */
+  protected constructor() {
+    this.applyProjectileConfig();
+  }
 
-    //碰撞範圍
-    public collisionRadius: number = 5;
+  /**
+   * 應用投射物特定配置（在構造函數中調用一次）
+   * 提供默認配置值，武器可以覆蓋這些值
+   */
+  protected abstract applyProjectileConfig(): void;
 
-    constructor() {
-        // 無參數構造函數
+  /**
+   * 🆕 獲取投射物默認配置
+   * 供 CombatSystem 使用作為回退值（武器沒設定時使用）
+   * 
+   * 🎯 配置優先級：武器配置 > 這裡的默認值
+   */
+  public getConfig(): {
+    initialPierceCount: number;
+    areaOfEffect: number;
+    bounceCount: number;
+    collisionRadius: number;
+  } {
+    return {
+      initialPierceCount: this.initialPierceCount,
+      areaOfEffect: this.areaOfEffect,
+      bounceCount: this.bounceCount,
+      collisionRadius: this.collisionRadius,
+    };
+  }
+
+  /**
+   * 投射物命中處理 - 虛擬方法，處理共同邏輯
+   * @param bullet 命中的子彈實例
+   * @param hitTarget 直接命中的目標
+   * @param gameRoom 遊戲房間
+   * @returns AttackResult 統一的攻擊結果
+   */
+  public onHit(
+    bullet: ServerBullet,
+    hitTarget: ServerGameUnit,
+    gameRoom: GameRoom,
+  ): AttackResult {
+    // 1. 檢查子彈擁有者是否存在
+    const owner = gameRoom.state.gameCore.allUnits.get(bullet.ownerId);
+    if (!owner) {
+      return {
+        success: false,
+        weaponId: bullet.weaponId, // ← 從 bullet 獲取
+        baseDamage: 0,
+        reason: AttackFailReason.NO_TARGET,
+      };
     }
 
-    /**
-     * 初始化投射物配置
-     */
-    public initialize(projectileType: string, weaponId: string, baseDamage: number): void {
-        this.projectileType = projectileType;
-        this.weaponId = weaponId;
-        this.baseDamage = baseDamage;
-        this.applyProjectileConfig();
+    // 2. 檢查碰撞範圍（如果需要）
+    if (!this.isWithinCollisionRange(bullet, hitTarget)) {
+      return {
+        success: false,
+        weaponId: bullet.weaponId, // ← 從 bullet 獲取
+        baseDamage: 0,
+        reason: AttackFailReason.OUT_OF_RANGE,
+      };
     }
 
-    /**
-     * 應用投射物特定配置
-     */
-    protected abstract applyProjectileConfig(): void;
+    // 如果命中
+    // 3. 尋找受影響的目標（由子類實現）
+    const affectedTargets = this.findAffectedTargets(
+      bullet,
+      hitTarget,
+      gameRoom,
+      owner
+    );
 
-    /**
-     * 投射物命中處理 - 虛擬方法，處理共同邏輯
-     * @param bullet 命中的子彈實例
-     * @param hitTarget 直接命中的目標
-     * @param gameRoom 遊戲房間
-     * @returns AttackResult 統一的攻擊結果
-     */
-    public onHit(
-        bullet: ServerBullet,
-        hitTarget: ServerGameUnit,
-        gameRoom: GameRoom
-    ): AttackResult {
-        // 1. 檢查子彈擁有者是否存在
-        const owner = gameRoom.state.gameCore.allUnits.get(bullet.ownerId);
-        if (!owner) {
-            return {
-                success: false,
-                weaponId: this.weaponId,
-                baseDamage: 0,
-                reason: AttackFailReason.NO_TARGET
-            };
-        }
 
-        // 2. 檢查碰撞範圍（如果需要）
-        if (!this.isWithinCollisionRange(bullet, hitTarget)) {
-            return {
-                success: false,
-                weaponId: this.weaponId,
-                baseDamage: 0,
-                reason: AttackFailReason.OUT_OF_RANGE
-            };
-        }
-
-        // 3. 尋找受影響的目標（由子類實現）
-        const affectedTargets = this.findAffectedTargets(bullet, hitTarget, gameRoom);
-
-        // 4. 計算傷害（由子類決定傷害係數）
-        const finalDamage = this.calculateDamage(bullet, hitTarget);
-
-        // 5. 構建攻擊結果
-        return this.buildAttackResult(bullet, affectedTargets, finalDamage);
+    if (affectedTargets.length === 0) {
+      return {
+        success: false,
+        weaponId: bullet.weaponId,
+        baseDamage: 0,
+        reason: AttackFailReason.NO_TARGET,
+      };
     }
 
-    /**
-     * 檢查目標是否在碰撞範圍內
-     */
-    protected isWithinCollisionRange(bullet: ServerBullet, hitTarget: ServerGameUnit): boolean {
-        const bulletPos = bullet.getCurrentPosition();
-        const distance = Math.hypot(
-            hitTarget.position.x - bulletPos.x,
-            hitTarget.position.y - bulletPos.y
-        );
-        return distance <= this.collisionRadius;
+    // 4. 計算傷害（由子類決定傷害係數）
+    const finalDamage = this.calculateDamage(bullet, hitTarget);
+
+    // 5. 減少子彈的穿透次數（直接修改 ServerBullet 的狀態）
+    console.log(`🔫 子彈 ${bullet.id} 命中 ${hitTarget.id}`);
+    bullet.pierceCount--;
+
+    // 6. 構建攻擊結果
+    return this.buildAttackResult(bullet, affectedTargets, finalDamage);
+  }
+
+  /**
+   * 檢查目標是否在碰撞範圍內
+   */
+  protected isWithinCollisionRange(
+    bullet: ServerBullet,
+    hitTarget: ServerGameUnit,
+  ): boolean {
+    const bulletPos = bullet.getCurrentPosition();
+    const distance = Math.hypot(
+      hitTarget.position.x - bulletPos.x,
+      hitTarget.position.y - bulletPos.y,
+    );
+    return distance <= this.collisionRadius;
+  }
+
+  /**
+   * 計算最終傷害（子類可以覆寫以修改傷害）
+   * @param bullet 子彈實例（包含 damage 屬性）
+   * @param hitTarget 命中的目標
+   */
+  protected calculateDamage(
+    bullet: ServerBullet,
+    hitTarget: ServerGameUnit,
+  ): number {
+    return bullet.damage; // ← 從 bullet 獲取傷害值
+  }
+
+  /**
+   * 構建攻擊結果（子類可以覆寫以自定義結果）
+   */
+  protected buildAttackResult(
+    bullet: ServerBullet,
+    affectedTargets: ServerGameUnit[],
+    damage: number,
+  ): AttackResult {
+    return {
+      success: true,
+      weaponId: bullet.weaponId, // ← 從 bullet 獲取
+      targetIds: affectedTargets.map((target) => target.id),
+      baseDamage: damage,
+      attackData: {
+        position: bullet.getCurrentPosition(),
+        direction: { x: bullet.direction.x, y: bullet.direction.y },
+        range: this.areaOfEffect,
+      },
+      visualEffects: this.createVisualEffects(bullet, affectedTargets),
+    };
+  }
+
+  /**
+   * 創建預設視覺效果（子類需覆寫）
+   */
+  protected abstract createVisualEffects(
+    bullet: ServerBullet,
+    affectedTargets: ServerGameUnit[],
+  ): VisualEffect[];
+
+  /**
+   * 尋找受影響的目標（子類必須實現）
+   */
+  protected abstract findAffectedTargets(
+    bullet: ServerBullet,
+    hitTarget: ServerGameUnit,
+    gameRoom: GameRoom,
+    owner: ServerGameUnit,
+  ): ServerGameUnit[];
+
+  /**
+   * 通用的範圍搜索輔助方法
+   */
+  protected findTargetsInRadius(
+    centerPosition: { x: number; y: number },
+    radius: number,
+    gameRoom: GameRoom,
+    owner: ServerGameUnit,
+    excludeTarget?: ServerGameUnit,
+
+  ): ServerGameUnit[] {
+    const targets: ServerGameUnit[] = [];
+
+    for (const [, unit] of gameRoom.state.gameCore.allUnits) {
+      if (unit.isDead || unit === excludeTarget) continue;
+      if (unit.type !== 1) continue; // 1 = UnitType.enemy
+      if (unit.id === owner.id) continue;
+      const distance = Math.hypot(
+        unit.position.x - centerPosition.x,
+        unit.position.y - centerPosition.y,
+      );
+
+      if (distance <= radius) {
+        targets.push(unit);
+      }
     }
 
-    /**
-     * 計算最終傷害（子類可以覆寫以修改傷害）
-     */
-    protected calculateDamage(bullet: ServerBullet, hitTarget: ServerGameUnit): number {
-        return this.baseDamage;
-    }
-
-    /**
-     * 構建攻擊結果（子類可以覆寫以自定義結果）
-     */
-    protected buildAttackResult(
-        bullet: ServerBullet,
-        affectedTargets: ServerGameUnit[],
-        damage: number
-    ): AttackResult {
-        return {
-            success: true,
-            weaponId: this.weaponId,
-            targetIds: affectedTargets.map(target => target.id),
-            baseDamage: damage,
-            attackData: {
-                position: bullet.getCurrentPosition(),
-                direction: { x: bullet.direction.x, y: bullet.direction.y },
-                range: this.areaOfEffect
-            },
-            visualEffects: this.createDefaultVisualEffects(bullet, affectedTargets)
-        };
-    }
-
-    /**
-     * 創建預設視覺效果（子類可以覆寫）
-     */
-    protected createDefaultVisualEffects(
-        bullet: ServerBullet,
-        affectedTargets: ServerGameUnit[]
-    ): VisualEffect[] {
-        return this.createVisualEffects(bullet, 'hit'); // 預設使用 'hit' 效果
-    }
-
-    /**
-     * 尋找受影響的目標（子類必須實現）
-     */
-    protected abstract findAffectedTargets(
-        bullet: ServerBullet,
-        hitTarget: ServerGameUnit,
-        gameRoom: GameRoom
-    ): ServerGameUnit[];
-
-    /**
-     * 檢查投射物是否應該繼續存在
-     */
-    public abstract shouldContinueAfterHit(bullet: ServerBullet): boolean;
-
-    /**
-     * 通用的範圍搜索輔助方法
-     */
-    protected findTargetsInRadius(
-        centerPosition: { x: number, y: number },
-        radius: number,
-        gameRoom: GameRoom,
-        excludeTarget?: ServerGameUnit
-    ): ServerGameUnit[] {
-        const targets: ServerGameUnit[] = [];
-
-        for (const [, unit] of gameRoom.state.gameCore.allUnits) {
-            if (unit.isDead || unit === excludeTarget) continue;
-            if (unit.type !== 1) continue; // 1 = UnitType.enemy
-
-            const distance = Math.hypot(
-                unit.position.x - centerPosition.x,
-                unit.position.y - centerPosition.y
-            );
-
-            if (distance <= radius) {
-                targets.push(unit);
-            }
-        }
-
-        return targets;
-    }
-
-    /**
-     * 創建視覺效果數據
-     */
-    protected createVisualEffects(
-        bullet: ServerBullet,
-        effectType: VisualEffectType,
-        additionalData?: any
-    ): VisualEffect[] {
-        const currentPos = bullet.getCurrentPosition();
-
-        return [{
-            type: effectType,
-            eventType: `projectile_${effectType}`,
-            position: { x: currentPos.x, y: currentPos.y },
-            direction: { x: bullet.direction.x, y: bullet.direction.y },
-            data: {
-                projectileType: this.projectileType,
-                weaponId: this.weaponId,
-                ...additionalData
-            }
-        }];
-    }
+    return targets;
+  }
 }

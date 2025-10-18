@@ -111,7 +111,7 @@ export class ServerHero extends ServerGameUnit {
         this.recalculateAllStats();
 
         // 🆕 初始化武器管理器
-        this.weaponManager = new HeroWeaponManager(this as any);
+        this.weaponManager = new HeroWeaponManager(this);
     }
 
     /**

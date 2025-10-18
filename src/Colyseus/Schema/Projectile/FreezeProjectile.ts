@@ -1,17 +1,30 @@
-import { ProjectileBasic } from "./ProjectileBasic";
-import { ServerGameUnit } from "../Unit/GameUnit";
-import { AttackResult, AttackFailReason } from "../../../Types";
-import { ServerBullet } from "../Bullet";
-import { GameRoom } from "../../Rooms/GameRoom";
+import { ProjectileBasic } from './ProjectileBasic';
+import { ServerGameUnit } from '../Unit/GameUnit';
+import { AttackResult, AttackFailReason, VisualEffect } from '../../../Types';
+import { ServerBullet } from '../Bullet';
+import { GameRoom } from '../../Rooms/GameRoom';
 
 /**
  * 冰凍投射物 - 命中後造成冰凍效果
+ * 使用單例模式
  */
 export class FreezeProjectile extends ProjectileBasic {
-    private freezeDuration: number = 2000; // 2秒冰凍
+    private static instance: FreezeProjectile;
+    private readonly freezeDuration: number = 2000; // 2秒冰凍
+
+    public static getInstance(): FreezeProjectile {
+        if (!FreezeProjectile.instance) {
+            FreezeProjectile.instance = new FreezeProjectile();
+        }
+        return FreezeProjectile.instance;
+    }
+
+    private constructor() {
+        super();
+    }
 
     protected applyProjectileConfig(): void {
-        this.pierceCount = 1;
+        this.initialPierceCount = 1;
         this.areaOfEffect = 0;
         this.bounceCount = 0;
     }
@@ -22,7 +35,7 @@ export class FreezeProjectile extends ProjectileBasic {
     public onHit(
         bullet: ServerBullet,
         hitTarget: ServerGameUnit,
-        gameRoom: GameRoom
+        gameRoom: GameRoom,
     ): AttackResult {
         // 先執行基類的通用邏輯（檢查擁有者、碰撞範圍等）
         const result = super.onHit(bullet, hitTarget, gameRoom);
@@ -37,21 +50,33 @@ export class FreezeProjectile extends ProjectileBasic {
 
     /**
      * 覆寫視覺效果 - 冰凍效果
+     *
+     * 📡 廣播事件：freeze_effect
      */
-    protected createDefaultVisualEffects(
+    protected createVisualEffects(
         bullet: ServerBullet,
-        affectedTargets: ServerGameUnit[]
-    ): any[] {
-        return this.createVisualEffects(bullet, 'freeze', {
-            duration: this.freezeDuration,
-            targetId: affectedTargets[0]?.id
-        });
+        affectedTargets: ServerGameUnit[],
+    ): VisualEffect[] {
+        const currentPos = bullet.getCurrentPosition();
+
+        const freezeEffect: VisualEffect = {
+            type: 'freeze',
+            position: { x: currentPos.x, y: currentPos.y },
+            direction: { x: bullet.direction.x, y: bullet.direction.y },
+            data: {
+                radius: 50,
+                duration: this.freezeDuration,
+                slowAmount: 0.5,
+            },
+        };
+
+        return [freezeEffect];
     }
 
     protected findAffectedTargets(
         bullet: ServerBullet,
         hitTarget: ServerGameUnit,
-        gameRoom: GameRoom
+        gameRoom: GameRoom,
     ): ServerGameUnit[] {
         // 冰凍投射物只影響直接命中的目標
         return [hitTarget];
@@ -79,10 +104,5 @@ export class FreezeProjectile extends ProjectileBasic {
                 console.log(`❄️ ${target.name} 冰凍效果結束`);
             }
         }, this.freezeDuration);
-    }
-
-    public shouldContinueAfterHit(bullet: ServerBullet): boolean {
-        // 冰凍投射物命中後就消失
-        return false;
     }
 }

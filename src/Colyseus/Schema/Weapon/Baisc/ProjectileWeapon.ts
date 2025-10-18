@@ -1,19 +1,36 @@
-import { WeaponBasic } from "./WeaponBasic";
-import { AttackResult, AttackFailReason, VisualEffect } from "@/Types";
-import { ServerGameUnit } from "../../Unit/GameUnit";
-import { WeaponType } from "@/Types";
+import { WeaponBasic } from './WeaponBasic';
+import { AttackResult, AttackFailReason, VisualEffect, AmmoOverrideConfig } from '@/Types';
+import { ServerGameUnit } from '../../Unit/GameUnit';
 
 /**
  * 投射武器類
  * 特點：遠程攻擊、有投射物、可能有穿透效果
- * 移除 Schema 導入，ProjectileWeapon 現在是純邏輯層類
- * 🆕 支持配置驅動的初始化
+ * 
+ * 🎯 職責重構：
+ * - 武器只負責：攻擊時機、目標選擇、物理屬性（速度、射程、精度）
+ * - 彈藥負責：命中邏輯、範圍效果、穿透規則（在 ProjectileBasic 中定義）
+ * - 配置優先級：武器覆蓋 > 彈藥默認值
+ * 
+ * 📝 使用方式：
+ * ```typescript
+ * class EnhancedFireball extends ProjectileWeapon {
+ *     protected getBulletClass() { return 'ExplosiveProjectile'; }
+ *     
+ *     // 可選：覆蓋彈藥配置（強化系統）
+ *     protected getAmmoOverride() {
+ *         return { areaOfEffect: 80 + this.enhanceLevel * 10 };
+ *     }
+ * }
+ * ```
  */
 export class ProjectileWeapon extends WeaponBasic {
-    projectileSpeed: number = 0; // 投射物速度
-    pierceCount: number = 0; // 穿透次數
-    areaOfEffect: number = 0; // 範圍效果 (0表示無AOE)
-    accuracy: number = 1.0; // 命中精度 (0-1)
+    // ✅ 武器物理屬性
+    projectileSpeed: number = 0; // 投射物速度（武器決定）
+    accuracy: number = 1.0; // 命中精度（武器決定）
+
+    // ❌ 移除彈藥屬性（現在由 ProjectileBasic 提供）
+    // pierceCount: number = 0;
+    // areaOfEffect: number = 0;
 
     constructor() {
         super(); // 🆕 調用無參數的父類構造函數
@@ -26,11 +43,9 @@ export class ProjectileWeapon extends WeaponBasic {
         // 投射武器的通用配置邏輯
         console.log(`🏹 投射武器配置已應用: ${this.name}`);
 
-        // 設置投射武器的預設值
+        // 設置投射武器的預設值（只設定武器屬性）
         this.projectileSpeed = 300; // 預設投射物速度
-        this.pierceCount = 0;       // 預設無穿透
-        this.areaOfEffect = 0;      // 預設無範圍效果
-        this.accuracy = 1.0;        // 預設100%命中
+        this.accuracy = 1.0; // 預設100%命中
 
         // 子類可以覆寫此方法來應用特定配置
         this.applyProjectileSpecificConfig();
@@ -43,9 +58,28 @@ export class ProjectileWeapon extends WeaponBasic {
         // 預設實現，子類可覆寫
     }
 
+    /**
+     * 🆕 獲取彈藥配置覆蓋（可選）
+     * 子類可以覆寫此方法來覆蓋彈藥的默認配置
+     * 用於強化系統、品質系統等動態修改彈藥屬性
+     * 
+     * @returns 要覆蓋的配置，null 表示使用彈藥默認值
+     * 
+     * @example
+     * ```typescript
+     * // 強化系統：每級增加 10 點 AOE
+     * protected getAmmoOverride(): AmmoOverrideConfig | null {
+     *     return { areaOfEffect: 80 + this.enhanceLevel * 10 };
+     * }
+     * ```
+     */
+    protected getAmmoOverride(): AmmoOverrideConfig | null {
+        return null; // 默認不覆蓋，使用彈藥默認值
+    }
+
     public tryAttack(
         attacker: ServerGameUnit,
-        potentialTargets: ServerGameUnit[]
+        potentialTargets: ServerGameUnit[],
     ): AttackResult {
         // 檢查武器冷卻時間
         if (!this.canAttack()) {
@@ -53,7 +87,7 @@ export class ProjectileWeapon extends WeaponBasic {
                 success: false,
                 weaponId: this.weaponId,
                 baseDamage: 0,
-                reason: AttackFailReason.ON_COOLDOWN
+                reason: AttackFailReason.ON_COOLDOWN,
             };
         }
 
@@ -65,7 +99,7 @@ export class ProjectileWeapon extends WeaponBasic {
                 success: false,
                 weaponId: this.weaponId,
                 baseDamage: 0,
-                reason: AttackFailReason.NO_TARGET
+                reason: AttackFailReason.NO_TARGET,
             };
         }
 
@@ -73,28 +107,38 @@ export class ProjectileWeapon extends WeaponBasic {
         this.updateLastAttackTime();
 
         // 計算射擊方向（朝向主要目標）
-        const shootDirection = this.calculateShootDirection(attacker, primaryTarget);
+        const shootDirection = this.calculateShootDirection(
+            attacker,
+            primaryTarget,
+        );
 
         // 計算可能受影響的目標（包含穿透和AOE邏輯）
         const affectedTargets = this.calculateAffectedTargets(
             attacker,
             potentialTargets,
             primaryTarget,
-            shootDirection
+            shootDirection,
         );
 
         return {
             success: true,
             weaponId: this.weaponId,
-            targetIds: affectedTargets.map(target => target.id),
+            targetIds: affectedTargets.map((target) => target.id),
             baseDamage: this.baseDamage,
             attackData: {
                 position: { x: attacker.position.x, y: attacker.position.y },
                 direction: shootDirection,
                 range: this.attackRange,
-                targetPosition: { x: primaryTarget.position.x, y: primaryTarget.position.y }
+                targetPosition: {
+                    x: primaryTarget.position.x,
+                    y: primaryTarget.position.y,
+                },
             },
-            visualEffects: this.createProjectileVisualEffects(attacker, primaryTarget, shootDirection)
+            visualEffects: this.createProjectileVisualEffects(
+                attacker,
+                primaryTarget,
+                shootDirection,
+            ),
         };
     }
 
@@ -103,9 +147,14 @@ export class ProjectileWeapon extends WeaponBasic {
      */
     protected selectPrimaryTarget(
         attacker: ServerGameUnit,
-        potentialTargets: ServerGameUnit[]
+        potentialTargets: ServerGameUnit[],
     ): ServerGameUnit | null {
-        const targetsInRange = this.findTargetsInRange(attacker, potentialTargets, this.attackRange, 1);
+        const targetsInRange = this.findTargetsInRange(
+            attacker,
+            potentialTargets,
+            this.attackRange,
+            1,
+        );
         return targetsInRange.length > 0 ? targetsInRange[0] : null;
     }
 
@@ -114,8 +163,8 @@ export class ProjectileWeapon extends WeaponBasic {
      */
     protected calculateShootDirection(
         attacker: ServerGameUnit,
-        target: ServerGameUnit
-    ): { x: number, y: number } {
+        target: ServerGameUnit,
+    ): { x: number; y: number } {
         // 計算方向向量
         const dx = target.position.x - attacker.position.x;
         const dy = target.position.y - attacker.position.y;
@@ -129,49 +178,26 @@ export class ProjectileWeapon extends WeaponBasic {
         // TODO: 加入武器精度影響，低精度武器會有隨機偏差
         return {
             x: dx / distance,
-            y: dy / distance
+            y: dy / distance,
         };
     }
 
     /**
      * 計算受影響的目標（包含穿透和AOE邏輯）
+     * 
+     * 🎯 重構：不再使用武器的 pierceCount/areaOfEffect
+     * - 這些邏輯現在由 ProjectileBasic 在命中時處理
+     * - 武器只負責選擇主要目標
      */
     protected calculateAffectedTargets(
         attacker: ServerGameUnit,
         potentialTargets: ServerGameUnit[],
         primaryTarget: ServerGameUnit,
-        shootDirection: { x: number, y: number }
+        shootDirection: { x: number; y: number },
     ): ServerGameUnit[] {
-        const affectedTargets: ServerGameUnit[] = [primaryTarget];
-
-        // 穿透邏輯
-        if (this.pierceCount > 0) {
-            const pierceTargets = this.findPierceTargets(
-                attacker,
-                potentialTargets,
-                primaryTarget,
-                shootDirection,
-                this.pierceCount
-            );
-            affectedTargets.push(...pierceTargets);
-        }
-
-        // AOE邏輯
-        if (this.areaOfEffect > 0) {
-            const aoeTargets = this.findAOETargets(
-                potentialTargets,
-                primaryTarget,
-                this.areaOfEffect
-            );
-            // 避免重複添加
-            aoeTargets.forEach(target => {
-                if (!affectedTargets.includes(target)) {
-                    affectedTargets.push(target);
-                }
-            });
-        }
-
-        return affectedTargets;
+        // ✅ 武器只負責選擇主要目標
+        // 穿透和 AOE 邏輯由 ProjectileBasic.onHit() 處理
+        return [primaryTarget];
     }
 
     /**
@@ -181,14 +207,15 @@ export class ProjectileWeapon extends WeaponBasic {
         attacker: ServerGameUnit,
         potentialTargets: ServerGameUnit[],
         primaryTarget: ServerGameUnit,
-        direction: { x: number, y: number },
-        maxPierce: number
+        direction: { x: number; y: number },
+        maxPierce: number,
     ): ServerGameUnit[] {
         // 找出在射擊路徑上的敵人
         const pierceTargets: ServerGameUnit[] = [];
 
         for (const target of potentialTargets) {
-            if (target === primaryTarget || pierceTargets.length >= maxPierce) continue;
+            if (target === primaryTarget || pierceTargets.length >= maxPierce)
+                continue;
 
             // 檢查目標是否在射擊路徑上
             if (this.isTargetOnShootPath(attacker, target, direction)) {
@@ -205,9 +232,9 @@ export class ProjectileWeapon extends WeaponBasic {
     protected findAOETargets(
         potentialTargets: ServerGameUnit[],
         explosionCenter: ServerGameUnit,
-        radius: number
+        radius: number,
     ): ServerGameUnit[] {
-        return potentialTargets.filter(target => {
+        return potentialTargets.filter((target) => {
             if (target === explosionCenter) return false;
 
             const dx = target.position.x - explosionCenter.position.x;
@@ -224,73 +251,91 @@ export class ProjectileWeapon extends WeaponBasic {
     protected isTargetOnShootPath(
         attacker: ServerGameUnit,
         target: ServerGameUnit,
-        direction: { x: number, y: number }
+        direction: { x: number; y: number },
     ): boolean {
         const targetVector = {
             x: target.position.x - attacker.position.x,
-            y: target.position.y - attacker.position.y
+            y: target.position.y - attacker.position.y,
         };
 
-        const targetDistance = Math.sqrt(targetVector.x * targetVector.x + targetVector.y * targetVector.y);
+        const targetDistance = Math.sqrt(
+            targetVector.x * targetVector.x + targetVector.y * targetVector.y,
+        );
         if (targetDistance === 0 || targetDistance > this.attackRange) return false;
 
         // 歸一化目標方向向量
         const targetDirection = {
             x: targetVector.x / targetDistance,
-            y: targetVector.y / targetDistance
+            y: targetVector.y / targetDistance,
         };
 
-        const dotProduct = direction.x * targetDirection.x + direction.y * targetDirection.y;
+        const dotProduct =
+            direction.x * targetDirection.x + direction.y * targetDirection.y;
         const angle = Math.acos(Math.max(-1, Math.min(1, dotProduct)));
 
         // 允許誤差角度（約5度）
-        return angle < (5 * Math.PI / 180);
+        return angle < (5 * Math.PI) / 180;
     }
 
     /**
-     * ??????????
+     * 創建投射物視覺效果
+     *
+     * 📝 注意：投射物不需要廣播事件，因為通過 Schema 同步
+     * bulletClass 用於客戶端 ClientProjectileRegistry 匹配渲染器
+     * 
+     * 🎯 重構後的配置流程：
+     * 1. 武器通過 projectileClass 指定彈藥類型
+     * 2. 武器可選通過 getAmmoOverride() 覆蓋彈藥配置
+     * 3. CombatSystem 合併：彈藥默認值 + 武器覆蓋
+     * 4. 創建 ServerBullet 使用最終配置
      */
     protected createProjectileVisualEffects(
         attacker: ServerGameUnit,
         target: ServerGameUnit,
-        direction: { x: number, y: number }
+        direction: { x: number; y: number },
     ): VisualEffect[] {
-        return [{
-            type: 'projectile', // 🔧 使用正確的視覺效果類型
-            eventType: 'projectile_fire',
+        // 獲取武器的彈藥配置覆蓋（如果有）
+        const ammoOverride = this.getAmmoOverride();
+
+        const projectileEffect: VisualEffect = {
+            type: 'projectile',
             position: { x: attacker.position.x, y: attacker.position.y },
             direction: direction,
             data: {
-                weaponType: this.weaponId,
-                weaponId: this.weaponId, // 🔧 添加武器ID
-                targetPosition: { x: target.position.x, y: target.position.y },
-                startPosition: { x: attacker.position.x, y: attacker.position.y }, // 🔧 添加起始位置
-                speed: this.projectileSpeed,
-                damage: this.baseDamage, // 🔧 添加傷害數值
-                range: this.attackRange,
-                pierceCount: this.pierceCount,
-                aoeRadius: this.areaOfEffect,
-                bulletType: this.pierceCount > 0 ? 'piercing' : 'basic', // 🔧 添加子彈類型
-                lifeTime: (this.attackRange / this.projectileSpeed) * 1000 // 🔧 根據射程和速度計算生存時間
-            }
-        }];
+                bulletClass: this.projectileClass,  // ✅ 使用武器的 projectileClass 屬性
+                speed: this.projectileSpeed,        // ✅ 武器速度
+                damage: this.baseDamage,            // ✅ 武器傷害
+                maxDistance: this.attackRange,      // ✅ 武器射程
+
+                // ✅ 彈藥配置覆蓋（類型安全，自動展開）
+                ...ammoOverride,
+            },
+        };
+        return [projectileEffect];
     }
 
-    // Getter ??
-    public get speed(): number { return this.projectileSpeed; }
-    public get pierce(): number { return this.pierceCount; }
-    public get aoe(): number { return this.areaOfEffect; }
-    public get hitAccuracy(): number { return this.accuracy; }
+    // Getter - 武器屬性
+    public get speed(): number {
+        return this.projectileSpeed;
+    }
+    public get hitAccuracy(): number {
+        return this.accuracy;
+    }
 
     /**
      * 投射武器找到有效目標 - 最近的敵人優先
      */
     protected findValidTargets(
         attacker: ServerGameUnit,
-        potentialTargets: ServerGameUnit[]
+        potentialTargets: ServerGameUnit[],
     ): ServerGameUnit[] {
         // 投射武器只瞄準最近的一個敵人，創建投射物去攻擊
-        const targetsInRange = this.findTargetsInRange(attacker, potentialTargets, this.attackRange, 1);
+        const targetsInRange = this.findTargetsInRange(
+            attacker,
+            potentialTargets,
+            this.attackRange,
+            1,
+        );
         return targetsInRange;
     }
 }

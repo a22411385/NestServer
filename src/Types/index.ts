@@ -21,6 +21,7 @@ export * from './Equipment/EquipmentTypes';      // 統一的裝備系統
 export * from './Game/EnemyTypes';
 export * from './Game/BulletTypes';
 export * from './Game/TalentTypes';
+export * from './Game/ProjectileTypes';  // 🆕 投射物類型（包含 AmmoOverrideConfig）
 
 // ========================= 系統特定類型 (新位置) =========================
 export * from '../Game/Managers/WaveManager';      // 波次管理系統類型

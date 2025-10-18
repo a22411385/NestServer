@@ -1,9 +1,7 @@
 import { ServerBullet } from "../../Colyseus/Schema/Bullet";
 import { Vector2 } from "../../Colyseus/Schema/Unit/GameUnit";
-import { WeaponBasic } from "../../Colyseus/Schema/Weapon/Baisc/WeaponBasic";
-import { WeaponType, BulletCreateConfig, WeaponBulletConfig } from "@/Types";
+import { BulletCreateConfig } from "@/Types";
 import { UniqueIdGenerator } from "../../Util/UniqueIdGenerator";
-import { rotateVector } from "@/Util/BattleMathUtils";
 
 // 移除重複的interface和enum定義，已搬移到Types資料夾
 
@@ -49,61 +47,5 @@ export class BulletFactory {
         }
 
         return bullet;
-    }
-
-    /**
-     * 根據武器獲取投射物速度
-     */
-    private static getWeaponProjectileSpeed(weapon: WeaponBasic): number {
-        // 根據武器類型返回不同的速度
-        switch (weapon.weaponType) {
-            case WeaponType.PROJECTILE_WEAPON: return 400;
-            case WeaponType.MELEE_WEAPON: return 500; // 近戰武器如果有投射物效果
-            case WeaponType.SUPPORT_WEAPON: return 250;
-            default: return 300;
-        }
-    }
-
-    /**
-     * 根據武器獲取穿透次數
-     */
-    private static getWeaponPierceCount(weapon: WeaponBasic): number {
-        // 可以根據武器屬性或升級等級來決定
-        switch (weapon.weaponType) {
-            case WeaponType.PROJECTILE_WEAPON: return 2;
-            case WeaponType.SUPPORT_WEAPON: return 1;
-            default: return 0;
-        }
-    }
-
-    /**
-     * 根據武器獲取爆炸範圍
-     */
-    private static getWeaponAreaOfEffect(weapon: WeaponBasic): number {
-        switch (weapon.weaponType) {
-            case WeaponType.SUPPORT_WEAPON: return 80;
-            case WeaponType.PROJECTILE_WEAPON: return 0;
-            default: return 0;
-        }
-    }
-
-    /**
-     * 根據武器獲取子彈存活時間
-     */
-    private static getWeaponBulletLifeTime(weapon: WeaponBasic): number {
-        // 根據攻擊距離計算存活時間
-        const baseLifeTime = (weapon.attackRange / this.getWeaponProjectileSpeed(weapon)) * 1000;
-        return Math.max(baseLifeTime, 1000); // 最少1秒
-    }
-
-    /**
-     * 根據武器獲取子彈縮放
-     */
-    private static getWeaponBulletScale(weapon: WeaponBasic): number {
-        switch (weapon.weaponType) {
-            case WeaponType.SUPPORT_WEAPON: return 1.5;
-            case WeaponType.PROJECTILE_WEAPON: return 1.2;
-            default: return 1.0;
-        }
     }
 }

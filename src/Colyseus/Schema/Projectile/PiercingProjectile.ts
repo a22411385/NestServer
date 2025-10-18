@@ -1,46 +1,64 @@
-import { ProjectileBasic } from "./ProjectileBasic";
-import { ServerGameUnit } from "../Unit/GameUnit";
-import { AttackResult, AttackFailReason } from "../../../Types";
-import { ServerBullet } from "../Bullet";
-import { GameRoom } from "../../Rooms/GameRoom";
+import { ProjectileBasic } from './ProjectileBasic';
+import { ServerGameUnit } from '../Unit/GameUnit';
+import { VisualEffect } from '../../../Types';
+import { ServerBullet } from '../Bullet';
+import { GameRoom } from '../../Rooms/GameRoom';
 
 /**
  * 穿透投射物 - 可以穿透多個敵人
+ * 使用單例模式
  */
 export class PiercingProjectile extends ProjectileBasic {
+    private static instance: PiercingProjectile;
+
+    public static getInstance(): PiercingProjectile {
+        if (!PiercingProjectile.instance) {
+            PiercingProjectile.instance = new PiercingProjectile();
+        }
+        return PiercingProjectile.instance;
+    }
+
+    private constructor() {
+        super();
+    }
+
     protected applyProjectileConfig(): void {
-        this.pierceCount = 3; // 可以穿透3個敵人
+        this.initialPierceCount = 3; // 可以穿透3個敵人
         this.areaOfEffect = 0;
         this.bounceCount = 0;
     }
 
     /**
-     * 覆寫視覺效果 - 穿透效果
+     * 覆寫視覺效果 - 穿透命中效果
+     *
+     * 📡 廣播事件：hit_effect
      */
-    protected createDefaultVisualEffects(
+    protected createVisualEffects(
         bullet: ServerBullet,
-        affectedTargets: ServerGameUnit[]
-    ): any[] {
-        return this.createVisualEffects(bullet, 'hit', {
-            remainingPierce: bullet.pierceCount - 1,
-            isPierce: true
-        });
+        affectedTargets: ServerGameUnit[],
+    ): VisualEffect[] {
+        const currentPos = bullet.getCurrentPosition();
+
+        const hitEffect: VisualEffect = {
+            type: 'hit',
+            position: { x: currentPos.x, y: currentPos.y },
+            direction: { x: bullet.direction.x, y: bullet.direction.y },
+            data: {
+                damage: bullet.damage, // ← 從 bullet 獲取
+                isPierce: true,
+                isCritical: false,
+            },
+        };
+
+        return [hitEffect];
     }
 
     protected findAffectedTargets(
         bullet: ServerBullet,
         hitTarget: ServerGameUnit,
-        gameRoom: GameRoom
+        gameRoom: GameRoom,
     ): ServerGameUnit[] {
         // 穿透投射物只影響直接命中的目標
         return [hitTarget];
-    }
-
-    public shouldContinueAfterHit(bullet: ServerBullet): boolean {
-        // 減少穿透次數
-        bullet.pierceCount--;
-
-        // 如果還有穿透次數，繼續存在
-        return bullet.pierceCount > 0;
     }
 }

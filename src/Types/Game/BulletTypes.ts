@@ -14,6 +14,7 @@ export interface BulletCreateConfig {
     direction: { x: number, y: number };
     damage: number;
     speed?: number;
+
     /**
      * 投射物類名（用於反射創建實例）
      * 

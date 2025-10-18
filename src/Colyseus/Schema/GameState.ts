@@ -108,6 +108,9 @@ export class GameRoomState extends Schema {
     get allUnits() {
         return this.gameCore.allUnits;
     }
+    addBullet(bullet: ServerBullet): void {
+        this.gameCore.bullets.set(bullet.id, bullet);
+    }
 
     // 添加完整單位的方法
     addUnit(unit: ServerGameUnit): void {

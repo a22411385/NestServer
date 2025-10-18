@@ -1,6 +1,5 @@
-import { MapSchema } from "@colyseus/schema";
 import { ServerBullet } from "../../Colyseus/Schema/Bullet";
-import { BulletCreateConfig, WeaponBulletConfig } from "@/Types";
+import { BulletCreateConfig } from "@/Types";
 import { BulletFactory } from "../Factories/BulletFactory";
 import { GameRoom } from "../../Colyseus/Rooms/GameRoom";
 import { ServerEnemy } from "../../Colyseus/Schema/Unit/Enemy";
@@ -16,11 +15,12 @@ import { ProjectileFactory } from "../Factories/ProjectileFactory";
  */
 export class BulletSystem {
     private gameRoom: GameRoom;
-    private bullets: MapSchema<ServerBullet>;
-
+    private get bullets() {
+        return this.gameRoom.state.gameCore.bullets;
+    }
     constructor(gameRoom: GameRoom) {
         this.gameRoom = gameRoom;
-        this.bullets = gameRoom.state.gameCore.bullets;
+
     }
 
     /**
@@ -111,6 +111,7 @@ export class BulletSystem {
         const enemyWidth = enemy.collisionWidth * (enemy.scale || 1);
         const enemyHeight = enemy.collisionHeight * (enemy.scale || 1);
 
+
         return BattleMathUtils.isRectCollide(
             bulletPos.x, bulletPos.y, bulletWidth, bulletHeight,
             enemy.position.x, enemy.position.y, enemyWidth, enemyHeight
@@ -124,12 +125,10 @@ export class BulletSystem {
         const owner = this.gameRoom.state.gameCore.allUnits.get(bullet.ownerId);
         if (!owner) return;
 
-        // 🆕 使用投射物系統處理命中
-        const projectile = ProjectileFactory.getProjectile(
-            bullet.bulletType,
-            bullet.weaponId,
-            bullet.damage
-        );
+        // 🆕 使用投射物系統處理命中（單例模式）
+        const projectile = ProjectileFactory.getProjectile(bullet.bulletType);
+        //                                                    ▲
+        //                        只需要類名，返回單例實例
 
         // 投射物處理命中邏輯，返回標準的 AttackResult
         const attackResult = projectile.onHit(bullet, enemy, this.gameRoom);
@@ -162,10 +161,6 @@ export class BulletSystem {
             }
         }
 
-        // 檢查投射物是否應該繼續存在
-        if (!projectile.shouldContinueAfterHit(bullet)) {
-            bullet.pierceCount = 0; // 標記為需要移除
-        }
     }
 
     /**

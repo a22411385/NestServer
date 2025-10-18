@@ -1,7 +1,12 @@
-import { WeaponBasic } from "./WeaponBasic";
-import { AttackFailReason, VisualEffect, AttackResult, PropertyType } from "@/Types";
-import { ServerGameUnit } from "../../Unit/GameUnit";
-import { StatusEffectData } from "@/Types/Equipment/WeaponPropertyTypes";
+import { WeaponBasic } from './WeaponBasic';
+import {
+    AttackFailReason,
+    VisualEffect,
+    AttackResult,
+    PropertyType,
+} from '@/Types';
+import { ServerGameUnit } from '../../Unit/GameUnit';
+import { StatusEffectData } from '@/Types/Equipment/WeaponPropertyTypes';
 
 /**
  * 近戰武器抽象類
@@ -44,8 +49,9 @@ export abstract class MeleeWeapon extends WeaponBasic {
      * 獲取掃射角度（從屬性系統）
      */
     public get sweepAngle(): number {
-        const angleInDegrees = (this.getPropertyValue(PropertyType.SWEEP_ANGLE) as number) || 0;
-        return angleInDegrees * Math.PI / 180; // 轉換為弧度
+        const angleInDegrees =
+            (this.getPropertyValue(PropertyType.SWEEP_ANGLE) as number) || 0;
+        return (angleInDegrees * Math.PI) / 180; // 轉換為弧度
     }
 
     /**
@@ -53,7 +59,7 @@ export abstract class MeleeWeapon extends WeaponBasic {
      */
     public get stunEffect(): [number, number] | null {
         const stunValue = this.getPropertyValue(PropertyType.STUN);
-        return Array.isArray(stunValue) ? stunValue as [number, number] : null;
+        return Array.isArray(stunValue) ? (stunValue as [number, number]) : null;
     }
 
     /**
@@ -68,7 +74,7 @@ export abstract class MeleeWeapon extends WeaponBasic {
             effects.push({
                 type: PropertyType.STUN,
                 chance: stunValue[0],
-                duration: stunValue[1]
+                duration: stunValue[1],
             });
         }
 
@@ -77,7 +83,7 @@ export abstract class MeleeWeapon extends WeaponBasic {
         if (typeof freezeValue === 'number') {
             effects.push({
                 type: PropertyType.FREEZE,
-                duration: freezeValue
+                duration: freezeValue,
             });
         }
 
@@ -87,7 +93,7 @@ export abstract class MeleeWeapon extends WeaponBasic {
             effects.push({
                 type: PropertyType.BURN,
                 duration: burnValue[0],
-                damagePerSecond: burnValue[1]
+                damagePerSecond: burnValue[1],
             });
         }
 
@@ -97,7 +103,7 @@ export abstract class MeleeWeapon extends WeaponBasic {
             effects.push({
                 type: PropertyType.POISON,
                 duration: poisonValue[0],
-                damagePerSecond: poisonValue[1]
+                damagePerSecond: poisonValue[1],
             });
         }
 
@@ -108,7 +114,7 @@ export abstract class MeleeWeapon extends WeaponBasic {
                 type: PropertyType.SLOW,
                 chance: slowValue[0],
                 duration: slowValue[1],
-                slowPercentage: slowValue[2]
+                slowPercentage: slowValue[2],
             });
         }
 
@@ -117,7 +123,7 @@ export abstract class MeleeWeapon extends WeaponBasic {
 
     public override tryAttack(
         attacker: ServerGameUnit,
-        potentialTargets: ServerGameUnit[]
+        potentialTargets: ServerGameUnit[],
     ): AttackResult {
         // 檢查冷卻時間
         if (!this.canAttack()) {
@@ -125,7 +131,7 @@ export abstract class MeleeWeapon extends WeaponBasic {
                 success: false,
                 weaponId: this.weaponId,
                 baseDamage: 0,
-                reason: AttackFailReason.ON_COOLDOWN
+                reason: AttackFailReason.ON_COOLDOWN,
             };
         }
 
@@ -137,7 +143,7 @@ export abstract class MeleeWeapon extends WeaponBasic {
                 success: false,
                 weaponId: this.weaponId,
                 baseDamage: 0,
-                reason: AttackFailReason.NO_TARGET
+                reason: AttackFailReason.NO_TARGET,
             };
         }
 
@@ -147,13 +153,13 @@ export abstract class MeleeWeapon extends WeaponBasic {
         // 計算攻擊方向
         const facingDirection = {
             x: Math.cos(attacker.facingDirection),
-            y: Math.sin(attacker.facingDirection)
+            y: Math.sin(attacker.facingDirection),
         };
 
         return {
             success: true,
             weaponId: this.weaponId,
-            targetIds: validTargets.map(target => target.id),
+            targetIds: validTargets.map((target) => target.id),
             baseDamage: this.baseDamage,
             attackData: {
                 position: { x: attacker.position.x, y: attacker.position.y },
@@ -163,7 +169,7 @@ export abstract class MeleeWeapon extends WeaponBasic {
                 // 新增：包含所有武器屬性
                 //properties: this.getAllProperties()
             },
-            visualEffects: this.createMeleeVisualEffects(attacker, facingDirection)
+            visualEffects: this.createMeleeVisualEffects(attacker, facingDirection),
         };
     }
 
@@ -172,32 +178,30 @@ export abstract class MeleeWeapon extends WeaponBasic {
      */
     protected createMeleeVisualEffects(
         attacker: ServerGameUnit,
-        facingDirection: { x: number, y: number }
+        facingDirection: { x: number; y: number },
     ): VisualEffect[] {
-        return [{
+        const meleeEffect: VisualEffect = {
             type: 'swing',
-            eventType: 'melee_swing',
             position: { x: attacker.position.x, y: attacker.position.y },
             direction: facingDirection,
             data: {
                 weaponType: this.weaponId,
-                range: this.attackRange,
-                sweepAngle: this.sweepAngle * 180 / Math.PI, // 轉換為度給客戶端
-                knockbackForce: this.knockbackForce
-            }
-        }];
-    }
-
-    /**
-     * 近戰武器的目標選擇邏輯 - 360度搜尋最近敵人
-     * 每次攻擊都會自動瞄準並攻擊最近的敵人
-     */
+                damage: this.baseDamage,
+                attackRange: this.attackRange,
+                sweepAngle: (this.sweepAngle * 180) / Math.PI, // 轉換為度給客戶端
+            },
+        };
+        return [meleeEffect];
+    } /**
+   * 近戰武器的目標選擇邏輯 - 360度搜尋最近敵人
+   * 每次攻擊都會自動瞄準並攻擊最近的敵人
+   */
     protected findValidTargets(
         attacker: ServerGameUnit,
-        potentialTargets: ServerGameUnit[]
+        potentialTargets: ServerGameUnit[],
     ): ServerGameUnit[] {
         // 過濾出存活的敵人
-        const aliveTargets = potentialTargets.filter(target => !target.isDead);
+        const aliveTargets = potentialTargets.filter((target) => !target.isDead);
 
         if (aliveTargets.length === 0) {
             return [];
@@ -205,23 +209,23 @@ export abstract class MeleeWeapon extends WeaponBasic {
 
         // 找出攻擊範圍內的所有敵人，並按距離排序
         const targetsInRange = aliveTargets
-            .map(target => ({
+            .map((target) => ({
                 unit: target,
                 distance: Math.hypot(
                     target.position.x - attacker.position.x,
-                    target.position.y - attacker.position.y
-                )
+                    target.position.y - attacker.position.y,
+                ),
             }))
-            .filter(item => item.distance <= this.attackRange)
+            .filter((item) => item.distance <= this.attackRange)
             .sort((a, b) => a.distance - b.distance);
 
         if (targetsInRange.length === 0) {
             return [];
-        }        // 自動調整攻擊者的面向角度，朝向最近的敵人
+        } // 自動調整攻擊者的面向角度，朝向最近的敵人
         const closestTarget = targetsInRange[0].unit;
         const targetAngle = Math.atan2(
             closestTarget.position.y - attacker.position.y,
-            closestTarget.position.x - attacker.position.x
+            closestTarget.position.x - attacker.position.x,
         );
 
         // 更新攻擊者的面向方向
@@ -229,8 +233,12 @@ export abstract class MeleeWeapon extends WeaponBasic {
         attacker.facingDirection = targetAngle;
 
         console.log(`⚔️ ${this.weaponId} auto-aiming:`);
-        console.log(`  👹 Closest target: ${closestTarget.id} at distance ${targetsInRange[0].distance.toFixed(1)}`);
-        console.log(`  🎯 Adjusted facing: ${(previousFacing * 180 / Math.PI).toFixed(1)}° → ${(targetAngle * 180 / Math.PI).toFixed(1)}°`);
+        console.log(
+            `  👹 Closest target: ${closestTarget.id} at distance ${targetsInRange[0].distance.toFixed(1)}`,
+        );
+        console.log(
+            `  🎯 Adjusted facing: ${((previousFacing * 180) / Math.PI).toFixed(1)}° → ${((targetAngle * 180) / Math.PI).toFixed(1)}°`,
+        );
         console.log(`  🔍 Targets in range: ${targetsInRange.length}`);
 
         // 根據武器類型選擇攻擊目標
@@ -244,9 +252,10 @@ export abstract class MeleeWeapon extends WeaponBasic {
                 this.attackRange,
                 this.sweepAngle,
                 attacker.facingDirection,
-
             );
-            console.log(`  💥 Fan attack (${(this.sweepAngle * 180 / Math.PI).toFixed(1)}°): ${selectedTargets.length} targets`);
+            console.log(
+                `  💥 Fan attack (${((this.sweepAngle * 180) / Math.PI).toFixed(1)}°): ${selectedTargets.length} targets`,
+            );
         } else {
             // 單點攻擊：只攻擊最近的敵人
             selectedTargets = [closestTarget];

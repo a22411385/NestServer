@@ -1,7 +1,7 @@
-import { WeaponBasic } from "./WeaponBasic";
-import { AttackFailReason, VisualEffect, AttackResult } from "@/Types";
-import { ServerGameUnit } from "../../Unit/GameUnit";
-import { WeaponType } from "@/Types";
+import { WeaponBasic } from './WeaponBasic';
+import { AttackFailReason, VisualEffect, AttackResult } from '@/Types';
+import { ServerGameUnit } from '../../Unit/GameUnit';
+import { WeaponType } from '@/Types';
 
 /**
  * 輔助武器抽象類
@@ -27,10 +27,10 @@ export abstract class SupportWeapon extends WeaponBasic {
         console.log(`🛡️ 輔助武器配置已應用: ${this.name}`);
 
         // 設置輔助武器的預設值
-        this.healAmount = 20;        // 預設治療量
-        this.buffDuration = 5000;    // 預設增益持續時間 (5秒)
-        this.supportRadius = 150;    // 預設支援範圍
-        this.canTargetSelf = true;   // 預設可以對自己使用
+        this.healAmount = 20; // 預設治療量
+        this.buffDuration = 5000; // 預設增益持續時間 (5秒)
+        this.supportRadius = 150; // 預設支援範圍
+        this.canTargetSelf = true; // 預設可以對自己使用
 
         // 子類可以覆寫此方法來應用特定配置
         this.applySupportSpecificConfig();
@@ -45,7 +45,7 @@ export abstract class SupportWeapon extends WeaponBasic {
 
     public tryAttack(
         user: ServerGameUnit,
-        potentialTargets: ServerGameUnit[]
+        potentialTargets: ServerGameUnit[],
     ): AttackResult {
         // 檢查冷卻時間
         if (!this.canAttack()) {
@@ -53,7 +53,7 @@ export abstract class SupportWeapon extends WeaponBasic {
                 success: false,
                 weaponId: this.weaponId,
                 baseDamage: 0,
-                reason: AttackFailReason.ON_COOLDOWN
+                reason: AttackFailReason.ON_COOLDOWN,
             };
         }
 
@@ -65,7 +65,7 @@ export abstract class SupportWeapon extends WeaponBasic {
                 success: false,
                 weaponId: this.weaponId,
                 baseDamage: 0,
-                reason: AttackFailReason.NO_TARGET
+                reason: AttackFailReason.NO_TARGET,
             };
         }
 
@@ -75,15 +75,15 @@ export abstract class SupportWeapon extends WeaponBasic {
         return {
             success: true,
             weaponId: this.weaponId,
-            targetIds: supportTargets.map(target => target.id),
+            targetIds: supportTargets.map((target) => target.id),
             baseDamage: this.healAmount, // 對於支援武器，baseDamage 代表治療量
             attackData: {
                 position: { x: user.position.x, y: user.position.y },
                 direction: { x: 0, y: 0 }, // 支援武器通常沒有方向性
                 range: this.attackRange,
-                supportRadius: this.supportRadius
+                supportRadius: this.supportRadius,
             },
-            visualEffects: this.createSupportVisualEffects(user, supportTargets)
+            visualEffects: this.createSupportVisualEffects(user, supportTargets),
         };
     }
 
@@ -93,7 +93,7 @@ export abstract class SupportWeapon extends WeaponBasic {
      */
     protected findSupportTargets(
         user: ServerGameUnit,
-        potentialTargets: ServerGameUnit[]
+        potentialTargets: ServerGameUnit[],
     ): ServerGameUnit[] {
         const supportTargets: ServerGameUnit[] = [];
 
@@ -130,7 +130,10 @@ export abstract class SupportWeapon extends WeaponBasic {
     /**
      * 判斷是否為支援目標（友軍）
      */
-    protected isSupportTarget(user: ServerGameUnit, target: ServerGameUnit): boolean {
+    protected isSupportTarget(
+        user: ServerGameUnit,
+        target: ServerGameUnit,
+    ): boolean {
         // 同陣營的單位可以互相支援
         return user.owner === target.owner;
     }
@@ -158,37 +161,35 @@ export abstract class SupportWeapon extends WeaponBasic {
      */
     protected createSupportVisualEffects(
         user: ServerGameUnit,
-        targets: ServerGameUnit[]
+        targets: ServerGameUnit[],
     ): VisualEffect[] {
         const effects: VisualEffect[] = [];
 
         // 主要支援效果
-        effects.push({
+        const supportEffect: VisualEffect = {
             type: 'support',
-            eventType: 'support_cast',
             position: { x: user.position.x, y: user.position.y },
             direction: { x: 0, y: 0 },
             data: {
-                weaponType: this.weaponId,
-                healAmount: this.healAmount,
-                buffDuration: this.buffDuration,
-                supportRadius: this.supportRadius,
-                targetCount: targets.length
-            }
-        });
+                amount: this.healAmount,
+                radius: this.supportRadius,
+                buffType: `支援範圍 ${this.supportRadius}`,
+            },
+        };
+        effects.push(supportEffect);
 
         // 為每個目標創建治療效果
-        targets.forEach(target => {
-            effects.push({
+        targets.forEach((target) => {
+            const healEffect: VisualEffect = {
                 type: 'heal',
-                eventType: 'heal_effect',
                 position: { x: target.position.x, y: target.position.y },
                 direction: { x: 0, y: 0 },
                 data: {
-                    targetId: target.id,
-                    healAmount: this.healAmount
-                }
-            });
+                    amount: this.healAmount,
+                    buffType: 'heal',
+                },
+            };
+            effects.push(healEffect);
         });
 
         return effects;
@@ -200,9 +201,15 @@ export abstract class SupportWeapon extends WeaponBasic {
     public abstract getSupportType(): 'heal' | 'buff' | 'shield' | 'hybrid';
 
     // Getter 方法
-    public get healing(): number { return this.healAmount; }
-    public get buffTime(): number { return this.buffDuration; }
-    public get radius(): number { return this.supportRadius; }
+    public get healing(): number {
+        return this.healAmount;
+    }
+    public get buffTime(): number {
+        return this.buffDuration;
+    }
+    public get radius(): number {
+        return this.supportRadius;
+    }
 
     /**
      * 支援武器的目標選擇邏輯 - 實現抽象方法
@@ -210,7 +217,7 @@ export abstract class SupportWeapon extends WeaponBasic {
      */
     protected findValidTargets(
         user: ServerGameUnit,
-        potentialTargets: ServerGameUnit[]
+        potentialTargets: ServerGameUnit[],
     ): ServerGameUnit[] {
         return this.findSupportTargets(user, potentialTargets);
     }

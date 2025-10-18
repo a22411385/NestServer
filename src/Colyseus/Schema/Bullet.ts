@@ -76,11 +76,7 @@ export class ServerBullet extends Schema {
         // 基於飛行距離判斷
         const traveledDistance = this.getTraveledDistance();
         const exceedsDistance = traveledDistance >= this.maxDistance;
-
-        // 穿透次數用完
-        const pierceUsedUp = this.pierceCount <= 0;
-
-        return exceedsDistance || pierceUsedUp;
+        return exceedsDistance || this.pierceCount == 0;
     }
 
     // 計算當前位置 (用於伺服器端碰撞檢測)
@@ -91,13 +87,5 @@ export class ServerBullet extends Schema {
         const currentY = this.startPosition.y + (this.direction.y * traveledDistance);
 
         return new Vector2(currentX, currentY);
-    }
-
-    // 處理命中 - 簡化版本，只負責基本狀態管理
-    onHit(): boolean {
-        this.pierceCount--;
-
-        // 返回是否應該繼續存在
-        return this.pierceCount > 0;
     }
 }
