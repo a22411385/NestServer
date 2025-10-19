@@ -56,12 +56,15 @@ export class ExplosiveProjectile extends ProjectileBasic {
     ): VisualEffect[] {
         const currentPos = bullet.getCurrentPosition();
 
+        // 🔧 使用 bullet.areaOfEffect 以支持武器動態調整
+        const explosionRadius = bullet.areaOfEffect || this.areaOfEffect;
+
         const explosionEffect: VisualEffect = {
             type: 'explosion',
             position: { x: currentPos.x, y: currentPos.y },
             direction: { x: bullet.direction.x, y: bullet.direction.y },
             data: {
-                radius: this.areaOfEffect,
+                radius: explosionRadius,
                 colors: [0xff4400, 0xffaa00, 0xffff88],
                 duration: 400,
                 hasShockwave: true,
@@ -79,10 +82,14 @@ export class ExplosiveProjectile extends ProjectileBasic {
     ): ServerGameUnit[] {
         const explosionCenter = bullet.getCurrentPosition();
 
+        // 🔧 使用 bullet.areaOfEffect 而非 this.areaOfEffect
+        // 這樣武器可以通過 getAmmoOverride() 動態調整爆炸範圍
+        const explosionRadius = bullet.areaOfEffect || this.areaOfEffect;
+
         // 爆炸影響範圍內的所有敵人（包括直接命中的）
         const targets = this.findTargetsInRadius(
             explosionCenter,
-            this.areaOfEffect,
+            explosionRadius,
             gameRoom,
             owner
 

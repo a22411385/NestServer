@@ -1,6 +1,5 @@
 import { WeaponBasic } from "../../Colyseus/Schema/Weapon/Baisc/WeaponBasic";
-import { WeaponData } from "../../Colyseus/Schema/Weapon/WeaponData";
-import { WeaponFactory } from "../Factories/WeaponFactory";
+import { WeaponData, WeaponSchema } from "../../Colyseus/Schema/Weapon/WeaponData";
 import { WeaponDataService, FinalWeaponStats } from "../Services/WeaponDataService";
 import { WeaponInstanceManager } from "../Managers/WeaponInstanceManager";
 
@@ -30,12 +29,12 @@ export class WeaponSystemFacade {
      * 🎯 便利方法：創建並立即獲取武器
      */
     public static createAndGetWeapon(weaponId: string): {
-        data: WeaponData;
+        data: WeaponSchema;
         instance: WeaponBasic | null;
         stats: FinalWeaponStats;
     } {
         // 1. 創建數據
-        const data = new WeaponData(weaponId);
+        const data = new WeaponSchema(weaponId);
 
         // 2. 獲取實例（委託給管理器）
         const instance = WeaponInstanceManager.getOrCreateInstance(data);

@@ -121,9 +121,8 @@ export class CombatSystem {
                     'physical',
                     result.weaponId,
                 );
-            console.log(`⚔️ 近戰武器攻擊: ${result.weaponId} - 立即傷害`);
 
-            // 🆕 近戰武器立即應用狀態效果
+            // 近戰武器立即應用狀態效果
             if (result.statusEffects && result.statusEffects.length > 0) {
                 for (const target of targets) {
                     this.applyStatusEffects(

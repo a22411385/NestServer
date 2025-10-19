@@ -69,12 +69,15 @@ export class FireExplosiveProjectile extends ExplosiveProjectile {
     ): VisualEffect[] {
         const currentPos = bullet.getCurrentPosition();
 
+        // 🔧 使用 bullet.areaOfEffect 以支持武器動態調整
+        const explosionRadius = bullet.areaOfEffect || this.areaOfEffect;
+
         const fireExplosionEffect: VisualEffect = {
             type: 'explosion',
             position: { x: currentPos.x, y: currentPos.y },
             direction: { x: bullet.direction.x, y: bullet.direction.y },
             data: {
-                radius: this.areaOfEffect,
+                radius: explosionRadius,
                 colors: [0xff4500, 0xff6600, 0xffaa00, 0xffff00], // 火焰漸層色
                 duration: 500,
                 hasShockwave: true,

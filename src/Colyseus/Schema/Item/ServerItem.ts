@@ -1,7 +1,10 @@
 import { Schema, type } from "@colyseus/schema";
 import { Vector2 } from "../Unit/GameUnit";
-import { WeaponData } from "../Weapon/WeaponData";
+import { WeaponSchema } from "../Weapon/WeaponSchema";
 import { UniqueIdGenerator } from "../../../Util/UniqueIdGenerator";
+
+// 類型別名保持兼容性
+type WeaponData = WeaponSchema;
 
 export enum ItemType {
     CURRENCY = "CURRENCY",
@@ -111,11 +114,12 @@ export class ServerItem extends Schema {
         item.exp = weaponData.exp;
         item.durability = weaponData.durability;
 
-        // 序列化武器屬性數據
+        // 序列化武器屬性數據 (包含完整屬性值)
         item.weaponPropertiesJson = JSON.stringify({
             fixedProperties: weaponData.fixedProperties?.toArray() || [],
             randomProperties: weaponData.randomProperties?.toArray() || [],
-            uniqueId: weaponData.uniqueId // 保留原始唯一ID
+            uniqueId: weaponData.uniqueId, // 保留原始唯一ID
+            propertiesJson: weaponData.propertiesJson // ✅ 保存完整屬性值
         });
 
         return item;
@@ -129,7 +133,7 @@ export class ServerItem extends Schema {
             return null;
         }
 
-        const weaponData = new WeaponData();
+        const weaponData = new WeaponSchema(this.itemId);
         weaponData.name = this.name;
         // 複製基本屬性
         weaponData.weaponId = this.itemId;
@@ -165,6 +169,12 @@ export class ServerItem extends Schema {
                     properties.randomProperties.forEach((prop: any) => {
                         weaponData.randomProperties.push(prop);
                     });
+                }
+
+                // ✅ 恢復完整屬性值
+                if (properties.propertiesJson) {
+                    weaponData.propertiesJson = properties.propertiesJson;
+                    console.log(`✅ 恢復武器屬性: ${this.itemId}, 屬性數據: ${properties.propertiesJson.substring(0, 50)}...`);
                 }
 
             } catch (error) {

@@ -82,31 +82,19 @@ export abstract class ProjectileBasic {
     if (!owner) {
       return {
         success: false,
-        weaponId: bullet.weaponId, // ← 從 bullet 獲取
+        weaponId: bullet.weaponId,
         baseDamage: 0,
         reason: AttackFailReason.NO_TARGET,
       };
     }
 
-    // 2. 🔧 移除碰撞範圍檢查 - BulletSystem 已經檢查過了
-    //    避免因為 collisionRadius=5px 而導致檢測失敗
-    // if (!this.isWithinCollisionRange(bullet, hitTarget)) {
-    //   return {
-    //     success: false,
-    //     weaponId: bullet.weaponId,
-    //     baseDamage: 0,
-    //     reason: AttackFailReason.OUT_OF_RANGE,
-    //   };
-    // }
-
-    // 3. 尋找受影響的目標（由子類實現）
+    // 2. 尋找受影響的目標
     const affectedTargets = this.findAffectedTargets(
       bullet,
       hitTarget,
       gameRoom,
       owner
     );
-
 
     if (affectedTargets.length === 0) {
       return {
@@ -117,41 +105,24 @@ export abstract class ProjectileBasic {
       };
     }
 
-    // 4. 計算傷害（由子類決定傷害係數）
+    // 3. 計算傷害
     const finalDamage = this.calculateDamage(bullet, hitTarget);
 
-    // 5. 減少子彈的穿透次數（直接修改 ServerBullet 的狀態）
+    // 4. 減少子彈的穿透次數
     bullet.pierceCount--;
 
-    // 6. 構建攻擊結果
+    // 5. 構建攻擊結果
     return this.buildAttackResult(bullet, affectedTargets, finalDamage);
   }
 
   /**
-   * 檢查目標是否在碰撞範圍內
-   */
-  protected isWithinCollisionRange(
-    bullet: ServerBullet,
-    hitTarget: ServerGameUnit,
-  ): boolean {
-    const bulletPos = bullet.getCurrentPosition();
-    const distance = Math.hypot(
-      hitTarget.position.x - bulletPos.x,
-      hitTarget.position.y - bulletPos.y,
-    );
-    return distance <= this.collisionRadius;
-  }
-
-  /**
    * 計算最終傷害（子類可以覆寫以修改傷害）
-   * @param bullet 子彈實例（包含 damage 屬性）
-   * @param hitTarget 命中的目標
    */
   protected calculateDamage(
     bullet: ServerBullet,
     hitTarget: ServerGameUnit,
   ): number {
-    return bullet.damage; // ← 從 bullet 獲取傷害值
+    return bullet.damage;
   }
 
   /**
@@ -164,7 +135,7 @@ export abstract class ProjectileBasic {
   ): AttackResult {
     return {
       success: true,
-      weaponId: bullet.weaponId, // ← 從 bullet 獲取
+      weaponId: bullet.weaponId,
       targetIds: affectedTargets.map((target) => target.id),
       baseDamage: damage,
       attackData: {

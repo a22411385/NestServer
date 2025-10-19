@@ -4,7 +4,7 @@ import { UnitType } from "../GameState";
 import { ServerGameUnit } from "./GameUnit";
 import { WeaponBasic } from "../Weapon/Baisc/WeaponBasic";
 import { ServerItem } from "../Item/ServerItem";
-import { WeaponData } from "../Weapon/WeaponData";
+import { WeaponSchema } from "../Weapon/WeaponSchema";
 import { HeroWeaponManager } from "../../../Game/Managers/HeroWeaponManager";
 import { AttackResult, AttributeBonus, BuffEffect, StatType } from "@/Types";
 // 玩家操控的主要單位
@@ -15,7 +15,7 @@ export class ServerHero extends ServerGameUnit {
     @type("number") exp: number = 0;
 
     // 🆕 武器數據陣列（同步到客戶端）
-    @type([WeaponData]) public weaponInventory = new ArraySchema<WeaponData>();
+    @type([WeaponSchema]) public weaponInventory = new ArraySchema<WeaponSchema>();
 
     // 🆕 當前裝備的武器唯一ID（同步到客戶端）
     @type(["string"]) public equippedWeaponIds = new ArraySchema<string>();
@@ -436,8 +436,8 @@ export class ServerHero extends ServerGameUnit {
     /**
      * 🆕 計算武器賣價
      */
-    private calculateWeaponSellPrice(weaponData: WeaponData): number {
-        return this.weaponManager.calculateSellPrice(weaponData);
+    private calculateWeaponSellPrice(weaponSchema: WeaponSchema): number {
+        return this.weaponManager.calculateSellPrice(weaponSchema);
     }
 
     //嘗試進行攻擊

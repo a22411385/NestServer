@@ -33,13 +33,12 @@ export class BulletSystem {
         const bullet = BulletFactory.createBullet(config);
         this.bullets.set(bullet.id, bullet);
 
-        // 🆕 記錄初始位置
+        // 記錄初始位置
         this.lastBulletPositions.set(bullet.id, new Vector2(
             config.startPosition.x,
             config.startPosition.y
         ));
 
-        console.log(`🚀 子彈創建: ${bullet.id} by ${config.ownerId} (${config.bulletClass})`);
         return bullet.id;
     }
 

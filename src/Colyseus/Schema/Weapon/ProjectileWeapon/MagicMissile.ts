@@ -19,12 +19,6 @@ export class MagicMissile extends ProjectileWeapon {
         // 魔法飛彈特有配置
         console.log(`✨ 魔法飛彈特定配置已應用 - 配置來自: ${this.weaponConfig?.name}`);
 
-        // 魔法飛彈特有的投射物設定
-        this.projectileSpeed = 350;  // 快速彈道
-        this.accuracy = 0.99;        // 幾乎必中
-        this.pierceCount = 3;        // 高穿透
-        this.areaOfEffect = 30;      // 小範圍AOE
-
         // 根據配置的固定屬性進行特殊設置
         const fixedProps = this.getFixedProperties();
         if (fixedProps.includes('pierce_count')) {

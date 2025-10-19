@@ -104,9 +104,9 @@ export interface WeaponConfigDefinition {
     attackSpeed: number;
     attackRange: number;
     enabled: boolean;
-    projectileClass: string;
-    weaponClass: string;
-    classModule: string;
+    projectileClass: string; //如果是遠程武器,對應他產生的投射物類別
+    weaponClass: string;    // 類別名稱
+    classModule: string;    //是哪種類型的武器 , Melee/Projectile/Support
     fixedProperties: string;    // 逗號分隔的屬性字符串
     randomProperties: string;   // 逗號分隔的屬性字符串
     description: string;

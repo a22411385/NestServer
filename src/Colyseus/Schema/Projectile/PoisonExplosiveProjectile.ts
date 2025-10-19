@@ -119,12 +119,15 @@ export class PoisonExplosiveProjectile extends ExplosiveProjectile {
     ): VisualEffect[] {
         const currentPos = bullet.getCurrentPosition();
 
+        // 🔧 使用 bullet.areaOfEffect 以支持武器動態調整
+        const explosionRadius = bullet.areaOfEffect || this.areaOfEffect;
+
         const poisonExplosionEffect: VisualEffect = {
             type: 'explosion',
             position: { x: currentPos.x, y: currentPos.y },
             direction: { x: bullet.direction.x, y: bullet.direction.y },
             data: {
-                radius: this.areaOfEffect,
+                radius: explosionRadius,
                 colors: [0x00ff00, 0x88ff00, 0xaaff00], // 綠色毒霧
                 duration: 600,
                 hasShockwave: true,

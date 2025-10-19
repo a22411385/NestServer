@@ -228,17 +228,7 @@ export abstract class MeleeWeapon extends WeaponBasic {
         );
 
         // 更新攻擊者的面向方向
-        const previousFacing = attacker.facingDirection;
         attacker.facingDirection = targetAngle;
-
-        console.log(`⚔️ ${this.weaponId} auto-aiming:`);
-        console.log(
-            `  👹 Closest target: ${closestTarget.id} at distance ${targetsInRange[0].distance.toFixed(1)}`,
-        );
-        console.log(
-            `  🎯 Adjusted facing: ${((previousFacing * 180) / Math.PI).toFixed(1)}° → ${((targetAngle * 180) / Math.PI).toFixed(1)}°`,
-        );
-        console.log(`  🔍 Targets in range: ${targetsInRange.length}`);
 
         // 根據武器類型選擇攻擊目標
         let selectedTargets: ServerGameUnit[] = [];
@@ -252,13 +242,9 @@ export abstract class MeleeWeapon extends WeaponBasic {
                 this.sweepAngle,
                 attacker.facingDirection,
             );
-            console.log(
-                `  💥 Fan attack (${((this.sweepAngle * 180) / Math.PI).toFixed(1)}°): ${selectedTargets.length} targets`,
-            );
         } else {
             // 單點攻擊：只攻擊最近的敵人
             selectedTargets = [closestTarget];
-            console.log(`  🎯 Single target attack: ${closestTarget.id}`);
         }
 
         return selectedTargets;

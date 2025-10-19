@@ -21,6 +21,11 @@ export class BulletFactory {
      * 
      * 🎯 只負責創建 ServerBullet 的移動載體
      * 🔧 命中邏輯由 ProjectileFactory 處理
+     * 
+     * 🆕 優雅的屬性擴展方案：
+     * - 使用 bullet.applyExtendedConfig() 自動處理所有可選屬性
+     * - 新增屬性時只需在 BulletCreateConfig 和 ServerBullet.applyExtendedConfig 中定義
+     * - 避免在這裡為每個屬性添加 if 判斷
      */
     public static createBullet(config: BulletCreateConfig): ServerBullet {
         const bullet = new ServerBullet();
@@ -29,6 +34,7 @@ export class BulletFactory {
         // 計算最大距離
         let maxDistance = config.maxDistance;
 
+        // 初始化基礎屬性
         bullet.initialize(
             bulletId,
             config.ownerId,
@@ -41,15 +47,8 @@ export class BulletFactory {
             maxDistance
         );
 
-        // 設置額外屬性
-        if (config.pierceCount !== undefined) {
-            bullet.pierceCount = config.pierceCount;
-        }
-
-        // 🆕 設置狀態效果配置
-        if (config.statusEffects) {
-            bullet.statusEffects = config.statusEffects;
-        }
+        // ✨ 優雅方案：自動處理所有擴展屬性
+        bullet.applyExtendedConfig(config);
 
         return bullet;
     }

@@ -1,7 +1,4 @@
 import { WeaponBasic } from "../../Colyseus/Schema/Weapon/Baisc/WeaponBasic";
-import { BaseballBat } from "../../Colyseus/Schema/Weapon/MeleeWeapon/BaseballBat";
-import { Fireball } from "../../Colyseus/Schema/Weapon/ProjectileWeapon/Fireball";
-import { HealingPotion } from "../../Colyseus/Schema/Weapon/SupportWeapon/HealingPotion";
 import { getWeaponConfig, getAllWeaponConfigs, initializeWeaponConfigs } from "./WeaponConfig";
 import { WeaponClassRegistry } from "./WeaponClassRegistry";
 import { WeaponType } from "@/Types";
@@ -71,7 +68,7 @@ export class WeaponFactory {
         }
 
         // 🆕 優先使用動態類別映射
-        let weaponClass = this.dynamicWeaponClassMap.get(weaponId);
+        let weaponClass = this.dynamicWeaponClassMap.get(config.weaponClass);
 
         // 🆕 第三備用方案：通過配置中的 weaponClass 查找
         if (!weaponClass && config.weaponClass) {

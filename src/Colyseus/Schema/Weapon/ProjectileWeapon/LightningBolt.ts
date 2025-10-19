@@ -22,8 +22,7 @@ export class LightningBolt extends ProjectileWeapon {
         // 閃電箭特有的投射物設定
         this.projectileSpeed = 400;  // 極快彈道
         this.accuracy = 0.98;        // 極高精確度
-        this.pierceCount = 1;        // 可穿透一個敵人
-        this.areaOfEffect = 0;       // 無AOE（使用連鎖攻擊）
+
 
         // 根據配置的固定屬性進行特殊設置
         const fixedProps = this.getFixedProperties();

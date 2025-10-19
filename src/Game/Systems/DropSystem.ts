@@ -12,6 +12,7 @@ import {
 import { WeaponSystemFacade } from "./WeaponSystemFacade";
 import { WeaponData } from "../../Colyseus/Schema/Weapon/WeaponData";
 import { WeaponQuality } from "@/Types/Equipment/WeaponPropertyTypes";
+import { WeaponPropertyService } from "../Services/WeaponPropertyService";
 
 
 /**
@@ -138,8 +139,16 @@ export class DropSystem {
             // 根據配置的品質機率重新確定品質（可選）
             const desiredQuality = this.rollQualityFromConfig(WEAPON_DROP_CONFIG.qualityRates);
             if (desiredQuality !== weaponData.quality) {
-                // 如果需要不同品質，重新生成（簡化處理）
+                // 品質改變時需要重新生成屬性,確保隨機屬性數量與品質匹配
+                const propertyService = WeaponPropertyService.getInstance();
+                // 使用 weaponId, uniqueId, obtainedAt 組合生成種子數字
+                const seedStr = `${weaponData.weaponId}_${weaponData.uniqueId}_${weaponData.obtainedAt}`;
+                const seedNum = parseInt(seedStr.split('').map(c => c.charCodeAt(0)).join('').slice(0, 10));
+                const newProperties = propertyService.generateWeaponProperties(weaponId, desiredQuality, seedNum);
+
                 weaponData.quality = desiredQuality;
+                weaponData.setProperties(newProperties);
+                weaponData.invalidateLogicInstance();
             }
 
             console.log(`🔧 生成完整武器: ${weaponId} Lv.${weaponLevel} (品質: ${weaponData.quality})`);

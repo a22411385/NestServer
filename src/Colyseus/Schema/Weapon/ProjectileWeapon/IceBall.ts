@@ -22,8 +22,6 @@ export class IceBall extends ProjectileWeapon {
         // 冰球特有的投射物設定
         this.projectileSpeed = 200;  // 中等彈道速度
         this.accuracy = 0.95;        // 高精確度
-        this.pierceCount = 0;        // 不穿透
-        this.areaOfEffect = 50;      // 小範圍AOE
 
         // 根據配置的固定屬性進行特殊設置
         const fixedProps = this.getFixedProperties();
