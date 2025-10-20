@@ -11,21 +11,18 @@ import { GameRoom } from '../../Rooms/GameRoom';
 export class PiercingProjectile extends ProjectileBasic {
     private static instance: PiercingProjectile;
 
+    private constructor() {
+        super();
+    }
+
+    /**
+     * 獲取單例實例
+     */
     public static getInstance(): PiercingProjectile {
         if (!PiercingProjectile.instance) {
             PiercingProjectile.instance = new PiercingProjectile();
         }
         return PiercingProjectile.instance;
-    }
-
-    private constructor() {
-        super();
-    }
-
-    protected applyProjectileConfig(): void {
-        this.initialPierceCount = 3; // 可以穿透3個敵人
-        this.areaOfEffect = 0;
-        this.bounceCount = 0;
     }
 
     /**

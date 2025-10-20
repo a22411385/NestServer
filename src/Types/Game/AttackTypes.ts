@@ -4,26 +4,7 @@
 
 import { Vector2 } from '../BaseTypes';
 import { PropertyValue } from '../Equipment/WeaponPropertyTypes';
-
-/**
- * 投射物配置接口 - 直接傳遞給 BulletSystem
- * 
- * 🎯 職責：替代 VisualEffect 作為投射武器的配置傳遞
- * - 武器通過 projectileConfig 直接傳遞投射物配置
- * - CombatSystem 直接使用配置創建 ServerBullet
- * - 不再需要 VisualEffect 作為中轉層
- */
-export interface ProjectileConfig {
-    bulletClass: string;      // 投射物類名（用於 ProjectileFactory）
-    speed: number;            // 武器速度
-    damage: number;           // 武器傷害
-    maxDistance: number;      // 武器射程
-    pierceCount?: number;     // 彈藥配置（可選覆蓋）
-    areaOfEffect?: number;    // 彈藥配置（可選覆蓋）
-    bounceCount?: number;     // 彈藥配置（可選覆蓋）
-    collisionRadius?: number; // 彈藥配置（可選覆蓋）
-    statusEffects?: StatusEffectConfig[]; // 🆕 命中時應用的狀態效果
-}
+import { BulletCreateConfig } from './BulletTypes';
 
 /**
  * 統一的攻擊結果接口 - 合併了所有攻擊相關的結果
@@ -46,7 +27,7 @@ export interface AttackResult {
 
     // 視覺效果
     visualEffects?: VisualEffect[];  // 🎯 近戰武器使用（swing, slash）
-    projectileConfig?: ProjectileConfig;  // 🆕 投射武器使用（替代 visualEffects）
+    projectileConfig?: BulletCreateConfig;  // 🆕 投射武器使用（替代 visualEffects）
 
     // 失敗原因
     reason?: AttackFailReason;

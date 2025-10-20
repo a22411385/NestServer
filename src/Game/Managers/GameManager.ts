@@ -112,7 +112,7 @@ export class GameManager {
 
         // 從環境變量讀取配置
         const testDummyHP = parseInt(process.env.TEST_DUMMY_HP || '999999');
-        const testDummyCount = parseInt(process.env.TEST_DUMMY_COUNT || '1');
+        const testDummyCount = 4
 
         // 在玩家前方生成木樁
         const heroes = Array.from(this.state.getAllHeroes().values());

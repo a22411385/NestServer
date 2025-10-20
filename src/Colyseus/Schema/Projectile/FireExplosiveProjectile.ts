@@ -4,19 +4,17 @@ import { ServerGameUnit } from '../Unit/GameUnit';
 import { ExplosionVisualEffect, VisualEffect } from '@/Types';
 
 /**
- * 🆕 範例：火屬性爆炸投射物
- * 使用單例模式
- *
- * 展示另一種擴充方式：
- * 1. 繼承 ExplosiveProjectile
- * 2. 修改傷害計算（火焰傷害加成）
- * 3. 添加燃燒持續傷害效果
+ * 🔥 火屬性爆炸投射物
  */
 export class FireExplosiveProjectile extends ExplosiveProjectile {
     private static fireInstance: FireExplosiveProjectile;
 
-    private readonly burnDuration: number = 3000; // 3秒燃燒
-    private readonly burnDamagePerSecond: number = 8;
+    /**
+     * 私有構造函數
+     */
+    private constructor() {
+        super();
+    }
 
     /**
      * 獲取單例實例
@@ -26,24 +24,6 @@ export class FireExplosiveProjectile extends ExplosiveProjectile {
             FireExplosiveProjectile.fireInstance = new FireExplosiveProjectile();
         }
         return FireExplosiveProjectile.fireInstance;
-    }
-
-    /**
-     * 私有構造函數
-     */
-    private constructor() {
-        super();
-    }
-
-    protected applyProjectileConfig(): void {
-        super.applyProjectileConfig();
-
-        // 火屬性爆炸範圍更大
-        this.areaOfEffect = 100; // 比普通爆炸大
-
-        console.log(
-            `🔥 火屬性爆炸投射物配置: AOE ${this.areaOfEffect}, 燃燒 ${this.burnDuration}ms`,
-        );
     }
 
     /**
@@ -68,16 +48,12 @@ export class FireExplosiveProjectile extends ExplosiveProjectile {
         affectedTargets: ServerGameUnit[],
     ): VisualEffect[] {
         const currentPos = bullet.getCurrentPosition();
-
-        // 🔧 使用 bullet.areaOfEffect 以支持武器動態調整
-        const explosionRadius = bullet.areaOfEffect || this.areaOfEffect;
-
         const fireExplosionEffect: VisualEffect = {
             type: 'explosion',
             position: { x: currentPos.x, y: currentPos.y },
             direction: { x: bullet.direction.x, y: bullet.direction.y },
             data: {
-                radius: explosionRadius,
+                radius: bullet.areaOfEffect,
                 colors: [0xff4500, 0xff6600, 0xffaa00, 0xffff00], // 火焰漸層色
                 duration: 500,
                 hasShockwave: true,

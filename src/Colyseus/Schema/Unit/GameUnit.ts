@@ -29,6 +29,8 @@ export class StatusEffect extends Schema {
     @type("number") duration: number = 0; // 持續時間 (ms)
     @type("number") value: number = 0; // 效果數值
     @type("number") startTime: number = 0; // 效果開始時間戳 (ms)
+    @type("number") stacks: number = 1; // 🆕 疊加層數（默認1層）
+    @type("number") maxStacks: number = 5; // 🆕 最大疊加層數（默認5層）
 }
 // 單位基底
 export class ServerGameUnit extends Schema {

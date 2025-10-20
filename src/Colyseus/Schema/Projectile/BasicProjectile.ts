@@ -14,15 +14,18 @@ import { VisualEffect } from '@/Types';
 export class BasicProjectile extends ProjectileBasic {
   private static instance: BasicProjectile;
 
+  private constructor() {
+    super();
+  }
+
+  /**
+   * 獲取單例實例
+   */
   public static getInstance(): BasicProjectile {
     if (!BasicProjectile.instance) {
       BasicProjectile.instance = new BasicProjectile();
     }
     return BasicProjectile.instance;
-  }
-
-  private constructor() {
-    super();
   }
 
   protected createVisualEffects(
@@ -32,12 +35,6 @@ export class BasicProjectile extends ProjectileBasic {
     // 基礎投射物不需要廣播額外的視覺效果
     return [];
   }
-  protected applyProjectileConfig(): void {
-    this.initialPierceCount = 1;
-    this.areaOfEffect = 0;
-    this.bounceCount = 0;
-  }
-
   // onHit 使用基類的虛擬實現，無需覆寫
 
   protected findAffectedTargets(

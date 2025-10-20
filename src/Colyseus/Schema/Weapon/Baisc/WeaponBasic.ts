@@ -1,11 +1,14 @@
 import { ServerGameUnit } from '../../Unit/GameUnit';
 import { UnitType } from '../../GameState';
-import { WeaponType, AttackResult, PropertyType } from '../../../../Types';
+import { WeaponType, AttackResult, PropertyType, StatusEffectConfig } from '../../../../Types';
 import {
   PropertyValue,
   WeaponConfigDefinition,
 } from '@/Types/Equipment/WeaponPropertyTypes';
 import { getWeaponConfig } from '../../../../Game/Factories/WeaponConfig';
+
+// ✅ 引入 WeaponSchema 類型（避免循環依賴，使用延遲導入）
+type WeaponSchema = import('../WeaponSchema').WeaponSchema;
 
 //武器基類：負責攻擊邏輯和目標選擇，不處理傷害計算
 // 現在是純邏輯層類，不再同步到客戶端
@@ -28,8 +31,11 @@ export abstract class WeaponBasic {
   public str: number = 0;
   public vit: number = 0;
 
-  // 新增：動態屬性系統
-  protected properties: Map<string, PropertyValue> = new Map();
+  // ❌ 移除：動態屬性系統改由 WeaponSchema 管理
+  // protected properties: Map<string, PropertyValue> = new Map();
+
+  // 🆕 WeaponSchema 引用 - 作為唯一數據源
+  protected weaponSchema: WeaponSchema | null = null;
 
   // 🆕 配置相關
   protected weaponConfig: WeaponConfigDefinition | null = null;
@@ -39,6 +45,13 @@ export abstract class WeaponBasic {
 
   constructor() {
     // 🆕 無參數構造函數，等待配置初始化
+  }
+
+  /**
+   * 🆕 設置 WeaponSchema 引用 - 必須在初始化時調用
+   */
+  public setWeaponSchema(schema: WeaponSchema): void {
+    this.weaponSchema = schema;
   }
 
   /**
@@ -77,41 +90,32 @@ export abstract class WeaponBasic {
   protected abstract applyWeaponSpecificConfig(): void;
 
   /**
-   * 🆕 獲取固定屬性列表
+   * ✅ 獲取固定屬性列表 - 從 WeaponSchema 讀取
    */
   public getFixedProperties(): string[] {
-    if (!this.weaponConfig) return [];
-    return this.weaponConfig.fixedProperties
-      ? this.weaponConfig.fixedProperties
-        .split(',')
-        .map((p) => p.trim())
-        .filter((p) => p)
-      : [];
+    if (!this.weaponSchema) return [];
+    return Array.from(this.weaponSchema.fixedProperties);
   }
 
   /**
-   * 🆕 獲取隨機屬性列表
+   * ✅ 獲取隨機屬性列表 - 從 WeaponSchema 讀取
    */
   public getRandomProperties(): string[] {
-    if (!this.weaponConfig) return [];
-    return this.weaponConfig.randomProperties
-      ? this.weaponConfig.randomProperties
-        .split(',')
-        .map((p) => p.trim())
-        .filter((p) => p)
-      : [];
+    if (!this.weaponSchema) return [];
+    return Array.from(this.weaponSchema.randomProperties);
   }
 
   /**
-   * 應用屬性到武器實例
+   * ✅ 應用屬性到武器實例 - 同步到 WeaponSchema
    */
   public applyProperties(properties: PropertyValue[]): void {
-    this.properties.clear();
+    // ✅ 同步到 WeaponSchema（唯一數據源）
+    if (this.weaponSchema) {
+      this.weaponSchema.setProperties(properties);
+    }
 
+    // 更新基礎屬性（影響戰鬥邏輯）
     for (const property of properties) {
-      this.properties.set(property.type, property);
-
-      // 更新基礎屬性
       this.updateBaseStats(property);
     }
 
@@ -213,32 +217,37 @@ export abstract class WeaponBasic {
   }
 
   /**
-   * 獲取特定屬性值
+   * ✅ 獲取特定屬性值 - 從 WeaponSchema 讀取
    */
   public getProperty(type: string): PropertyValue | null {
-    return this.properties.get(type) || null;
+    if (!this.weaponSchema) return null;
+
+    const properties = this.weaponSchema.getProperties();
+    return properties.find(p => p.type === type) || null;
   }
 
   /**
-   * 獲取屬性數值
+   * ✅ 獲取屬性數值 - 從 WeaponSchema 讀取
    */
   public getPropertyValue(type: string): number | number[] | null {
-    const property = this.getProperty(type);
-    return property ? property.value : null;
+    if (!this.weaponSchema) return null;
+    return this.weaponSchema.getPropertyValue(type);
   }
 
   /**
-   * 檢查是否有特定屬性
+   * ✅ 檢查是否有特定屬性 - 從 WeaponSchema 讀取
    */
   public hasProperty(type: string): boolean {
-    return this.properties.has(type);
+    if (!this.weaponSchema) return false;
+    return this.weaponSchema.hasProperty(type);
   }
 
   /**
-   * 獲取所有屬性
+   * ✅ 獲取所有屬性 - 從 WeaponSchema 讀取
    */
   public getAllProperties(): PropertyValue[] {
-    return Array.from(this.properties.values());
+    if (!this.weaponSchema) return [];
+    return this.weaponSchema.getProperties();
   }
 
   /**
@@ -247,8 +256,8 @@ export abstract class WeaponBasic {
    * 
    * @returns StatusEffectConfig[] - 狀態效果配置數組
    */
-  protected generateStatusEffects(): import('@/Types').StatusEffectConfig[] {
-    const effects: import('@/Types').StatusEffectConfig[] = [];
+  protected generateStatusEffects(): StatusEffectConfig[] {
+    const effects: StatusEffectConfig[] = [];
 
     // 暈眩效果 [機率, 持續時間]
     const stunValue = this.getPropertyValue('stun');

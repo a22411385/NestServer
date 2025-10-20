@@ -163,58 +163,7 @@ export class CombatSystem {
             console.warn(`⚠️ 投射武器攻擊缺少配置: weaponId=${result.weaponId}`);
             return;
         }
-
-        const config = result.projectileConfig;
-        const attackData = result.attackData;
-
-        // 獲取彈藥默認配置
-        const defaultConfig = this.getProjectileConfig(config.bulletClass);
-
-        // 🎯 配置合併：武器覆蓋 > 彈藥默認值
-        const finalPierceCount = config.pierceCount ?? defaultConfig.initialPierceCount;
-        const finalAOE = config.areaOfEffect ?? defaultConfig.areaOfEffect;
-
-        // 直接創建 ServerBullet
-        this.gameRoom.bulletSystem.spawnBullet({
-            ownerId: hero.id,
-            startPosition: attackData.position,
-            direction: attackData.direction,
-            damage: config.damage,
-            speed: config.speed,
-            bulletClass: config.bulletClass,
-            weaponId: result.weaponId || '',
-            pierceCount: finalPierceCount,
-            areaOfEffect: finalAOE,
-            maxDistance: config.maxDistance,
-            statusEffects: config.statusEffects, // 傳遞狀態效果配置
-        });
-    }
-
-    /**
-     * 🆕 獲取投射物配置
-     * 從 ProjectileBasic 單例獲取配置，確保配置統一
-     */
-    private getProjectileConfig(bulletClass: string): {
-        initialPierceCount: number;
-        areaOfEffect: number;
-        bounceCount: number;
-        collisionRadius: number;
-    } {
-        // 動態導入避免循環依賴
-        const { ProjectileFactory } = require('../Factories/ProjectileFactory');
-
-        try {
-            const projectile = ProjectileFactory.getProjectile(bulletClass);
-            return projectile.getConfig();
-        } catch (error) {
-            console.warn(`⚠️ 無法獲取投射物配置: ${bulletClass}，使用默認值`);
-            return {
-                initialPierceCount: 1,
-                areaOfEffect: 0,
-                bounceCount: 0,
-                collisionRadius: 5,
-            };
-        }
+        this.gameRoom.bulletSystem.spawnBullet(result.projectileConfig);
     }
 
     /**
@@ -246,9 +195,15 @@ export class CombatSystem {
     }
 
     /**
-     * 🆕 應用狀態效果到目標單位
+     * 🆕 應用狀態效果到目標單位（支持叠加）
      * 將 StatusEffectConfig 轉換為 StatusEffect Schema 並應用到單位
      * 自動同步到客戶端 (通過 Colyseus Schema)
+     * 
+     * 🔥 叠加机制：
+     * - 相同类型的效果会叠加（增加层数）
+     * - 叠加时刷新持续时间为最长的
+     * - 叠加时取最大的伤害值
+     * - 达到最大层数时不再增加
      * 
      * @param target 目標單位
      * @param effectConfigs 狀態效果配置數組
@@ -268,27 +223,93 @@ export class CombatSystem {
                 }
             }
 
-            // 生成唯一ID
-            const effectId = `${config.type}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+            // 🆕 检查是否已存在相同类型的效果
+            const existingEffect = this.findExistingEffect(target, config.type);
 
-            // 創建 StatusEffect Schema
-            const statusEffect = new StatusEffect();
-            statusEffect.id = effectId;
-            statusEffect.type = config.type;
-            statusEffect.duration = config.duration;
-            statusEffect.value = config.value || 0;
-            statusEffect.startTime = Date.now(); // 記錄效果開始時間
-
-            // 應用到目標單位 (自動同步到客戶端)
-            target.addStatusEffect(statusEffect);
-
-            console.log(`✨ 狀態效果已應用: ${config.type} → ${target.id} (持續 ${config.duration}ms)`);
+            if (existingEffect) {
+                // 叠加现有效果
+                this.stackEffect(existingEffect, config);
+                console.log(`🔥 狀態效果疊加: ${config.type} → ${target.id} (${existingEffect.stacks}層)`);
+            } else {
+                // 创建新效果
+                this.createNewEffect(target, config);
+                console.log(`✨ 狀態效果已應用: ${config.type} → ${target.id} (持續 ${config.duration}ms)`);
+            }
 
             // 特殊處理：擊退效果
             if (config.type === 'knockback' && attackerPosition) {
                 this.applyKnockback(target, attackerPosition, config.value || 0);
             }
         }
+    }
+
+    /**
+     * 🆕 查找已存在的相同类型效果
+     */
+    private findExistingEffect(target: ServerGameUnit, effectType: string): StatusEffect | null {
+        for (const [, effect] of target.statusEffects) {
+            if (effect.type === effectType) {
+                return effect;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * 🆕 叠加现有效果
+     */
+    private stackEffect(existingEffect: StatusEffect, config: StatusEffectConfig): void {
+        // 增加层数（不超过最大值）
+        if (existingEffect.stacks < existingEffect.maxStacks) {
+            existingEffect.stacks++;
+        }
+
+        // 刷新持续时间为更长的
+        if (config.duration > existingEffect.duration) {
+            existingEffect.duration = config.duration;
+            existingEffect.startTime = Date.now(); // 重置开始时间
+        }
+
+        // 更新效果数值为更大的
+        if (config.value && config.value > existingEffect.value) {
+            existingEffect.value = config.value;
+        }
+    }
+
+    /**
+     * 🆕 创建新效果
+     */
+    private createNewEffect(target: ServerGameUnit, config: StatusEffectConfig): void {
+        // 生成唯一ID
+        const effectId = `${config.type}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+        // 創建 StatusEffect Schema
+        const statusEffect = new StatusEffect();
+        statusEffect.id = effectId;
+        statusEffect.type = config.type;
+        statusEffect.duration = config.duration;
+        statusEffect.value = config.value || 0;
+        statusEffect.startTime = Date.now(); // 記錄效果開始時間
+        statusEffect.stacks = 1; // 初始1层
+        statusEffect.maxStacks = this.getMaxStacks(config.type); // 根据类型设置最大层数
+
+        // 應用到目標單位 (自動同步到客戶端)
+        target.addStatusEffect(statusEffect);
+    }
+
+    /**
+     * 🆕 获取效果的最大叠加层数
+     */
+    private getMaxStacks(effectType: string): number {
+        const maxStacksConfig: Record<string, number> = {
+            burn: 5,       // 燃烧最多5层
+            poison: 10,    // 中毒最多10层
+            slow: 3,       // 减速最多3层
+            freeze: 1,     // 冰冻不叠加
+            stun: 1,       // 眩晕不叠加
+            knockback: 1,  // 击退不叠加
+        };
+        return maxStacksConfig[effectType] || 5; // 默认5层
     }
 
     /**

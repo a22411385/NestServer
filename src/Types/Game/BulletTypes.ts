@@ -5,6 +5,8 @@
 import { WeaponBasic } from "@/Colyseus/Schema/Weapon/Baisc";
 import { Vector2 } from "../BaseTypes";
 import { StatusEffectConfig } from "./AttackTypes";
+import { PropertyValue } from "../Equipment/EquipmentTypes";
+import { PropertyTypeValue } from "../Equipment/WeaponPropertyTypes";
 
 /**
  * 子彈創建配置
@@ -20,16 +22,14 @@ export interface BulletCreateConfig {
     direction: { x: number, y: number };
     damage: number;
     bulletClass: string;
-
+    weaponId: string; // 武器ID，用於獲取武器屬性
     // ===== 可選屬性 (基礎) =====
     speed?: number;
     maxDistance?: number; // 最大飛行距離（像素）
-    weaponId?: string; // 武器ID，用於獲取武器屬性
+
     scale?: number;
 
-    // ===== 可選屬性 (擴展效果) =====
-    pierceCount?: number; // 穿透次數
-    areaOfEffect?: number; // 範圍效果半徑
+    properties: Record<PropertyTypeValue, PropertyValue>;
     statusEffects?: StatusEffectConfig[]; // 命中時應用的狀態效果
 
     // 🔮 未來可擴展的屬性 (暫時保留註釋作為範例)

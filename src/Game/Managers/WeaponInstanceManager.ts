@@ -71,7 +71,7 @@ export class WeaponInstanceManager {
     }
 
     /**
-     * 創建新武器實例 - 協調 Factory 和新屬性系統
+     * ✅ 創建新武器實例 - 協調 Factory 和新屬性系統
      */
     private static createNewInstance(weaponData: WeaponData): WeaponBasic | null {
         // 1. 使用 WeaponFactory 創建基礎實例
@@ -80,6 +80,9 @@ export class WeaponInstanceManager {
             console.warn(`無法創建武器實例: ${weaponData.weaponId}`);
             return null;
         }
+
+        // ✅ 1.5. 設置 WeaponSchema 引用（關鍵：建立數據連接）
+        instance.setWeaponSchema(weaponData);
 
         // 2. 確定武器品質（從 weaponData 或根據等級計算）
         const quality = this.determineWeaponQuality(weaponData);
@@ -96,11 +99,13 @@ export class WeaponInstanceManager {
 
             // 4. 應用屬性到實例
             if (properties.length > 0) {
-                instance.applyProperties(properties);
-
-                // 🆕 同時更新 WeaponData 中的屬性信息供客戶端使用
+                // ✅ 先更新 WeaponData（數據源）
                 weaponData.setProperties(properties);
                 weaponData.quality = quality;
+
+                // ✅ applyProperties 會從 weaponData 讀取並應用基礎屬性
+                instance.applyProperties(properties);
+
                 console.log(`🔧 ${weaponData.weaponId} 應用屬性: ${properties.length} 個，品質: ${quality}`);
             }
         } catch (error) {

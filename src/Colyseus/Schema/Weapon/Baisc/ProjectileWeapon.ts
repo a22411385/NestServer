@@ -1,5 +1,5 @@
 import { WeaponBasic } from './WeaponBasic';
-import { AttackResult, AttackFailReason, VisualEffect, AmmoOverrideConfig } from '@/Types';
+import { AttackResult, AttackFailReason, BulletCreateConfig, PropertyValue, Vector2 } from '@/Types';
 import { ServerGameUnit } from '../../Unit/GameUnit';
 
 /**
@@ -28,10 +28,6 @@ export class ProjectileWeapon extends WeaponBasic {
     projectileSpeed: number = 0; // 投射物速度（武器決定）
     accuracy: number = 1.0; // 命中精度（武器決定）
 
-    // ❌ 移除彈藥屬性（現在由 ProjectileBasic 提供）
-    // pierceCount: number = 0;
-    // areaOfEffect: number = 0;
-
     constructor() {
         super(); // 🆕 調用無參數的父類構造函數
     }
@@ -56,25 +52,6 @@ export class ProjectileWeapon extends WeaponBasic {
      */
     protected applyProjectileSpecificConfig(): void {
         // 預設實現，子類可覆寫
-    }
-
-    /**
-     * 🆕 獲取彈藥配置覆蓋（可選）
-     * 子類可以覆寫此方法來覆蓋彈藥的默認配置
-     * 用於強化系統、品質系統等動態修改彈藥屬性
-     * 
-     * @returns 要覆蓋的配置，null 表示使用彈藥默認值
-     * 
-     * @example
-     * ```typescript
-     * // 強化系統：每級增加 10 點 AOE
-     * protected getAmmoOverride(): AmmoOverrideConfig | null {
-     *     return { areaOfEffect: 80 + this.enhanceLevel * 10 };
-     * }
-     * ```
-     */
-    protected getAmmoOverride(): AmmoOverrideConfig | null {
-        return null; // 默認不覆蓋，使用彈藥默認值
     }
 
     public tryAttack(
@@ -135,7 +112,7 @@ export class ProjectileWeapon extends WeaponBasic {
                 },
             },
             // 🆕 投射武器使用 projectileConfig 替代 visualEffects
-            projectileConfig: this.getProjectileConfig(attacker, shootDirection),
+            projectileConfig: this.getProjectileConfig(attacker.id, attacker.position, shootDirection),
         };
     }
 
@@ -285,22 +262,26 @@ export class ProjectileWeapon extends WeaponBasic {
      * 
      * @returns ProjectileConfig - 投射物完整配置
      */
-    protected getProjectileConfig(
-        attacker: ServerGameUnit,
-        direction: { x: number; y: number },
-    ): import('@/Types').ProjectileConfig {
-        // 獲取武器的彈藥配置覆蓋（如果有）
-        const ammoOverride = this.getAmmoOverride();
+    protected getProjectileConfig(ownerId: string, startPosition: Vector2, direction: Vector2): BulletCreateConfig {
+
+        let propertiesMap: Record<string, PropertyValue> = {};
+
+        let allProperties = this.getAllProperties();
+        for (const prop of allProperties) {
+            propertiesMap[prop.type] = prop;
+        }
 
         return {
+            weaponId: this.weaponId,
+            ownerId: ownerId,
+            startPosition: startPosition, // 由 CombatSystem 設置,
+            direction: direction,           // 由 CombatSystem 設置,
             bulletClass: this.projectileClass,  // ✅ 彈藥類型
             speed: this.projectileSpeed,        // ✅ 武器速度
             damage: this.baseDamage,            // ✅ 武器傷害
             maxDistance: this.attackRange,      // ✅ 武器射程
+            properties: propertiesMap,
             statusEffects: this.generateStatusEffects(), // 🆕 從屬性生成狀態效果
-
-            // ✅ 彈藥配置覆蓋（類型安全，自動展開）
-            ...ammoOverride,
         };
     }
 

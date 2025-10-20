@@ -26,44 +26,6 @@ import { GameRoom } from '../../Rooms/GameRoom';
  * ```
  */
 export abstract class ProjectileBasic {
-  // 投射物默認配置（可被武器覆蓋）
-  protected initialPierceCount: number = 1;
-  protected areaOfEffect: number = 0;
-  protected bounceCount: number = 0;
-  protected collisionRadius: number = 5;
-
-  /**
-   * 受保護的構造函數 - 強制使用單例模式
-   */
-  protected constructor() {
-    this.applyProjectileConfig();
-  }
-
-  /**
-   * 應用投射物特定配置（在構造函數中調用一次）
-   * 提供默認配置值，武器可以覆蓋這些值
-   */
-  protected abstract applyProjectileConfig(): void;
-
-  /**
-   * 🆕 獲取投射物默認配置
-   * 供 CombatSystem 使用作為回退值（武器沒設定時使用）
-   * 
-   * 🎯 配置優先級：武器配置 > 這裡的默認值
-   */
-  public getConfig(): {
-    initialPierceCount: number;
-    areaOfEffect: number;
-    bounceCount: number;
-    collisionRadius: number;
-  } {
-    return {
-      initialPierceCount: this.initialPierceCount,
-      areaOfEffect: this.areaOfEffect,
-      bounceCount: this.bounceCount,
-      collisionRadius: this.collisionRadius,
-    };
-  }
 
   /**
    * 投射物命中處理 - 虛擬方法，處理共同邏輯
@@ -141,7 +103,7 @@ export abstract class ProjectileBasic {
       attackData: {
         position: bullet.getCurrentPosition(),
         direction: { x: bullet.direction.x, y: bullet.direction.y },
-        range: this.areaOfEffect,
+        range: bullet.areaOfEffect,
       },
       visualEffects: this.createVisualEffects(bullet, affectedTargets),
     };

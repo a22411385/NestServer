@@ -5,10 +5,9 @@ import { GameRoom } from "../../Colyseus/Rooms/GameRoom";
 import { ServerEnemy } from "../../Colyseus/Schema/Unit/Enemy";
 import { ServerHero } from "../../Colyseus/Schema/Unit/Hero";
 import { UnitType } from "../../Colyseus/Schema/GameState";
-import { BattleMathUtils } from "../../Util/BattleMathUtils";
 
 import { Vector2 } from "@/Colyseus/Schema/Unit/GameUnit";
-import { ProjectileFactory } from "../Factories/ProjectileFactory";
+import { ProjectileRegistry } from "@/Colyseus/Schema/Projectile";
 
 /**
  * 子彈系統 - 負責子彈的創建、更新和碰撞檢測
@@ -208,7 +207,7 @@ export class BulletSystem {
         }
 
         // 使用投射物系統處理命中（單例模式）
-        const projectile = ProjectileFactory.getProjectile(bullet.bulletType);
+        const projectile = ProjectileRegistry.getRegisteredClasse(bullet.bulletType);
 
         // 投射物處理命中邏輯，返回標準的 AttackResult
         const attackResult = projectile.onHit(bullet, enemy, this.gameRoom);

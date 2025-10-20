@@ -32,21 +32,21 @@ export class ProjectileRegistry {
   /**
    * 註冊表：類名 -> getInstance 方法
    */
-  private static registry: Map<string, () => ProjectileBasic> = new Map();
+  private static registry: Map<string, ProjectileBasic> = new Map();
 
   /**
    * 靜態初始化區塊 - 自動註冊所有內建投射物類別
    */
   static {
     // 註冊基礎投射物類別
-    this.register('BasicProjectile', () => BasicProjectile.getInstance());
-    this.register('ExplosiveProjectile', () => ExplosiveProjectile.getInstance());
-    this.register('PiercingProjectile', () => PiercingProjectile.getInstance());
-    this.register('FreezeProjectile', () => FreezeProjectile.getInstance());
+    this.register('BasicProjectile', BasicProjectile.getInstance());
+    this.register('ExplosiveProjectile', ExplosiveProjectile.getInstance());
+    this.register('PiercingProjectile', PiercingProjectile.getInstance());
+    this.register('FreezeProjectile', FreezeProjectile.getInstance());
 
     // 🆕 註冊擴充範例（可根據需要啟用/停用）
-    this.register('PoisonExplosiveProjectile', () => PoisonExplosiveProjectile.getInstance());
-    this.register('FireExplosiveProjectile', () => FireExplosiveProjectile.getInstance());
+    this.register('PoisonExplosiveProjectile', PoisonExplosiveProjectile.getInstance());
+    this.register('FireExplosiveProjectile', FireExplosiveProjectile.getInstance());
 
     console.log(`✅ 投射物註冊表已初始化，共 ${this.registry.size} 個類別`);
     console.log(
@@ -67,39 +67,13 @@ export class ProjectileRegistry {
    */
   public static register(
     className: string,
-    getInstanceFn: () => ProjectileBasic,
+    getInstanceFn: ProjectileBasic,
   ): void {
     if (this.registry.has(className)) {
       console.warn(`⚠️ 投射物類別 "${className}" 已存在，將被覆蓋`);
     }
     this.registry.set(className, getInstanceFn);
     console.log(`📝 註冊投射物類別: ${className}`);
-  }
-
-  /**
-   * 根據類名獲取投射物單例實例
-   *
-   * @param className 投射物類名（如 'ExplosiveProjectile', 'PoisonExplosiveProjectile'）
-   * @returns 投射物單例實例
-   *
-   * @example
-   * ```typescript
-   * const projectile = ProjectileRegistry.getInstance('ExplosiveProjectile');
-   * const result = projectile.onHit(bullet, enemy, gameRoom);
-   * ```
-   */
-  public static getInstance(className: string): ProjectileBasic {
-    const getInstanceFn = this.registry.get(className);
-
-    if (!getInstanceFn) {
-      throw `❌ 未找到投射物類別: ${className}`;
-    }
-
-    try {
-      return getInstanceFn();
-    } catch (error) {
-      throw `❌ 獲取投射物實例失敗: ${className}`;
-    }
   }
 
   /**
@@ -132,6 +106,14 @@ export class ProjectileRegistry {
    */
   public static getRegisteredClasses(): string[] {
     return Array.from(this.registry.keys());
+  }
+
+  public static getRegisteredClasse(className: string): ProjectileBasic {
+    const projectile = this.registry.get(className);
+    if (!projectile) {
+      throw new Error(`⚠️ 投射物類別 "${className}" 未註冊`);
+    }
+    return projectile;
   }
 
   /**

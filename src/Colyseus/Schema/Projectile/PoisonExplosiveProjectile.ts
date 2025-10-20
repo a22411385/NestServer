@@ -5,19 +5,18 @@ import { AttackResult, VisualEffect } from '@/Types';
 import { GameRoom } from '@/Colyseus/Rooms/GameRoom';
 
 /**
- * 🆕 範例：毒屬性爆炸投射物
+ * ☠️ 毒屬性爆炸投射物
  * 使用單例模式
- *
- * 展示如何擴充現有的投射物類型：
- * 1. 繼承基礎投射物類別（ExplosiveProjectile）
- * 2. 覆寫特定方法添加新效果（毒屬性）
- * 3. 註冊到 ProjectileRegistry
  */
 export class PoisonExplosiveProjectile extends ExplosiveProjectile {
     private static poisonInstance: PoisonExplosiveProjectile;
 
-    private readonly poisonDuration: number = 5000; // 5秒中毒
-    private readonly poisonDamagePerSecond: number = 5; // 每秒傷害
+    /**
+     * 私有構造函數 - 防止外部直接創建
+     */
+    private constructor() {
+        super();
+    }
 
     /**
      * 獲取單例實例
@@ -30,81 +29,35 @@ export class PoisonExplosiveProjectile extends ExplosiveProjectile {
     }
 
     /**
-     * 私有構造函數 - 防止外部直接創建
-     */
-    private constructor() {
-        super();
-    }
-
-    /**
-     * 覆寫配置應用，添加毒屬性特定配置
-     */
-    protected applyProjectileConfig(): void {
-        // 先應用父類的爆炸配置
-        super.applyProjectileConfig();
-
-        // 毒屬性特定配置（已在屬性定義中設定）
-        console.log(
-            `☠️ 毒屬性爆炸投射物配置: 持續 ${this.poisonDuration}ms, 每秒 ${this.poisonDamagePerSecond} 點傷害`,
-        );
-    }
-
-    /**
-     * 覆寫 onHit，在爆炸後應用中毒效果
+     * ✅ 處理命中：爆炸傷害 + 中毒效果
+     * 
+     * 🔧 重要：
+     * - bullet.statusEffects 應包含中毒效果配置（由武器提供）
+     * - ExplosiveProjectile.onHit() 會調用 combatSystem.applyDamage()
+     * - CombatSystem 會自動從 bullet.statusEffects 應用狀態效果
+     * 
+     * 📝 正確的數據流：
+     * 1. 武器配置：weapon.properties = [{ type: 'poison', value: [5, 8] }]
+     * 2. 武器創建 bullet：bullet.statusEffects = [{ type: 'poison', duration: 5000, value: 8 }]
+     * 3. 投射物命中：onHit() → 爆炸傷害所有範圍內目標
+     * 4. CombatSystem：applyDamage() → 自動應用 bullet.statusEffects
      */
     public onHit(
         bullet: ServerBullet,
         hitTarget: ServerGameUnit,
         gameRoom: GameRoom,
     ): AttackResult {
-        // 先執行父類的爆炸邏輯
+        // ✅ 直接使用父類的爆炸邏輯
+        // ExplosiveProjectile.onHit() 會：
+        // 1. 找出範圍內所有目標
+        // 2. 對每個目標調用 combatSystem.applyDamage(damage, target, bullet)
+        // 3. CombatSystem 會自動從 bullet.statusEffects 應用中毒效果
         const result = super.onHit(bullet, hitTarget, gameRoom);
 
-        // 如果攻擊成功，對所有受影響的目標應用中毒效果
-        if (result.success && result.targetIds) {
-            result.targetIds.forEach((targetId) => {
-                const target = gameRoom.state.gameCore.allUnits.get(targetId);
-                if (target) {
-                    this.applyPoisonEffect(target);
-                }
-            });
-        }
+        // ❌ 不再需要手動應用中毒效果
+        // ✅ StatusEffectSystem 會自動處理 bullet.statusEffects
 
         return result;
-    }
-
-    /**
-     * 應用中毒效果
-     */
-    private applyPoisonEffect(target: ServerGameUnit): void {
-        console.log(`☠️ ${target.name} 中毒，持續 ${this.poisonDuration}ms`);
-
-        // TODO: 整合到狀態效果系統
-        // 暫時實現：每秒造成傷害
-        const damageInterval = 1000; // 每秒觸發一次
-        const totalTicks = Math.floor(this.poisonDuration / damageInterval);
-
-        let currentTick = 0;
-        const poisonTimer = setInterval(() => {
-            currentTick++;
-
-            if (target.isDead || currentTick > totalTicks) {
-                clearInterval(poisonTimer);
-                console.log(`☠️ ${target.name} 中毒效果結束`);
-                return;
-            }
-
-            // 造成中毒傷害
-            target.hp = Math.max(0, target.hp - this.poisonDamagePerSecond);
-            console.log(
-                `☠️ ${target.name} 受到中毒傷害 ${this.poisonDamagePerSecond} (剩餘 ${target.hp} HP)`,
-            );
-
-            if (target.hp <= 0) {
-                target.isDead = true;
-                clearInterval(poisonTimer);
-            }
-        }, damageInterval);
     }
 
     /**
@@ -119,15 +72,12 @@ export class PoisonExplosiveProjectile extends ExplosiveProjectile {
     ): VisualEffect[] {
         const currentPos = bullet.getCurrentPosition();
 
-        // 🔧 使用 bullet.areaOfEffect 以支持武器動態調整
-        const explosionRadius = bullet.areaOfEffect || this.areaOfEffect;
-
         const poisonExplosionEffect: VisualEffect = {
             type: 'explosion',
             position: { x: currentPos.x, y: currentPos.y },
             direction: { x: bullet.direction.x, y: bullet.direction.y },
             data: {
-                radius: explosionRadius,
+                radius: bullet.areaOfEffect,
                 colors: [0x00ff00, 0x88ff00, 0xaaff00], // 綠色毒霧
                 duration: 600,
                 hasShockwave: true,

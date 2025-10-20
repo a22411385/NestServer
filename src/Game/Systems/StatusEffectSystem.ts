@@ -123,10 +123,11 @@ export class StatusEffectSystem {
         // 每秒造成一次傷害
         if (timeSinceLastTick >= 1000) {
             const damagePerSecond = effect.value || 0;
+            const stacks = effect.stacks || 1;
 
-            // 計算實際傷害（考慮可能超過1秒的情況）
+            // 計算實際傷害（考慮可能超過1秒的情況和疊加層數）
             const ticks = Math.floor(timeSinceLastTick / 1000);
-            const totalDamage = damagePerSecond * ticks;
+            const totalDamage = damagePerSecond * stacks * ticks;
 
             // 應用傷害
             if (totalDamage > 0) {
@@ -137,11 +138,12 @@ export class StatusEffectSystem {
                     unitId: unit.id,
                     effectType: effect.type,
                     damage: totalDamage,
+                    stacks: stacks,
                     remainingHp: unit.hp,
                     timestamp: currentTime,
                 });
 
-                console.log(`🔥 持續傷害: ${effect.type} 對 ${unit.id} 造成 ${totalDamage} 傷害`);
+                console.log(`🔥 持續傷害: ${effect.type} x${stacks} 對 ${unit.id} 造成 ${totalDamage} 傷害 (${damagePerSecond}/s × ${stacks} × ${ticks}秒)`);
 
                 // 檢查單位是否死亡
                 if (unit.hp <= 0) {

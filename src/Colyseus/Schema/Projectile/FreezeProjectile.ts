@@ -1,6 +1,6 @@
 import { ProjectileBasic } from './ProjectileBasic';
 import { ServerGameUnit } from '../Unit/GameUnit';
-import { AttackResult, AttackFailReason, VisualEffect, ExplosionVisualEffect, FreezeVisualEffect } from '../../../Types';
+import { AttackResult, VisualEffect, FreezeVisualEffect, PropertyType } from '../../../Types';
 import { ServerBullet } from '../Bullet';
 import { GameRoom } from '../../Rooms/GameRoom';
 
@@ -10,23 +10,19 @@ import { GameRoom } from '../../Rooms/GameRoom';
  */
 export class FreezeProjectile extends ProjectileBasic {
     private static instance: FreezeProjectile;
-    private readonly freezeDuration: number = 2000; // 2秒冰凍
-
-    public static getInstance(): FreezeProjectile {
-        if (!FreezeProjectile.instance) {
-            FreezeProjectile.instance = new FreezeProjectile();
-        }
-        return FreezeProjectile.instance;
-    }
 
     private constructor() {
         super();
     }
 
-    protected applyProjectileConfig(): void {
-        this.initialPierceCount = 1;
-        this.areaOfEffect = 0;
-        this.bounceCount = 0;
+    /**
+     * 獲取單例實例
+     */
+    public static getInstance(): FreezeProjectile {
+        if (!FreezeProjectile.instance) {
+            FreezeProjectile.instance = new FreezeProjectile();
+        }
+        return FreezeProjectile.instance;
     }
 
     /**
@@ -42,7 +38,7 @@ export class FreezeProjectile extends ProjectileBasic {
 
         // 如果攻擊成功，應用冰凍效果
         if (result.success) {
-            this.applyFreezeEffect(hitTarget);
+            this.applyFreezeEffect(hitTarget, bullet);
         }
 
         return result;
@@ -58,14 +54,15 @@ export class FreezeProjectile extends ProjectileBasic {
         affectedTargets: ServerGameUnit[],
     ): VisualEffect[] {
         const currentPos = bullet.getCurrentPosition();
+        const freezeDuration = this.getFreezeDuration(bullet);
 
         const freezeEffect: VisualEffect = {
             type: 'freeze',
             position: { x: currentPos.x, y: currentPos.y },
             direction: { x: bullet.direction.x, y: bullet.direction.y },
             data: {
-                radius: 50,
-                duration: this.freezeDuration,
+                radius: bullet.areaOfEffect,
+                duration: freezeDuration,
                 slowAmount: 0.5,
             },
         } as FreezeVisualEffect;
@@ -81,17 +78,29 @@ export class FreezeProjectile extends ProjectileBasic {
         // 冰凍投射物只影響直接命中的目標
         return [hitTarget];
     }
-
+    private getFreezeDuration(bullet: ServerBullet): number {
+        let duration = 2000; // 預設 2000 毫秒
+        const freezeProp = bullet.properties[PropertyType.FREEZE]?.value;
+        if (freezeProp !== undefined) {
+            if (Array.isArray(freezeProp)) {
+                duration = Number(freezeProp[0]) * 1000; // 秒轉毫秒
+            } else {
+                duration = Number(freezeProp) * 1000; // 秒轉毫秒
+            }
+        }
+        return duration;
+    }
     /**
      * 應用冰凍效果
      */
-    private applyFreezeEffect(target: ServerGameUnit): void {
+    private applyFreezeEffect(target: ServerGameUnit, bullet: ServerBullet): void {
         // TODO: 實現完整的狀態效果系統
         // 暫時直接降低移動速度
-        console.log(`❄️ ${target.name} 被冰凍，持續 ${this.freezeDuration}ms`);
+        //console.log(`❄️ ${target.name} 被冰凍，持續 ${bullet.freezeDuration}ms`);
 
         const originalVx = target.vx;
         const originalVy = target.vy;
+        const freezeDuration = this.getFreezeDuration(bullet);
 
         target.vx *= 0.1;
         target.vy *= 0.1;
@@ -103,6 +112,6 @@ export class FreezeProjectile extends ProjectileBasic {
                 target.vy = originalVy;
                 console.log(`❄️ ${target.name} 冰凍效果結束`);
             }
-        }, this.freezeDuration);
+        }, freezeDuration);
     }
 }
