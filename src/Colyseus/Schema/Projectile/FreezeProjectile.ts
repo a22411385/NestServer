@@ -1,6 +1,6 @@
 import { ProjectileBasic } from './ProjectileBasic';
 import { ServerGameUnit } from '../Unit/GameUnit';
-import { AttackResult, AttackFailReason, VisualEffect } from '../../../Types';
+import { AttackResult, AttackFailReason, VisualEffect, ExplosionVisualEffect, FreezeVisualEffect } from '../../../Types';
 import { ServerBullet } from '../Bullet';
 import { GameRoom } from '../../Rooms/GameRoom';
 
@@ -68,7 +68,7 @@ export class FreezeProjectile extends ProjectileBasic {
                 duration: this.freezeDuration,
                 slowAmount: 0.5,
             },
-        };
+        } as FreezeVisualEffect;
 
         return [freezeEffect];
     }

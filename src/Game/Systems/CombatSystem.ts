@@ -277,6 +277,7 @@ export class CombatSystem {
             statusEffect.type = config.type;
             statusEffect.duration = config.duration;
             statusEffect.value = config.value || 0;
+            statusEffect.startTime = Date.now(); // 記錄效果開始時間
 
             // 應用到目標單位 (自動同步到客戶端)
             target.addStatusEffect(statusEffect);

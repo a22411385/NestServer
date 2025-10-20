@@ -98,6 +98,7 @@ export interface StatusEffectConfig {
  * 基礎視覺效果接口 - 所有視覺效果共用的欄位
  */
 interface BaseVisualEffect {
+    type: 'swing' | 'slash' | 'explosion' | 'freeze' | 'hit' | 'support' | 'heal';
     position: Vector2;
     direction: Vector2;
 }
@@ -106,7 +107,6 @@ interface BaseVisualEffect {
  * 近戰攻擊視覺效果（揮砍、斬擊）
  */
 export interface MeleeVisualEffect extends BaseVisualEffect {
-    type: 'swing' | 'slash';
     data: {
         weaponType: string;
         damage: number;
@@ -119,7 +119,6 @@ export interface MeleeVisualEffect extends BaseVisualEffect {
  * 爆炸視覺效果
  */
 export interface ExplosionVisualEffect extends BaseVisualEffect {
-    type: 'explosion';
     data: {
         radius: number;
         colors?: number[];
@@ -132,7 +131,6 @@ export interface ExplosionVisualEffect extends BaseVisualEffect {
  * 冰凍視覺效果
  */
 export interface FreezeVisualEffect extends BaseVisualEffect {
-    type: 'freeze';
     data: {
         radius: number;
         duration: number;
@@ -144,7 +142,6 @@ export interface FreezeVisualEffect extends BaseVisualEffect {
  * 命中視覺效果
  */
 export interface HitVisualEffect extends BaseVisualEffect {
-    type: 'hit';
     data: {
         damage: number;
         isCritical?: boolean;
@@ -156,7 +153,6 @@ export interface HitVisualEffect extends BaseVisualEffect {
  * 輔助/治療視覺效果
  */
 export interface SupportVisualEffect extends BaseVisualEffect {
-    type: 'support' | 'heal';
     data: {
         amount: number;
         radius?: number;
@@ -179,7 +175,6 @@ export interface SupportVisualEffect extends BaseVisualEffect {
  */
 export type VisualEffect =
     | MeleeVisualEffect
-    // ProjectileVisualEffect 已移除 - 投射武器使用 ProjectileConfig
     | ExplosionVisualEffect
     | FreezeVisualEffect
     | HitVisualEffect

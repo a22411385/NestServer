@@ -1,7 +1,7 @@
 import { ExplosiveProjectile } from './ExplosiveProjectile';
 import { ServerBullet } from '../Bullet';
 import { ServerGameUnit } from '../Unit/GameUnit';
-import { VisualEffect } from '@/Types';
+import { ExplosionVisualEffect, VisualEffect } from '@/Types';
 
 /**
  * 🆕 範例：火屬性爆炸投射物
@@ -82,7 +82,7 @@ export class FireExplosiveProjectile extends ExplosiveProjectile {
                 duration: 500,
                 hasShockwave: true,
             },
-        };
+        } as ExplosionVisualEffect;
 
         return [fireExplosionEffect];
     }

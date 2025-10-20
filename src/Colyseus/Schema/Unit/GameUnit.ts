@@ -28,6 +28,7 @@ export class StatusEffect extends Schema {
     @type("string") type: string = ""; // buff, debuff, heal, damage
     @type("number") duration: number = 0; // 持續時間 (ms)
     @type("number") value: number = 0; // 效果數值
+    @type("number") startTime: number = 0; // 效果開始時間戳 (ms)
 }
 // 單位基底
 export class ServerGameUnit extends Schema {
@@ -60,6 +61,7 @@ export class ServerGameUnit extends Schema {
 
     @type("boolean") isDead: boolean = false;
     @type({ map: Skill }) skills = new MapSchema<Skill>();
+
     @type({ map: StatusEffect }) statusEffects = new MapSchema<StatusEffect>();
 
     @type(Vector2) position: Vector2 = new Vector2(0, 0);

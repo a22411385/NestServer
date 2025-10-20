@@ -1,6 +1,6 @@
 import { ProjectileBasic } from './ProjectileBasic';
 import { ServerGameUnit } from '../Unit/GameUnit';
-import { VisualEffect } from '../../../Types';
+import { ExplosionVisualEffect, VisualEffect } from '../../../Types';
 import { ServerBullet } from '../Bullet';
 import { GameRoom } from '../../Rooms/GameRoom';
 
@@ -69,7 +69,7 @@ export class ExplosiveProjectile extends ProjectileBasic {
                 duration: 400,
                 hasShockwave: true,
             },
-        };
+        } as ExplosionVisualEffect;
 
         return [explosionEffect];
     }

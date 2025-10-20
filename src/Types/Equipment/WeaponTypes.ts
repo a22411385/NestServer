@@ -17,24 +17,3 @@ export enum WeaponType {
     PROJECTILE_WEAPON = "ProjectileWeapon", // 投射武器：弓箭、火球、冰球等
     SUPPORT_WEAPON = "SupportWeapon"        // 輔助武器：治療杖、增益法杖等
 }
-
-/**
- * 武器攻擊模式
- */
-export enum WeaponAttackMode {
-    SINGLE_TARGET = "single_target",    // 單體攻擊
-    AREA_OF_EFFECT = "area_of_effect", // 範圍攻擊
-    SWEEP = "sweep",                   // 掃擊攻擊
-    CHAIN = "chain",                   // 連鎖攻擊
-    SUPPORT = "support"                // 輔助模式
-}
-
-/**
- * 武器傷害類型
- */
-export enum WeaponDamageType {
-    PHYSICAL = "physical", // 物理傷害
-    MAGICAL = "magical",   // 魔法傷害
-    HYBRID = "hybrid"      // 混合傷害
-}
-

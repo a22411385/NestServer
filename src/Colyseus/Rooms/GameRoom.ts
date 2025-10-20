@@ -18,6 +18,7 @@ import { ItemPickupSystem } from "@/Game/Systems/ItemPickupSystem"; // 🆕 添�
 
 // 🆕 引入新的系統
 import { CombatSystem } from "@/Game/Systems/CombatSystem";
+import { StatusEffectSystem } from "@/Game/Systems/StatusEffectSystem";
 import { WeaponInstanceManager } from "@/Game/Managers/WeaponInstanceManager";
 import { initializeWeaponConfigs } from "@/Game/Factories/WeaponConfig";
 import { WeaponFactory } from "@/Game/Factories/WeaponFactory";
@@ -45,6 +46,7 @@ export class GameRoom extends MiddleRoom<GameRoomState> {
     public damageSystem: DamageSystem;
     public bulletSystem: BulletSystem; // 🆕 添加子彈系統
     public combatSystem: CombatSystem; // 🆕 戰鬥系統
+    public statusEffectSystem: StatusEffectSystem; // 🆕 狀態效果系統
     public equipmentManager: EquipmentManager; // 🆕 裝備管理器
     public dropSystem: DropSystem; // 🆕 掉落系統
     public itemPickupSystem: ItemPickupSystem; // 🆕 拾取系統
@@ -78,6 +80,7 @@ export class GameRoom extends MiddleRoom<GameRoomState> {
         this.damageSystem = new DamageSystem(this); // 初始化傷害系統
         this.bulletSystem = new BulletSystem(this); // 🆕 初始化子彈系統
         this.combatSystem = new CombatSystem(this); // 🆕 初始化戰鬥系統
+        this.statusEffectSystem = new StatusEffectSystem(this); // 🆕 初始化狀態效果系統
         this.equipmentManager = new EquipmentManager(this); // 🆕 初始化裝備管理器
         this.dropSystem = new DropSystem(this); // 🆕 初始化掉落系統
         this.dropSystem.initialize(); // 🆕 初始化掉落系統配置
@@ -195,6 +198,9 @@ export class GameRoom extends MiddleRoom<GameRoomState> {
 
         // 處理英雄自動攻擊 (Vampire Survivors 風格)
         this.combatSystem.updateHeroAutoAttacks();
+
+        // 🆕 更新狀態效果系統（處理持續傷害、清理過期效果）
+        this.statusEffectSystem.update(deltaTime);
 
         // 更新子彈系統
         this.bulletSystem.updateBullets(deltaTime);

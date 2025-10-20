@@ -1,6 +1,6 @@
 import { ProjectileBasic } from './ProjectileBasic';
 import { ServerGameUnit } from '../Unit/GameUnit';
-import { VisualEffect } from '../../../Types';
+import { ExplosionVisualEffect, HitVisualEffect, VisualEffect } from '../../../Types';
 import { ServerBullet } from '../Bullet';
 import { GameRoom } from '../../Rooms/GameRoom';
 
@@ -48,7 +48,7 @@ export class PiercingProjectile extends ProjectileBasic {
                 isPierce: true,
                 isCritical: false,
             },
-        };
+        } as HitVisualEffect;
 
         return [hitEffect];
     }
