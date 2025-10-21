@@ -180,12 +180,11 @@ export class PlayerManager {
             const addedWeapons: string[] = [];
             for (const weaponId of availableWeapons) {
                 try {
-                    const weaponConfig = ConfigManager.getWeaponConfigById(weaponId);
-                    if (weaponConfig) {
-                        const weaponUniqueId = hero.addWeaponToInventory(weaponId, weaponConfig.classModule);
-                        addedWeapons.push(weaponUniqueId);
-                        console.log(`  ✅ 添加武器: ${weaponId} (${weaponUniqueId})`);
-                    }
+
+                    const weaponUniqueId = hero.addWeaponToInventory(weaponId);
+                    addedWeapons.push(weaponUniqueId);
+                    console.log(`  ✅ 添加武器: ${weaponId} (${weaponUniqueId})`);
+
                 } catch (error) {
                     console.warn(`  ❌ 添加武器失敗: ${weaponId}`, error);
                 }

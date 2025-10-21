@@ -19,14 +19,6 @@ export class LightningBolt extends ProjectileWeapon {
         // 閃電箭特有配置
         console.log(`⚡ 閃電箭特定配置已應用 - 配置來自: ${this.weaponConfig?.name}`);
 
-        // 根據配置的固定屬性進行特殊設置
-        const fixedProps = this.getFixedProperties();
-        if (fixedProps.includes('chain_attack')) {
-            console.log(`🔗 閃電箭具有連鎖攻擊效果`);
-        }
-        if (fixedProps.includes('stun')) {
-            console.log(`😵 閃電箭具有暈眩效果`);
-        }
     }
 
     // 使用父類 ProjectileWeapon 的 tryAttack 邏輯

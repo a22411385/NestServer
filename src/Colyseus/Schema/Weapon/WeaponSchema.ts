@@ -97,8 +97,8 @@ export class WeaponSchema extends Schema {
             this.name = config.name;
             this.description = config.description || "";
             // rarity 不存在於配置中，使用默認值
-            this.weaponType = config.type || this.inferWeaponType();
-
+            this.weaponType = this.inferWeaponType();
+            this.weaponBasicDataSetting(config);
             // 🆕 初始化屬性列表
             if (config.fixedProperties) {
                 const fixedProps = config.fixedProperties.split(',').map((p: string) => p.trim()).filter((p: string) => p);
@@ -122,6 +122,7 @@ export class WeaponSchema extends Schema {
         this.baseDamage = config.baseDamage;
         this.attackSpeed = config.attackSpeed;
         this.enabled = config.enabled;
+        this.attackRange = config.attackRange;
         this.projectileClass = config.projectileClass;
     }
 
@@ -247,11 +248,6 @@ export class WeaponSchema extends Schema {
      * 設置武器屬性（從 PropertyValue[] 轉換為 JSON 同步到客戶端）
      */
     public setProperties(data: { fixed: PropertyValue[], random: PropertyValue[] }): void {
-        // const propertiesObj: { [key: string]: any } = {};
-        // for (const prop of data.fixed) {
-        //     propertiesObj[prop.type] = prop.value;
-        // }
-
         this.propertiesJson = JSON.stringify(data);
     }
 

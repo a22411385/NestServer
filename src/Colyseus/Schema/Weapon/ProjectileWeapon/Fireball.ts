@@ -15,15 +15,5 @@ export class Fireball extends ProjectileWeapon {
      */
     protected applyProjectileSpecificConfig(): void {
         console.log(`🔥 火球配置已應用 - ${this.weaponConfig?.name}`);
-
-
-        // 根據配置的固定屬性進行特殊設置
-        const fixedProps = this.getFixedProperties();
-        if (fixedProps.includes('burn')) {
-            console.log(`🔥 火球具有燃燒效果`);
-        }
-        if (fixedProps.includes('area_of_effect')) {
-            console.log(`💥 火球會發射爆炸彈藥`);
-        }
     }
 }

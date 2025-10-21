@@ -202,6 +202,8 @@ export class WeaponPropertyService {
             type: propertyDef.propertyType,
             valueType: valueType,
             value: 0,
+            probability: 100,
+            duration: 0,
             description: propertyDef.description
         } as PropertyValue
 

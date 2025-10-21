@@ -6,7 +6,6 @@ import {
     PropertyType,
 } from '@/Types';
 import { ServerGameUnit } from '../../Unit/GameUnit';
-import { StatusEffectData } from '@/Types/Equipment/WeaponPropertyTypes';
 
 /**
  * 近戰武器抽象類
@@ -24,83 +23,40 @@ export abstract class MeleeWeapon extends WeaponBasic {
      * 獲取擊退力度（從屬性系統）
      */
     public get knockbackForce(): number {
-        return (this.getPropertyValue(PropertyType.KNOCKBACK) as number) || 0;
-    }
+        const prop = this.getProperty(PropertyType.KNOCKBACK);
+        if (prop) {
+            return prop.value;
+        } else {
+            return 0;
+        }
 
+    }
     /**
      * 獲取掃射角度（從屬性系統）
      */
     public get sweepAngle(): number {
-        const angleInDegrees =
-            (this.getPropertyValue(PropertyType.SWEEP_ANGLE) as number) || 0;
-        return (angleInDegrees * Math.PI) / 180; // 轉換為弧度
+
+        const prop = this.getProperty(PropertyType.SWEEP_ANGLE);
+        if (prop) {
+            return (prop.value * Math.PI) / 180;
+        } else {
+            return 0;
+        }
+
     }
 
     /**
      * 獲取暈眩效果 [機率, 持續時間]
      */
     public get stunEffect(): [number, number] | null {
-        const stunValue = this.getPropertyValue(PropertyType.STUN);
-        return Array.isArray(stunValue) ? (stunValue as [number, number]) : null;
-    }
 
-    /**
-     * 獲取所有狀態效果
-     */
-    public getStatusEffects(): StatusEffectData[] {
-        const effects: StatusEffectData[] = [];
-
-        // 暈眩效果
-        const stunValue = this.getPropertyValue(PropertyType.STUN);
-        if (Array.isArray(stunValue) && stunValue.length >= 2) {
-            effects.push({
-                type: PropertyType.STUN,
-                chance: stunValue[0],
-                duration: stunValue[1],
-            });
+        const prop = this.getProperty(PropertyType.STUN);
+        if (prop) {
+            return [prop.probability, prop.duration];
+        } else {
+            return [0, 0];
         }
 
-        // 冰凍效果
-        const freezeValue = this.getPropertyValue(PropertyType.FREEZE);
-        if (typeof freezeValue === 'number') {
-            effects.push({
-                type: PropertyType.FREEZE,
-                duration: freezeValue,
-            });
-        }
-
-        // 燃燒效果
-        const burnValue = this.getPropertyValue(PropertyType.BURN);
-        if (Array.isArray(burnValue) && burnValue.length >= 2) {
-            effects.push({
-                type: PropertyType.BURN,
-                duration: burnValue[0],
-                damagePerSecond: burnValue[1],
-            });
-        }
-
-        // 中毒效果
-        const poisonValue = this.getPropertyValue(PropertyType.POISON);
-        if (Array.isArray(poisonValue) && poisonValue.length >= 2) {
-            effects.push({
-                type: PropertyType.POISON,
-                duration: poisonValue[0],
-                damagePerSecond: poisonValue[1],
-            });
-        }
-
-        // 減速效果
-        const slowValue = this.getPropertyValue(PropertyType.SLOW);
-        if (Array.isArray(slowValue) && slowValue.length >= 3) {
-            effects.push({
-                type: PropertyType.SLOW,
-                chance: slowValue[0],
-                duration: slowValue[1],
-                slowPercentage: slowValue[2],
-            });
-        }
-
-        return effects;
     }
 
     public override tryAttack(

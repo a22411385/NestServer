@@ -12,22 +12,7 @@ export class ShadowBlade extends MeleeWeapon {
         super(); // 🆕 調用無參數的父類構造函數
     }
 
-    /**
-     * 🆕 應用暗影刃特定的配置
-     */
-    protected applyMeleeSpecificConfig(): void {
-        // 暗影刃特有邏輯
-        console.log(`🗡️ 暗影刃特定配置已應用 - 配置來自: ${this.weaponConfig?.name}`);
 
-        // 根據配置的固定屬性進行特殊設置
-        const fixedProps = this.getFixedProperties();
-        if (fixedProps.includes('critical_chance')) {
-            console.log(`💥 暗影刃具有高暴擊機率`);
-        }
-        if (fixedProps.includes('life_steal')) {
-            console.log(`🩸 暗影刃具有生命偷取效果`);
-        }
-    }
 
     // 使用父類 MeleeWeapon 的 tryAttack 邏輯
     // 所有特殊效果（暴擊、生命偷取等）都通過屬性系統應用

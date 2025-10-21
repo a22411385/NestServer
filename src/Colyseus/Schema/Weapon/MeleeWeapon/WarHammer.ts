@@ -12,25 +12,6 @@ export class WarHammer extends MeleeWeapon {
         super(); // 🆕 調用無參數的父類構造函數
     }
 
-    /**
-     * 🆕 應用戰錘特定的配置
-     */
-    protected applyMeleeSpecificConfig(): void {
-        // 戰錘特有邏輯
-        console.log(`🔨 戰錘特定配置已應用 - 配置來自: ${this.weaponConfig?.name}`);
-
-        // 根據配置的固定屬性進行特殊設置
-        const fixedProps = this.getFixedProperties();
-        if (fixedProps.includes('knockback')) {
-            console.log(`💥 戰錘具有擊退效果`);
-        }
-        if (fixedProps.includes('splash_damage')) {
-            console.log(`🌊 戰錘具有濺射傷害`);
-        }
-        if (fixedProps.includes('stun')) {
-            console.log(`😵 戰錘具有暈眩效果`);
-        }
-    }
 
     // 使用父類 MeleeWeapon 的 tryAttack 邏輯
     // 所有特殊效果（擊退、濺射、暈眩等）都通過屬性系統應用

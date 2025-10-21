@@ -19,20 +19,6 @@ export class HealingStaff extends SupportWeapon {
         // 治療法杖特有配置
         console.log(`🪄 治療法杖特定配置已應用 - 配置來自: ${this.weaponConfig?.name}`);
 
-        // 治療法杖特有設定
-        this.healAmount = 15;        // 基礎治療量（會被屬性增強）
-        this.buffDuration = 5000;    // 增益持續時間
-        this.supportRadius = 200;    // 較大的支援範圍
-        this.canTargetSelf = true;   // 可以自我治療
-
-        // 根據配置的固定屬性進行特殊設置
-        const fixedProps = this.getFixedProperties();
-        if (fixedProps.includes('heal_amount')) {
-            console.log(`💚 治療法杖具有強化治療效果`);
-        }
-        if (fixedProps.includes('support_radius')) {
-            console.log(`🌐 治療法杖具有擴大支援範圍`);
-        }
     }
 
     /**

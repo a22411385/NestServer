@@ -115,8 +115,6 @@ export interface WeaponConfigDefinition {
     description: string;
 }
 
-
-
 /**
  * 通用屬性值定義 - 裝備與武器共用
  */
@@ -126,28 +124,8 @@ export interface PropertyValue {
     value: number;  // 主要屬性 也有可能是傷害
     description?: string;      // 描述文字
     intensity?: number;      // 效果強度
-
-    probability?: number;    // 觸發機率 (0-100)
-    duration?: number;       // 持續時間 (秒)
+    stacked?: boolean;      // 是否可堆疊
+    probability: number;    // 觸發機率 (0-100)
+    duration: number;       // 持續時間 (秒)
 }
 
-/**
- * 狀態效果數據結構
- */
-export interface StatusEffectData {
-    type: PropertyTypeValue;
-    chance?: number;        // 觸發機率 (0-100)
-    duration?: number;      // 持續時間 (秒)
-    value?: number;         // 效果數值
-    damagePerSecond?: number; // 每秒傷害 (for burn, poison)
-    slowPercentage?: number;  // 減速百分比 (for slow)
-}
-
-/**
- * 武器屬性應用結果
- */
-export interface PropertyApplicationResult {
-    success: boolean;
-    appliedProperties: PropertyValue[];
-    errors: string[];
-}

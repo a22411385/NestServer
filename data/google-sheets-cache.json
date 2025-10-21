@@ -7,7 +7,6 @@
       "valueType": "single",
       "valueMin": 50,
       "valueMax": 50,
-      "triggerProbability": 100,
       "stacked": false,
       "category": "combat"
     },
@@ -19,7 +18,6 @@
       "valueMin": "15|1",
       "valueMax": "25|3",
       "compositeFormat": "probability|duration",
-      "triggerProbability": 100,
       "stacked": false,
       "category": "status"
     },
@@ -30,7 +28,6 @@
       "valueType": "range",
       "valueMin": 5,
       "valueMax": 25,
-      "triggerProbability": 100,
       "stacked": true,
       "category": "attribute"
     },
@@ -41,7 +38,6 @@
       "valueType": "range",
       "valueMin": 8,
       "valueMax": 30,
-      "triggerProbability": 100,
       "stacked": true,
       "category": "attribute"
     },
@@ -52,7 +48,6 @@
       "valueType": "range",
       "valueMin": 6,
       "valueMax": 28,
-      "triggerProbability": 100,
       "stacked": true,
       "category": "attribute"
     },
@@ -63,7 +58,6 @@
       "valueType": "range",
       "valueMin": 4,
       "valueMax": 22,
-      "triggerProbability": 100,
       "stacked": true,
       "category": "attribute"
     },
@@ -74,7 +68,6 @@
       "valueType": "range",
       "valueMin": 5,
       "valueMax": 20,
-      "triggerProbability": 100,
       "stacked": true,
       "category": "basic"
     },
@@ -85,7 +78,6 @@
       "valueType": "range",
       "valueMin": 50,
       "valueMax": 200,
-      "triggerProbability": 100,
       "stacked": true,
       "category": "basic"
     },
@@ -96,7 +88,6 @@
       "valueType": "range",
       "valueMin": 20,
       "valueMax": 100,
-      "triggerProbability": 100,
       "stacked": true,
       "category": "basic"
     },
@@ -107,7 +98,6 @@
       "valueType": "single",
       "valueMin": 2,
       "valueMax": 2,
-      "triggerProbability": 100,
       "stacked": false,
       "category": "status"
     },
@@ -119,7 +109,6 @@
       "valueMin": "20|3|8",
       "valueMax": "40|5|15",
       "compositeFormat": "probability|duration|damage",
-      "triggerProbability": 100,
       "stacked": false,
       "category": "status"
     },
@@ -131,7 +120,6 @@
       "valueMin": "15|4|5",
       "valueMax": "30|6|12",
       "compositeFormat": "probability|duration|damage",
-      "triggerProbability": 100,
       "stacked": false,
       "category": "status"
     },
@@ -143,7 +131,6 @@
       "valueMin": "25|2|30",
       "valueMax": "50|4|60",
       "compositeFormat": "probability|duration|intensity",
-      "triggerProbability": 100,
       "stacked": false,
       "category": "status"
     },
@@ -154,7 +141,7 @@
       "valueType": "range",
       "valueMin": 3,
       "valueMax": 15,
-      "triggerProbability": 100,
+      "compositeFormat": "probability",
       "stacked": true,
       "category": "combat"
     },
@@ -165,7 +152,7 @@
       "valueType": "range",
       "valueMin": 20,
       "valueMax": 80,
-      "triggerProbability": 100,
+      "compositeFormat": "probability",
       "stacked": true,
       "category": "combat"
     },
@@ -176,7 +163,7 @@
       "valueType": "range",
       "valueMin": 2,
       "valueMax": 10,
-      "triggerProbability": 100,
+      "compositeFormat": "probability",
       "stacked": true,
       "category": "combat"
     },
@@ -187,7 +174,6 @@
       "valueType": "range",
       "valueMin": 1,
       "valueMax": 4,
-      "triggerProbability": 100,
       "stacked": false,
       "category": "combat"
     },
@@ -198,8 +184,7 @@
       "valueType": "composite",
       "valueMin": "2|80",
       "valueMax": "5|60",
-      "compositeFormat": "count|damage_ratio",
-      "triggerProbability": 100,
+      "compositeFormat": "count|damage",
       "stacked": false,
       "category": "combat"
     },
@@ -207,11 +192,9 @@
       "propertyType": "splash_damage",
       "displayName": "濺射傷害",
       "description": "攻擊對範圍內敵人造成額外傷害",
-      "valueType": "composite",
-      "valueMin": "100|50",
-      "valueMax": "200|80",
-      "compositeFormat": "range|damage_ratio",
-      "triggerProbability": 100,
+      "valueType": "single",
+      "valueMin": 50,
+      "valueMax": 100,
       "stacked": false,
       "category": "combat"
     },
@@ -222,7 +205,6 @@
       "valueType": "range",
       "valueMin": 50,
       "valueMax": 200,
-      "triggerProbability": 100,
       "stacked": true,
       "category": "basic"
     },
@@ -231,9 +213,8 @@
       "displayName": "範圍效果",
       "description": "增加技能或攻擊的影響範圍",
       "valueType": "range",
-      "valueMin": 30,
-      "valueMax": 120,
-      "triggerProbability": 100,
+      "valueMin": 120,
+      "valueMax": 180,
       "stacked": true,
       "category": "basic"
     },
@@ -244,7 +225,6 @@
       "valueType": "range",
       "valueMin": 1,
       "valueMax": 6,
-      "triggerProbability": 100,
       "stacked": false,
       "category": "basic"
     },
@@ -255,7 +235,6 @@
       "valueType": "range",
       "valueMin": 10,
       "valueMax": 50,
-      "triggerProbability": 100,
       "stacked": true,
       "category": "basic"
     },
@@ -266,7 +245,6 @@
       "valueType": "range",
       "valueMin": 1,
       "valueMax": 5,
-      "triggerProbability": 100,
       "stacked": true,
       "category": "basic"
     },
@@ -275,9 +253,8 @@
       "displayName": "支援範圍",
       "description": "增加支援技能的影響範圍",
       "valueType": "range",
-      "valueMin": 50,
-      "valueMax": 200,
-      "triggerProbability": 100,
+      "valueMin": 150,
+      "valueMax": 300,
       "stacked": true,
       "category": "basic"
     },
@@ -288,7 +265,6 @@
       "valueType": "range",
       "valueMin": 15,
       "valueMax": 60,
-      "triggerProbability": 100,
       "stacked": true,
       "category": "basic"
     }
@@ -1209,5 +1185,5 @@
       "stack_type": "ADDITIVE"
     }
   ],
-  "lastUpdated": "2025-10-16T03:04:27.411Z"
+  "lastUpdated": "2025-10-21T04:30:23.746Z"
 }

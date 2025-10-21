@@ -3,7 +3,7 @@
  */
 
 import { Vector2 } from '../BaseTypes';
-import { PropertyValue } from '../Equipment/WeaponPropertyTypes';
+import { PropertyTypeValue, PropertyValue } from '../Equipment/WeaponPropertyTypes';
 import { BulletCreateConfig } from './BulletTypes';
 
 /**
@@ -68,7 +68,7 @@ export enum AttackFailReason {
  * - StatusEffect: Colyseus Schema,同步到客戶端
  */
 export interface StatusEffectConfig {
-    type: 'stun' | 'slow' | 'burn' | 'freeze' | 'poison' | 'knockback';
+    type: PropertyTypeValue;
     duration: number;           // 持續時間 (毫秒)
     value?: number;             // 效果數值 (減速百分比、每秒傷害)
     chance?: number;            // 觸發機率 (0-100)

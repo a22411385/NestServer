@@ -2,10 +2,12 @@ import { ServerGameUnit } from '../../Unit/GameUnit';
 import { UnitType } from '../../GameState';
 import { WeaponType, AttackResult, PropertyType, StatusEffectConfig } from '../../../../Types';
 import {
+  PropertyTypeValue,
   PropertyValue,
   WeaponConfigDefinition,
 } from '@/Types/Equipment/WeaponPropertyTypes';
 import { getWeaponConfig } from '../../../../Game/Factories/WeaponConfig';
+import { createEffectFromProperty } from '../EffectsParser';
 
 // ✅ 引入 WeaponSchema 類型（避免循環依賴，使用延遲導入）
 type WeaponSchema = import('../WeaponSchema').WeaponSchema;
@@ -103,58 +105,39 @@ export abstract class WeaponBasic {
       console.error(`❌ 無法找到武器配置: ${weaponId}`);
       return false;
     }
-
-    // 設置基礎屬性
-    // this.weaponId = this.weaponConfig.id;
-    // this.name = this.weaponConfig.name;
-    // this.description = this.weaponConfig.description || '';
-    // this.baseDamage = this.weaponConfig.baseDamage;
-    // this.attackSpeed = this.weaponConfig.attackSpeed;
-    // this.attackRange = this.weaponConfig.attackRange;
-    // this.enabled = this.weaponConfig.enabled !== false;
-
-    // this.projectileClass = this.weaponConfig.projectileClass;
-    // this.weaponType = this.weaponConfig.classModule as WeaponType;
-    //console.log(`✅ 武器已從配置初始化: ${this.name} (${this.weaponId})`);
     return true;
-  }
-
-
-  /**
-   * ✅ 獲取固定屬性列表 - 從 WeaponSchema 讀取
-   */
-  public getFixedProperties(): string[] {
-    if (!this.weaponSchema) return [];
-    return Array.from(this.weaponSchema.fixedProperties);
-  }
-
-  /**
-   * ✅ 獲取隨機屬性列表 - 從 WeaponSchema 讀取
-   */
-  public getRandomProperties(): string[] {
-    if (!this.weaponSchema) return [];
-    return Array.from(this.weaponSchema.randomProperties);
   }
 
   /**
    * ✅ 獲取特定屬性值 - 從 WeaponSchema 讀取
    */
-  public getProperty(type: string): PropertyValue | null {
+  public getProperty(type: PropertyTypeValue): PropertyValue | null {
     if (!this.weaponSchema) return null;
 
     const properties = this.weaponSchema.getProperties();
-    return properties.find(p => p.type === type) || null;
-  }
+    const all = properties.fixed.concat(properties.random);
 
-  /**
-   * ✅ 獲取屬性數值 - 從 WeaponSchema 讀取
-   */
-  public getPropertyValue(type: string): number | number[] | null {
-    if (!this.weaponSchema) return null;
+    const filtered = all.filter(p => p.type === type);
+    if (filtered.length === 0) {
+      return null;
 
+    }
 
+    if (filtered.length === 1 || !filtered[0].stacked) {
+      return filtered[0];
+    }
 
-    return this.weaponSchema.getPropertyValue(type);
+    let statsValue = filtered[0];
+    for (let i = 1; i < filtered.length; i++) {
+      statsValue = {
+        ...statsValue,
+        value: statsValue.value + filtered[i].value,
+        duration: Math.max(statsValue.duration, filtered[i].duration),
+        probability: Math.max(statsValue.probability, filtered[i].probability),
+      };
+    }
+    return statsValue;
+
   }
 
   /**
@@ -170,7 +153,9 @@ export abstract class WeaponBasic {
    */
   public getAllProperties(): PropertyValue[] {
     if (!this.weaponSchema) return [];
-    return this.weaponSchema.getProperties();
+    const props = this.weaponSchema.getProperties();
+
+    return [...props.fixed, ...props.random];
   }
 
   /**
@@ -181,69 +166,14 @@ export abstract class WeaponBasic {
    */
   protected generateStatusEffects(): StatusEffectConfig[] {
     const effects: StatusEffectConfig[] = [];
-
-    // 暈眩效果 [機率, 持續時間]
-    const stunValue = this.getPropertyValue('stun');
-    if (Array.isArray(stunValue) && stunValue.length >= 2) {
-      effects.push({
-        type: 'stun',
-        chance: stunValue[0],
-        duration: stunValue[1] * 1000, // 轉換為毫秒
-      });
+    for (const prop of this.getAllProperties()) {
+      const eff = createEffectFromProperty(prop);
+      if (eff)
+        effects.push(eff);
     }
-
-    // 冰凍效果 [持續時間]
-    const freezeValue = this.getPropertyValue('freeze');
-    if (typeof freezeValue === 'number') {
-      effects.push({
-        type: 'freeze',
-        duration: freezeValue * 1000, // 轉換為毫秒
-      });
-    }
-
-    // 燃燒效果 [持續時間, 每秒傷害]
-    const burnValue = this.getPropertyValue('burn');
-    if (Array.isArray(burnValue) && burnValue.length >= 2) {
-      effects.push({
-        type: 'burn',
-        duration: burnValue[0] * 1000, // 轉換為毫秒
-        value: burnValue[1], // 每秒傷害
-      });
-    }
-
-    // 中毒效果 [持續時間, 每秒傷害]
-    const poisonValue = this.getPropertyValue('poison');
-    if (Array.isArray(poisonValue) && poisonValue.length >= 2) {
-      effects.push({
-        type: 'poison',
-        duration: poisonValue[0] * 1000, // 轉換為毫秒
-        value: poisonValue[1], // 每秒傷害
-      });
-    }
-
-    // 減速效果 [機率, 持續時間, 減速百分比]
-    const slowValue = this.getPropertyValue('slow');
-    if (Array.isArray(slowValue) && slowValue.length >= 3) {
-      effects.push({
-        type: 'slow',
-        chance: slowValue[0],
-        duration: slowValue[1] * 1000, // 轉換為毫秒
-        value: slowValue[2], // 減速百分比
-      });
-    }
-
-    // 擊退效果 [力量]
-    const knockbackValue = this.getPropertyValue('knockback');
-    if (typeof knockbackValue === 'number') {
-      effects.push({
-        type: 'knockback',
-        duration: 0, // 擊退是瞬間效果
-        value: knockbackValue,
-      });
-    }
-
     return effects;
   }
+
 
   /**
    * 嘗試攻擊 - 只負責攻擊邏輯和目標選擇，不處理傷害

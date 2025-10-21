@@ -30,12 +30,10 @@ export class ServerBullet extends Schema {
 
     public get areaOfEffect(): number {
         let aoe = this.properties[PropertyType.AREA_OF_EFFECT]?.value;
-        // 處理屬性值：數組取第一個元素，單值直接返回
-        // ⚠️ 臨時測試：乘以 4 倍範圍
         if (Array.isArray(aoe)) {
-            return (aoe[0] || 0) * 4;
+            return (aoe[0] || 0);
         }
-        return (aoe || 0) * 4;
+        return (aoe || 0);
     }
 
 
