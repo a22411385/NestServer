@@ -28,13 +28,13 @@ export class WeaponSystemFacade {
     /**
      * 🎯 便利方法：創建並立即獲取武器
      */
-    public static createAndGetWeapon(weaponId: string): {
+    public static createAndGetWeapon(weaponId: string, classModule: string): {
         data: WeaponSchema;
         instance: WeaponBasic | null;
         stats: FinalWeaponStats;
     } {
         // 1. 創建數據
-        const data = new WeaponSchema(weaponId);
+        const data = new WeaponSchema(weaponId, classModule);
 
         // 2. 獲取實例（委託給管理器）
         const instance = WeaponInstanceManager.getOrCreateInstance(data);

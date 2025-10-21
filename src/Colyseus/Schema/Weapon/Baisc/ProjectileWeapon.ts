@@ -24,34 +24,9 @@ import { ServerGameUnit } from '../../Unit/GameUnit';
  * ```
  */
 export class ProjectileWeapon extends WeaponBasic {
-    // ✅ 武器物理屬性
-    projectileSpeed: number = 0; // 投射物速度（武器決定）
-    accuracy: number = 1.0; // 命中精度（武器決定）
 
     constructor() {
         super(); // 🆕 調用無參數的父類構造函數
-    }
-
-    /**
-     * 🆕 實現基類的配置應用方法
-     */
-    protected applyWeaponSpecificConfig(): void {
-        // 投射武器的通用配置邏輯
-        console.log(`🏹 投射武器配置已應用: ${this.name}`);
-
-        // 設置投射武器的預設值（只設定武器屬性）
-        this.projectileSpeed = 300; // 預設投射物速度
-        this.accuracy = 1.0; // 預設100%命中
-
-        // 子類可以覆寫此方法來應用特定配置
-        this.applyProjectileSpecificConfig();
-    }
-
-    /**
-     * 🆕 子類可覆寫的投射武器特定配置方法
-     */
-    protected applyProjectileSpecificConfig(): void {
-        // 預設實現，子類可覆寫
     }
 
     public tryAttack(
@@ -277,20 +252,12 @@ export class ProjectileWeapon extends WeaponBasic {
             startPosition: startPosition, // 由 CombatSystem 設置,
             direction: direction,           // 由 CombatSystem 設置,
             bulletClass: this.projectileClass,  // ✅ 彈藥類型
-            speed: this.projectileSpeed,        // ✅ 武器速度
+
             damage: this.baseDamage,            // ✅ 武器傷害
             maxDistance: this.attackRange,      // ✅ 武器射程
             properties: propertiesMap,
             statusEffects: this.generateStatusEffects(), // 🆕 從屬性生成狀態效果
         };
-    }
-
-    // Getter - 武器屬性
-    public get speed(): number {
-        return this.projectileSpeed;
-    }
-    public get hitAccuracy(): number {
-        return this.accuracy;
     }
 
     /**

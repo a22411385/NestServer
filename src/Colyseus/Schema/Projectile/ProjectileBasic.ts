@@ -1,5 +1,5 @@
 import { ServerGameUnit } from '../Unit/GameUnit';
-import { AttackResult, AttackFailReason, VisualEffect } from '../../../Types';
+import { AttackResult, AttackFailReason, VisualEffect, UnitType } from '../../../Types';
 import { ServerBullet } from '../Bullet';
 import { GameRoom } from '../../Rooms/GameRoom';
 
@@ -106,6 +106,8 @@ export abstract class ProjectileBasic {
         range: bullet.areaOfEffect,
       },
       visualEffects: this.createVisualEffects(bullet, affectedTargets),
+      // ✅ 傳遞狀態效果配置（燃燒、中毒等）
+      statusEffects: bullet.statusEffects,
     };
   }
 
@@ -139,21 +141,44 @@ export abstract class ProjectileBasic {
 
   ): ServerGameUnit[] {
     const targets: ServerGameUnit[] = [];
+    let checkedCount = 0;
+    let enemyCount = 0;
 
-    for (const [, unit] of gameRoom.state.gameCore.allUnits) {
-      if (unit.isDead || unit === excludeTarget) continue;
-      if (unit.type !== 1) continue; // 1 = UnitType.enemy
-      if (unit.id === owner.id) continue;
+    console.log(`🔍 [findTargetsInRadius] 搜索範圍 - 中心: (${centerPosition.x}, ${centerPosition.y}), 半徑: ${radius}`);
+
+    for (const [unitId, unit] of gameRoom.state.gameCore.allUnits) {
+      checkedCount++;
+
+      // 詳細記錄每個單位的檢查過程
+      if (unit.isDead) {
+        console.log(`  ❌ 單位 ${unitId} - 已死亡`);
+        continue;
+      }
+      if (unit === excludeTarget) {
+        console.log(`  ❌ 單位 ${unitId} - 被排除的目標`);
+        continue;
+      }
+
+      enemyCount++;
+
+      if (unit.id === owner.id) {
+        console.log(`  ❌ 單位 ${unitId} - 是擁有者`);
+        continue;
+      }
+
       const distance = Math.hypot(
         unit.position.x - centerPosition.x,
         unit.position.y - centerPosition.y,
       );
+
+      console.log(`  🎯 敵人 ${unitId} at (${unit.position.x}, ${unit.position.y}) - 距離: ${distance.toFixed(2)} ${distance <= radius ? '✅ 在範圍內' : '❌ 超出範圍'}`);
 
       if (distance <= radius) {
         targets.push(unit);
       }
     }
 
+    console.log(`🔍 [findTargetsInRadius] 檢查完成 - 總單位: ${checkedCount}, 敵人: ${enemyCount}, 範圍內: ${targets.length}`);
     return targets;
   }
 }

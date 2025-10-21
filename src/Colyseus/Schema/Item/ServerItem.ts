@@ -36,6 +36,7 @@ export class ServerItem extends Schema {
     @type("number") durability: number = 100;
     @type("string") weaponPropertiesJson: string = ""; // 武器屬性數據（序列化存儲）
 
+    private classModule: string = "";
     constructor(id: string, itemType: ItemType, name: string, x: number = 0, y: number = 0) {
         super();
         this.uniqueId = this.generateId(itemType);
@@ -91,16 +92,6 @@ export class ServerItem extends Schema {
     }
 
     /**
-     * 創建武器物品（掉落時已確定品質）
-     */
-    static createWeapon(x: number, y: number, weaponId: string, name: string, quality: string): ServerItem {
-        const item = new ServerItem(weaponId, ItemType.WEAPON, name, x, y);
-        item.itemId = weaponId;
-        item.quality = quality;
-        return item;
-    }
-
-    /**
      * 從 WeaponData 創建掉落物品（玩家丟棄武器時使用）
      */
     static createFromWeaponData(weaponData: WeaponData, x: number, y: number): ServerItem {
@@ -113,6 +104,7 @@ export class ServerItem extends Schema {
         item.enhanceLevel = weaponData.enhanceLevel;
         item.exp = weaponData.exp;
         item.durability = weaponData.durability;
+        item.classModule = weaponData.classModule;
 
         // 序列化武器屬性數據 (包含完整屬性值)
         item.weaponPropertiesJson = JSON.stringify({
@@ -133,7 +125,7 @@ export class ServerItem extends Schema {
             return null;
         }
 
-        const weaponData = new WeaponSchema(this.itemId);
+        const weaponData = new WeaponSchema(this.itemId, this.classModule);
         weaponData.name = this.name;
         // 複製基本屬性
         weaponData.weaponId = this.itemId;

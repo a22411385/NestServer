@@ -58,6 +58,7 @@ export class FireExplosiveProjectile extends ExplosiveProjectile {
                 duration: 500,
                 hasShockwave: true,
             },
+
         } as ExplosionVisualEffect;
 
         return [fireExplosionEffect];

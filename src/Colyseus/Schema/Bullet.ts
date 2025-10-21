@@ -30,7 +30,12 @@ export class ServerBullet extends Schema {
 
     public get areaOfEffect(): number {
         let aoe = this.properties[PropertyType.AREA_OF_EFFECT]?.value;
-        return Array.isArray(aoe) ? aoe[0] || 0 : aoe || 0;
+        // 處理屬性值：數組取第一個元素，單值直接返回
+        // ⚠️ 臨時測試：乘以 4 倍範圍
+        if (Array.isArray(aoe)) {
+            return (aoe[0] || 0) * 4;
+        }
+        return (aoe || 0) * 4;
     }
 
 
@@ -82,14 +87,22 @@ export class ServerBullet extends Schema {
     }
 
     /**
+     * 應用擴展配置
+     * 
      * @param config 子彈創建配置
      */
     public applyExtendedConfig(config: BulletCreateConfig): void {
-        // 🎯 優雅方案：使用屬性映射表批量處理
+        // 應用屬性配置
         this.properties = config.properties;
 
+        // 處理穿透次數
         let pCount = config.properties[PropertyType.PIERCE_COUNT]?.value;
         this.pierceCount = Array.isArray(pCount) ? pCount[0] || 1 : pCount || 1;
-        console.log(this.pierceCount);
+
+        // ✅ 處理狀態效果配置（燃燒、中毒等）
+        if (config.statusEffects) {
+            this.statusEffects = config.statusEffects;
+            console.log(`💊 [Bullet] 應用 ${config.statusEffects.length} 個狀態效果:`, config.statusEffects);
+        }
     }
 }

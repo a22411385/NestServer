@@ -1,6 +1,7 @@
 import { WeaponData } from "../../Colyseus/Schema/Weapon/WeaponData";
 import { WeaponBasic } from "../../Colyseus/Schema/Weapon/Baisc/WeaponBasic";
 import { getWeaponConfig } from "../Factories/WeaponConfig";
+import { PropertyType } from "@/Types";
 
 /**
  * 最終武器屬性接口
@@ -44,7 +45,7 @@ export class WeaponDataService {
 
         // 計算最終屬性
         const finalDamage = Math.floor(config.baseDamage * multipliers.damage);
-        const finalRange = Math.floor(config.attackRange * multipliers.range);
+        const finalRange = Math.floor(config.attackRange + multipliers.range);
         const finalSpeed = Math.max(100, Math.floor(config.attackSpeed * multipliers.speed));
 
         // 計算戰鬥特效屬性
@@ -90,13 +91,13 @@ export class WeaponDataService {
         }
 
         const damageMultiplier = levelMultiplier * enhanceMultiplier * durabilityMultiplier;
-        const rangeMultiplier = levelMultiplier + (weaponData.enhanceLevel * 0.02); // 強化微幅增加射程
+        const rangeMultiplier = weaponData.getPropertyValue(PropertyType.ATTACK_RANGE) || 0; // 強化微幅增加射程
         const speedMultiplier = Math.max(0.5, 1 - (weaponData.level - 1) * 0.02); // 等級降低攻擊間隔
         const statsMultiplier = levelMultiplier;
 
         return {
             damage: damageMultiplier,
-            range: rangeMultiplier,
+            range: Array.isArray(rangeMultiplier) ? 0 : rangeMultiplier,
             speed: speedMultiplier,
             stats: statsMultiplier
         };

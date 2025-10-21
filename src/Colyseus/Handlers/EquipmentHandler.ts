@@ -37,12 +37,7 @@ export class EquipmentHandler extends BaseMessageHandler {
 
         try {
             switch (type) {
-                case "equipItem":
-                    this.handleEquipItem(client, data);
-                    break;
-                case "unequipItem":
-                    this.handleUnequipItem(client, data);
-                    break;
+
                 case "equip_weapon":      // 🔧 修正消息類型
                     this.handleEquipWeapon(client, data);
                     break;
@@ -55,9 +50,7 @@ export class EquipmentHandler extends BaseMessageHandler {
                 case "getEquipmentSlots":
                     this.handleGetEquipmentSlots(client, data);
                     break;
-                case "updateEquipmentStats":
-                    this.handleUpdateEquipmentStats(client, data);
-                    break;
+
                 case "addWeapon":
                     this.handleAddWeapon(client, data);
                     break;
@@ -80,88 +73,6 @@ export class EquipmentHandler extends BaseMessageHandler {
     }
 
     /**
-     * 處理裝備物品請求
-     */
-    private handleEquipItem(client: Client, data: any): void {
-        if (!this.validateMessage(data, ['inventoryIndex'])) {
-            throw new Error("無效的裝備請求數據");
-        }
-
-        const { inventoryIndex } = data;
-
-        if (typeof inventoryIndex !== 'number' || inventoryIndex < 0) {
-            throw new Error("無效的背包索引");
-        }
-
-        const playerId = client.sessionId;
-        const success = this.room.equipmentManager.equipItem(playerId, inventoryIndex);
-
-        if (success) {
-            this.sendSuccess(client, {
-                message: "裝備成功",
-                inventoryIndex,
-                equipmentSlots: this.room.equipmentManager.getEquipmentSlots(playerId)
-            });
-
-            // 更新屬性
-            this.room.equipmentManager.updateEquipmentStats(playerId);
-
-            // 通知其他玩家
-            this.room.broadcast("playerEquipmentChanged", {
-                playerId,
-                action: "equip",
-                inventoryIndex
-            }, { except: client });
-
-        } else {
-            throw new Error("裝備失敗");
-        }
-    }
-
-    /**
-     * 處理卸下裝備請求
-     */
-    private handleUnequipItem(client: Client, data: any): void {
-        const { slotIndex, itemId } = data;
-
-        const playerId = client.sessionId;
-        let success = false;
-
-        if (typeof slotIndex === 'number') {
-            // 通過槽位索引卸下
-            success = this.room.equipmentManager.unequipItem(playerId, slotIndex);
-        } else if (typeof itemId === 'string') {
-            // 通過物品ID卸下
-            success = this.room.equipmentManager.unequipItemById(playerId, itemId);
-        } else {
-            throw new Error("需要提供 slotIndex 或 itemId");
-        }
-
-        if (success) {
-            this.sendSuccess(client, {
-                message: "卸下裝備成功",
-                slotIndex: slotIndex || null,
-                itemId: itemId || null,
-                equipmentSlots: this.room.equipmentManager.getEquipmentSlots(playerId)
-            });
-
-            // 更新屬性
-            this.room.equipmentManager.updateEquipmentStats(playerId);
-
-            // 通知其他玩家
-            this.room.broadcast("playerEquipmentChanged", {
-                playerId,
-                action: "unequip",
-                slotIndex: slotIndex || null,
-                itemId: itemId || null
-            }, { except: client });
-
-        } else {
-            throw new Error("卸下裝備失敗");
-        }
-    }
-
-    /**
      * 處理裝備武器請求
      * 🎯 使用Schema自動同步，不需要返回詳細狀態
      */
@@ -178,27 +89,14 @@ export class EquipmentHandler extends BaseMessageHandler {
             throw new Error("玩家不存在");
         }
 
-        // weaponId 可能是武器類型ID或者uniqueId
-        let success = false;
 
         // 首先嘗試作為 uniqueId 裝備（已存在的武器實例）
         if (hero.isWeaponEquipped(weaponId) || hero.weaponInventory.find(w => w.uniqueId === weaponId)) {
-            success = hero.equipWeapon(weaponId);
+            hero.equipWeapon(weaponId);
         } else {
             // 如果不是 uniqueId，則作為新武器類型ID添加到背包並裝備
             const weaponUniqueId = hero.addWeaponToInventory(weaponId);
-            success = hero.equipWeapon(weaponUniqueId);
-        }
-
-        if (success) {
-            // 🎯 簡化回傳，Schema會自動同步狀態到前端
-            console.log(`✅ Player ${playerId} equipped weapon: ${weaponId}`);
-
-            // 更新屬性（這也會通過Schema同步）
-            this.room.equipmentManager.updateEquipmentStats(playerId);
-
-        } else {
-            throw new Error("武器裝備失敗");
+            hero.equipWeapon(weaponUniqueId);
         }
     }
 
@@ -219,18 +117,9 @@ export class EquipmentHandler extends BaseMessageHandler {
             throw new Error("玩家不存在");
         }
 
-        const success = hero.unequipWeapon(weaponId);
+        hero.unequipWeapon(weaponId);
 
-        if (success) {
-            // 🎯 簡化回傳，Schema會自動同步狀態到前端
-            console.log(`✅ Player ${playerId} unequipped weapon: ${weaponId}`);
 
-            // 更新屬性（這也會通過Schema同步）
-            this.room.equipmentManager.updateEquipmentStats(playerId);
-
-        } else {
-            throw new Error("武器卸下失敗");
-        }
     }
 
     /**
@@ -253,25 +142,14 @@ export class EquipmentHandler extends BaseMessageHandler {
      */
     private handleGetEquipmentSlots(client: Client, data: any): void {
         const playerId = client.sessionId;
-        const equipmentSlots = this.room.equipmentManager.getEquipmentSlots(playerId);
+        const hero = this.state.getHero(playerId);
+
+        const equipmentSlots = hero?.getEquippedWeapons();
 
         this.sendSuccess(client, {
             message: "獲取裝備槽信息成功",
             equipmentSlots
         });
-    }
-
-    /**
-     * 處理更新裝備屬性請求
-     * 🎯 使用Schema自動同步，屬性更新會自動反映到前端
-     */
-    private handleUpdateEquipmentStats(client: Client, data: any): void {
-        const playerId = client.sessionId;
-
-        this.room.equipmentManager.updateEquipmentStats(playerId);
-
-        // 🎯 屬性更新會通過Schema自動同步到前端，無需特別返回
-        console.log(`✅ Updated equipment stats for player: ${playerId}`);
     }
 
     /**

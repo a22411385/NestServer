@@ -123,7 +123,7 @@ export class DropSystem {
             const weaponId = weaponConfig.id;
 
             // 使用 WeaponSystemFacade 創建完整武器
-            const { data: weaponData } = WeaponSystemFacade.createAndGetWeapon(weaponId);
+            const { data: weaponData } = WeaponSystemFacade.createAndGetWeapon(weaponId, weaponConfig.classModule);
             if (!weaponData) {
                 //   console.warn(`❌ 無法創建武器數據: ${weaponId}`);
                 throw new Error(`無法創建武器數據: ${weaponId}`);

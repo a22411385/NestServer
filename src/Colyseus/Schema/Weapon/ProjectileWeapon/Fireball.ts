@@ -3,8 +3,6 @@ import { ProjectileWeapon } from "../Baisc/ProjectileWeapon";
  * 火球術 - 投射武器範例
  */
 export class Fireball extends ProjectileWeapon {
-    // 🆕 可選：強化等級（用於示範）
-    private enhanceLevel: number = 0;
 
     constructor() {
         super(); // 🆕 調用無參數的父類構造函數
@@ -18,9 +16,6 @@ export class Fireball extends ProjectileWeapon {
     protected applyProjectileSpecificConfig(): void {
         console.log(`🔥 火球配置已應用 - ${this.weaponConfig?.name}`);
 
-        // ✅ 武器物理屬性
-        this.projectileSpeed = 200; // 火球飛行速度
-        this.accuracy = 0.95;       // 95% 命中率
 
         // 根據配置的固定屬性進行特殊設置
         const fixedProps = this.getFixedProperties();

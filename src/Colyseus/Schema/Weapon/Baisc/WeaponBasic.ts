@@ -14,31 +14,70 @@ type WeaponSchema = import('../WeaponSchema').WeaponSchema;
 // 現在是純邏輯層類，不再同步到客戶端
 // 🆕 支持配置驅動的初始化，無需構造函數參數
 export abstract class WeaponBasic {
-  public weaponId: string = '';
-  public projectileClass: string = ''; // 投射物類型
-  public weaponType: WeaponType = WeaponType.MELEE_WEAPON;
-  public attackRange: number = 0;
-  public baseDamage: number = 0; // 基礎傷害
-  public attackSpeed: number = 0; // 攻擊間隔 (毫秒)
-  public rarity: string = 'common'; // 武器稀有度
-  public name: string = '';
-  public description: string = '';
-  public enabled: boolean = true;
 
-  // 傳統屬性加成 (保留向下兼容性，但會被新屬性系統覆寫)
-  public int: number = 0;
-  public agi: number = 0;
-  public str: number = 0;
-  public vit: number = 0;
-
-  // ❌ 移除：動態屬性系統改由 WeaponSchema 管理
-  // protected properties: Map<string, PropertyValue> = new Map();
 
   // 🆕 WeaponSchema 引用 - 作為唯一數據源
   protected weaponSchema: WeaponSchema | null = null;
 
   // 🆕 配置相關
   protected weaponConfig: WeaponConfigDefinition | null = null;
+
+
+  public get weaponId(): string {
+    return this.weaponSchema?.weaponId || '';
+  }
+
+  public get baseDamage(): number {
+    return this.weaponSchema?.baseDamage || 0;
+  }
+
+  public get attackSpeed(): number {
+    return this.weaponSchema?.attackSpeed || 0;
+  }
+
+  public get attackRange(): number {
+    return this.weaponSchema?.attackRange || 0;
+  }
+
+  public get str(): number {
+    return this.weaponSchema?.str || 0;
+  }
+
+  public get int(): number {
+    return this.weaponSchema?.int || 0;
+  }
+
+  public get agi(): number {
+    return this.weaponSchema?.agi || 0;
+  }
+
+  public get vit(): number {
+    return this.weaponSchema?.vit || 0;
+  }
+
+  public get projectileClass(): string {
+    return this.weaponSchema?.projectileClass || '';
+  }
+
+  public get weaponType(): WeaponType {
+    return this.weaponSchema?.weaponType as WeaponType || WeaponType.MELEE_WEAPON;
+  }
+
+  public get name(): string {
+    return this.weaponSchema?.name || '';
+  }
+
+  public get description(): string {
+    return this.weaponSchema?.description || '';
+  }
+
+  public get rarity(): string {
+    return this.weaponSchema?.rarity || 'common';
+  }
+
+  public get enabled(): boolean {
+    return this.weaponSchema?.enabled ?? true;
+  }
 
   // 服務器端屬性
   protected lastAttackTime: number = 0;
@@ -66,28 +105,20 @@ export abstract class WeaponBasic {
     }
 
     // 設置基礎屬性
-    this.weaponId = this.weaponConfig.id;
-    this.name = this.weaponConfig.name;
-    this.description = this.weaponConfig.description || '';
-    this.baseDamage = this.weaponConfig.baseDamage;
-    this.attackSpeed = this.weaponConfig.attackSpeed;
-    this.attackRange = this.weaponConfig.attackRange;
-    this.enabled = this.weaponConfig.enabled !== false;
+    // this.weaponId = this.weaponConfig.id;
+    // this.name = this.weaponConfig.name;
+    // this.description = this.weaponConfig.description || '';
+    // this.baseDamage = this.weaponConfig.baseDamage;
+    // this.attackSpeed = this.weaponConfig.attackSpeed;
+    // this.attackRange = this.weaponConfig.attackRange;
+    // this.enabled = this.weaponConfig.enabled !== false;
 
-    this.projectileClass = this.weaponConfig.projectileClass;
-    this.weaponType = this.weaponConfig.classModule as WeaponType;
-
-    // 調用子類的配置特定初始化
-    this.applyWeaponSpecificConfig();
-
-    console.log(`✅ 武器已從配置初始化: ${this.name} (${this.weaponId})`);
+    // this.projectileClass = this.weaponConfig.projectileClass;
+    // this.weaponType = this.weaponConfig.classModule as WeaponType;
+    //console.log(`✅ 武器已從配置初始化: ${this.name} (${this.weaponId})`);
     return true;
   }
 
-  /**
-   * 🆕 子類實現的特定配置應用方法
-   */
-  protected abstract applyWeaponSpecificConfig(): void;
 
   /**
    * ✅ 獲取固定屬性列表 - 從 WeaponSchema 讀取
@@ -106,117 +137,6 @@ export abstract class WeaponBasic {
   }
 
   /**
-   * ✅ 應用屬性到武器實例 - 同步到 WeaponSchema
-   */
-  public applyProperties(properties: PropertyValue[]): void {
-    // ✅ 同步到 WeaponSchema（唯一數據源）
-    if (this.weaponSchema) {
-      this.weaponSchema.setProperties(properties);
-    }
-
-    // 更新基礎屬性（影響戰鬥邏輯）
-    for (const property of properties) {
-      this.updateBaseStats(property);
-    }
-
-    console.log(`🔧 ${this.weaponId} 應用了 ${properties.length} 個屬性`);
-  }
-
-  /**
-   * 更新基礎屬性
-   */
-  private updateBaseStats(property: PropertyValue): void {
-    switch (property.type) {
-      // 基礎武器屬性
-      case PropertyType.ATTACK_DAMAGE:
-        this.baseDamage +=
-          typeof property.value === 'number'
-            ? property.value
-            : property.value[0];
-        break;
-      case PropertyType.ATTACK_SPEED:
-        // 攻擊速度是減少間隔時間，所以是減法
-        const speedBonus =
-          typeof property.value === 'number'
-            ? property.value
-            : property.value[0];
-        this.attackSpeed = Math.max(100, this.attackSpeed - speedBonus); // 最小間隔100ms
-        break;
-      case PropertyType.ATTACK_RANGE:
-        this.attackRange +=
-          typeof property.value === 'number'
-            ? property.value
-            : property.value[0];
-        break;
-
-      // 投射物屬性
-      case PropertyType.PROJECTILE_SPEED:
-      case PropertyType.AREA_OF_EFFECT:
-      case PropertyType.PIERCE_COUNT:
-      case PropertyType.SWEEP_ANGLE:
-        // 這些屬性會在具體的武器子類中使用
-        break;
-
-      // 治療和輔助屬性
-      case PropertyType.HEAL_AMOUNT:
-      case PropertyType.BUFF_DURATION:
-      case PropertyType.SUPPORT_RADIUS:
-        // 輔助武器專用屬性
-        break;
-
-      // 角色屬性加成 (保持向下兼容)
-      case PropertyType.STRENGTH:
-        this.str +=
-          typeof property.value === 'number'
-            ? property.value
-            : property.value[0];
-        break;
-      case PropertyType.INTELLIGENCE:
-        this.int +=
-          typeof property.value === 'number'
-            ? property.value
-            : property.value[0];
-        break;
-      case PropertyType.VITALITY:
-        this.vit +=
-          typeof property.value === 'number'
-            ? property.value
-            : property.value[0];
-        break;
-      case PropertyType.AGILITY:
-        this.agi +=
-          typeof property.value === 'number'
-            ? property.value
-            : property.value[0];
-        break;
-
-      // 戰鬥特效屬性 - 在攻擊時處理
-      case PropertyType.KNOCKBACK:
-      case PropertyType.CRITICAL_CHANCE:
-      case PropertyType.CRITICAL_DAMAGE:
-      case PropertyType.LIFE_STEAL:
-      case PropertyType.PIERCING:
-      case PropertyType.CHAIN_ATTACK:
-      case PropertyType.SPLASH_DAMAGE:
-        // 這些屬性在 tryAttack 或傷害計算時處理
-        break;
-
-      // 狀態效果屬性 - 在攻擊時處理
-      case PropertyType.STUN:
-      case PropertyType.FREEZE:
-      case PropertyType.BURN:
-      case PropertyType.POISON:
-      case PropertyType.SLOW:
-        // 這些屬性在攻擊命中時觸發
-        break;
-
-      default:
-        console.log(`🔧 未處理的屬性類型: ${property.type}`);
-        break;
-    }
-  }
-
-  /**
    * ✅ 獲取特定屬性值 - 從 WeaponSchema 讀取
    */
   public getProperty(type: string): PropertyValue | null {
@@ -231,6 +151,9 @@ export abstract class WeaponBasic {
    */
   public getPropertyValue(type: string): number | number[] | null {
     if (!this.weaponSchema) return null;
+
+
+
     return this.weaponSchema.getPropertyValue(type);
   }
 

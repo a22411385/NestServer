@@ -66,6 +66,7 @@ export const PropertyType = {
  */
 export type PropertyTypeValue = typeof PropertyType[keyof typeof PropertyType];
 
+export type PropertyValueType = 'single' | 'range' | 'composite';
 /**
  * 武器品質等級
  */
@@ -84,15 +85,17 @@ export interface WeaponPropertyDefinition {
     propertyType: string;
     displayName: string;
     description: string;
-    valueType: 'single' | 'range' | 'composite';
+    valueType: PropertyValueType;
+
     valueMin: number | string;
     valueMax: number | string;
+
     triggerProbability: number;
     stacked: boolean;
     category: 'basic' | 'combat' | 'status' | 'attribute';
     compositeFormat?: string;
 }
-
+export type compositeFormatCategory = 'probability' | 'duration' | 'damage' | 'count' | 'intensity';
 /**
  * 武器配置定義 (從 google-sheets-cache.json 載入)
  */
@@ -119,10 +122,13 @@ export interface WeaponConfigDefinition {
  */
 export interface PropertyValue {
     type: PropertyTypeValue;
-    value: number | number[];  // 單值或陣列值 [機率, 持續時間] 或 [min, max]
-    isPercentage?: boolean;    // 是否為百分比
+    valueType: PropertyValueType; // 值類型
+    value: number;  // 主要屬性 也有可能是傷害
     description?: string;      // 描述文字
-    isDynamic?: boolean;       // 是否為動態屬性
+    intensity?: number;      // 效果強度
+
+    probability?: number;    // 觸發機率 (0-100)
+    duration?: number;       // 持續時間 (秒)
 }
 
 /**

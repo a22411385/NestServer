@@ -249,6 +249,7 @@ export class TalentManager {
             const newProperty: PropertyValue = {
                 type: propertyType,
                 value: 0,
+                valueType: 'single',
                 description: `天賦效果: ${appliedEffect.talentId}`
             };
             properties.push(newProperty);

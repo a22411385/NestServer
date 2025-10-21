@@ -18,11 +18,6 @@ export class IceBall extends ProjectileWeapon {
     protected applyProjectileSpecificConfig(): void {
         // 冰球特有配置
         console.log(`❄️ 冰球特定配置已應用 - 配置來自: ${this.weaponConfig?.name}`);
-
-        // 冰球特有的投射物設定
-        this.projectileSpeed = 200;  // 中等彈道速度
-        this.accuracy = 0.95;        // 高精確度
-
         // 根據配置的固定屬性進行特殊設置
         const fixedProps = this.getFixedProperties();
         if (fixedProps.includes('freeze')) {

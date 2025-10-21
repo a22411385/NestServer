@@ -48,13 +48,6 @@ export class HeroWeaponManager {
     }
 
     /**
-     * @deprecated 使用 getWeaponLogicInstance 代替
-     */
-    public getWeaponInstance(weaponId: string): WeaponBasic | null {
-        return this.getWeaponLogicInstance(weaponId);
-    }
-
-    /**
      * 獲取當前裝備的武器實例
      */
     public getEquippedWeapons(): WeaponBasic[] {
@@ -62,7 +55,7 @@ export class HeroWeaponManager {
 
         for (let i = 0; i < this.hero.equippedWeaponIds.length; i++) {
             const weaponId = this.hero.equippedWeaponIds[i];
-            const weapon = this.getWeaponInstance(weaponId);
+            const weapon = this.getWeaponLogicInstance(weaponId);
             if (weapon) {
                 weapons.push(weapon);
             }
@@ -76,9 +69,9 @@ export class HeroWeaponManager {
     /**
      * 添加武器到背包
      */
-    public addToInventory(weaponId: string): string {
+    public addToInventory(weaponId: string, classModule: string): string {
         // 使用 Facade 創建完整武器數據
-        const { data } = WeaponSystemFacade.createAndGetWeapon(weaponId);
+        const { data } = WeaponSystemFacade.createAndGetWeapon(weaponId, classModule);
         this.hero.weaponInventory.push(data);
 
         console.log(`${this.hero.name} 獲得了武器: ${data.weaponId} (${data.uniqueId})`);

@@ -4,6 +4,7 @@ import { IdGenerator } from "../../Util/IdGenerator";
 import { ServerHero } from "../../Colyseus/Schema/Unit/Hero";
 import { Vector2 } from "../../Colyseus/Schema/Unit/GameUnit";
 import { LobbyPlayer } from "../../Colyseus/Schema/LobbyState";
+import { ConfigManager } from "./ConfigManager";
 
 /**
  * 玩家管理器 - 負責處理玩家的生命週期、狀態管理和 Hero 單位管理
@@ -179,9 +180,12 @@ export class PlayerManager {
             const addedWeapons: string[] = [];
             for (const weaponId of availableWeapons) {
                 try {
-                    const weaponUniqueId = hero.addWeaponToInventory(weaponId);
-                    addedWeapons.push(weaponUniqueId);
-                    console.log(`  ✅ 添加武器: ${weaponId} (${weaponUniqueId})`);
+                    const weaponConfig = ConfigManager.getWeaponConfigById(weaponId);
+                    if (weaponConfig) {
+                        const weaponUniqueId = hero.addWeaponToInventory(weaponId, weaponConfig.classModule);
+                        addedWeapons.push(weaponUniqueId);
+                        console.log(`  ✅ 添加武器: ${weaponId} (${weaponUniqueId})`);
+                    }
                 } catch (error) {
                     console.warn(`  ❌ 添加武器失敗: ${weaponId}`, error);
                 }

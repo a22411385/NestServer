@@ -7,6 +7,7 @@ import { ServerItem } from "../Item/ServerItem";
 import { WeaponSchema } from "../Weapon/WeaponSchema";
 import { HeroWeaponManager } from "../../../Game/Managers/HeroWeaponManager";
 import { AttackResult, AttributeBonus, BuffEffect, StatType } from "@/Types";
+import { ConfigManager } from "@/Game/Managers/ConfigManager";
 // 玩家操控的主要單位
 export class ServerHero extends ServerGameUnit {
 
@@ -354,7 +355,12 @@ export class ServerHero extends ServerGameUnit {
      * 🆕 添加武器到背包
      */
     public addWeaponToInventory(weaponId: string): string {
-        return this.weaponManager.addToInventory(weaponId);
+
+        const config = ConfigManager.getWeaponConfigById(weaponId);
+        if (!config) {
+            throw new Error(`無法找到武器配置: ${weaponId}`);
+        }
+        return this.weaponManager.addToInventory(weaponId, config.classModule);
     }
     /**
      * 裝備武器

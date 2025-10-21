@@ -81,56 +81,56 @@ export class PropertyCalculationService {
         const level = character.Lv;
 
         // 基礎屬性隨等級成長
-        const baseProperties: PropertyValue[] = [
+        /*const baseProperties: PropertyValue[] = [
             {
-                type: 'strength' as any,
+                type: 'strength',
                 value: 10 + level * 2,
                 description: '基礎力量'
             },
             {
-                type: 'intelligence' as any,
+                type: 'intelligence',
                 value: 10 + level * 2,
                 description: '基礎智力'
             },
             {
-                type: 'vitality' as any,
+                type: 'vitality',
                 value: 15 + level * 3,
                 description: '基礎體力'
             },
             {
-                type: 'agility' as any,
+                type: 'agility',
                 value: 10 + level * 2,
                 description: '基礎敏捷'
             },
             {
-                type: 'attack_damage' as any,
+                type: 'attack_damage',
                 value: 5 + level,
                 description: '基礎攻擊力'
             },
             {
-                type: 'attack_speed' as any,
+                type: 'attack_speed',
                 value: 1.0,
                 description: '基礎攻擊速度'
             },
             {
-                type: 'critical_chance' as any,
+                type: 'critical_chance',
                 value: 5,
                 description: '基礎暴擊率'
             },
             {
-                type: 'physical_resistance' as any,
+                type: 'physical_resistance',
                 value: level,
                 description: '基礎物理抗性'
             },
             {
-                type: 'magical_resistance' as any,
+                type: 'magical_resistance',
                 value: level,
                 description: '基礎魔法抗性'
             }
         ];
-
+        */
         console.log(`  📊 生成基礎屬性 (等級 ${level})`);
-        return baseProperties;
+        return [];
     }
 
     /**

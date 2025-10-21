@@ -10,30 +10,9 @@ import { WeaponType } from '@/Types';
  * 🆕 支持配置驅動的初始化
  */
 export abstract class SupportWeapon extends WeaponBasic {
-    healAmount: number = 0; // 治療量
-    buffDuration: number = 0; // 增益持續時間
-    supportRadius: number = 0; // 支援範圍
-    canTargetSelf: boolean = true; // 是否可以對自己使用
 
     constructor() {
         super(); // 🆕 調用無參數的父類構造函數
-    }
-
-    /**
-     * 🆕 實現基類的配置應用方法
-     */
-    protected applyWeaponSpecificConfig(): void {
-        // 輔助武器的通用配置邏輯
-        console.log(`🛡️ 輔助武器配置已應用: ${this.name}`);
-
-        // 設置輔助武器的預設值
-        this.healAmount = 20; // 預設治療量
-        this.buffDuration = 5000; // 預設增益持續時間 (5秒)
-        this.supportRadius = 150; // 預設支援範圍
-        this.canTargetSelf = true; // 預設可以對自己使用
-
-        // 子類可以覆寫此方法來應用特定配置
-        this.applySupportSpecificConfig();
     }
 
     /**
@@ -76,12 +55,12 @@ export abstract class SupportWeapon extends WeaponBasic {
             success: true,
             weaponId: this.weaponId,
             targetIds: supportTargets.map((target) => target.id),
-            baseDamage: this.healAmount, // 對於支援武器，baseDamage 代表治療量
+            baseDamage: this.baseDamage, // 對於支援武器，baseDamage 代表治療量
             attackData: {
                 position: { x: user.position.x, y: user.position.y },
                 direction: { x: 0, y: 0 }, // 支援武器通常沒有方向性
                 range: this.attackRange,
-                supportRadius: this.supportRadius,
+                supportRadius: this.range,
             },
             visualEffects: this.createSupportVisualEffects(user, supportTargets),
         };
@@ -98,13 +77,13 @@ export abstract class SupportWeapon extends WeaponBasic {
         const supportTargets: ServerGameUnit[] = [];
 
         // 檢查是否可以對自己使用
-        if (this.canTargetSelf && this.needsSupport(user)) {
+        if (this.needsSupport(user)) {
             supportTargets.push(user);
         }
 
         // 尋找範圍內需要支援的友軍
         for (const target of potentialTargets) {
-            if (target === user && !this.canTargetSelf) continue;
+
             if (!this.isSupportTarget(user, target)) continue;
             if (!this.isInRange(user, target)) continue;
             if (!this.needsSupport(target)) continue;
@@ -120,7 +99,7 @@ export abstract class SupportWeapon extends WeaponBasic {
         });
 
         // 如果有支援範圍，可以同時支援多個目標
-        if (this.supportRadius > 0) {
+        if (this.range > 0) {
             return supportTargets.slice(0, 3); // 最多支援3個目標
         } else {
             return supportTargets.slice(0, 1); // 單體支援
@@ -171,9 +150,9 @@ export abstract class SupportWeapon extends WeaponBasic {
             position: { x: user.position.x, y: user.position.y },
             direction: { x: 0, y: 0 },
             data: {
-                amount: this.healAmount,
-                radius: this.supportRadius,
-                buffType: `支援範圍 ${this.supportRadius}`,
+                amount: this.damage,
+                radius: this.range,
+                buffType: `支援範圍 ${this.range}`,
             },
         };
         effects.push(supportEffect);
@@ -185,7 +164,7 @@ export abstract class SupportWeapon extends WeaponBasic {
                 position: { x: target.position.x, y: target.position.y },
                 direction: { x: 0, y: 0 },
                 data: {
-                    amount: this.healAmount,
+                    amount: this.damage,
                     buffType: 'heal',
                 },
             };
@@ -199,17 +178,6 @@ export abstract class SupportWeapon extends WeaponBasic {
      * 取得支援類型（子類需要重寫）
      */
     public abstract getSupportType(): 'heal' | 'buff' | 'shield' | 'hybrid';
-
-    // Getter 方法
-    public get healing(): number {
-        return this.healAmount;
-    }
-    public get buffTime(): number {
-        return this.buffDuration;
-    }
-    public get radius(): number {
-        return this.supportRadius;
-    }
 
     /**
      * 支援武器的目標選擇邏輯 - 實現抽象方法

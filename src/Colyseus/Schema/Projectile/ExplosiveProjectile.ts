@@ -70,20 +70,30 @@ export class ExplosiveProjectile extends ProjectileBasic {
         owner: ServerGameUnit,
     ): ServerGameUnit[] {
         const explosionCenter = bullet.getCurrentPosition();
+        const aoeRadius = bullet.areaOfEffect;
+
+        console.log(`💥 [ExplosiveProjectile] 爆炸中心:`, explosionCenter);
+        console.log(`💥 [ExplosiveProjectile] AOE 範圍: ${aoeRadius}`);
+        console.log(`💥 [ExplosiveProjectile] 直接命中目標: ${hitTarget.id} at (${hitTarget.position.x}, ${hitTarget.position.y})`);
+
         // 爆炸影響範圍內的所有敵人（包括直接命中的）
         const targets = this.findTargetsInRadius(
             explosionCenter,
-            bullet.areaOfEffect,
+            aoeRadius,
             gameRoom,
             owner
-
         );
+
+        console.log(`💥 [ExplosiveProjectile] 找到 ${targets.length} 個範圍內目標:`,
+            targets.map(t => `${t.id} at (${t.position.x}, ${t.position.y})`));
 
         // 確保直接命中的目標也在列表中
         if (!targets.includes(hitTarget)) {
+            console.log(`💥 [ExplosiveProjectile] 直接命中目標不在範圍內，手動添加`);
             targets.unshift(hitTarget);
         }
 
+        console.log(`💥 [ExplosiveProjectile] 最終受影響目標數: ${targets.length}`);
         return targets;
     }
 }

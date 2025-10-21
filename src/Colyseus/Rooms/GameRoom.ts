@@ -7,7 +7,7 @@ import { MessageHandler } from "@/Colyseus/Handlers/MessageHandler";
 import { ServerHero } from "@/Colyseus/Schema/Unit/Hero";
 import { MovementSystem } from "@/Game/Systems/MovemnetSystem";
 import { UnitManager } from "../../Game/Managers/UnitManager";
-import { EquipmentManager } from "@/Game/Managers/EquipmentManager"; // 🆕 添加裝備管理器
+
 import { MiddleRoom } from "./MiddleRoom";
 import { LobbyPlayer, LobbyRoomInfo } from "../Schema/LobbyState";
 import { LobbyRoomBus } from "./LobbyRoom";
@@ -47,7 +47,7 @@ export class GameRoom extends MiddleRoom<GameRoomState> {
     public bulletSystem: BulletSystem; // 🆕 添加子彈系統
     public combatSystem: CombatSystem; // 🆕 戰鬥系統
     public statusEffectSystem: StatusEffectSystem; // 🆕 狀態效果系統
-    public equipmentManager: EquipmentManager; // 🆕 裝備管理器
+
     public dropSystem: DropSystem; // 🆕 掉落系統
     public itemPickupSystem: ItemPickupSystem; // 🆕 拾取系統
 
@@ -81,7 +81,7 @@ export class GameRoom extends MiddleRoom<GameRoomState> {
         this.bulletSystem = new BulletSystem(this); // 🆕 初始化子彈系統
         this.combatSystem = new CombatSystem(this); // 🆕 初始化戰鬥系統
         this.statusEffectSystem = new StatusEffectSystem(this); // 🆕 初始化狀態效果系統
-        this.equipmentManager = new EquipmentManager(this); // 🆕 初始化裝備管理器
+
         this.dropSystem = new DropSystem(this); // 🆕 初始化掉落系統
         this.dropSystem.initialize(); // 🆕 初始化掉落系統配置
         this.itemPickupSystem = new ItemPickupSystem(this); // 🆕 初始化拾取系統

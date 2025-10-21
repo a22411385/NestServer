@@ -21,24 +21,6 @@ export abstract class MeleeWeapon extends WeaponBasic {
     }
 
     /**
-     * 🆕 實現基類的配置應用方法
-     */
-    protected applyWeaponSpecificConfig(): void {
-        // 近戰武器的通用配置邏輯
-        console.log(`⚔️ 近戰武器配置已應用: ${this.name}`);
-
-        // 子類可以覆寫此方法來應用特定配置
-        this.applyMeleeSpecificConfig();
-    }
-
-    /**
-     * 🆕 子類可覆寫的近戰武器特定配置方法
-     */
-    protected applyMeleeSpecificConfig(): void {
-        // 預設實現，子類可覆寫
-    }
-
-    /**
      * 獲取擊退力度（從屬性系統）
      */
     public get knockbackForce(): number {
@@ -215,7 +197,7 @@ export abstract class MeleeWeapon extends WeaponBasic {
                     target.position.y - attacker.position.y,
                 ),
             }))
-            .filter((item) => item.distance <= this.attackRange)
+            .filter((item) => item.distance <= this.attackRange + attacker.attackRange)
             .sort((a, b) => a.distance - b.distance);
 
         if (targetsInRange.length === 0) {

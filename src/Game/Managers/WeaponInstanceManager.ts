@@ -5,7 +5,6 @@ import { WeaponFactory } from "../Factories/WeaponFactory";
 import { WeaponDataService } from "../Services/WeaponDataService";
 import { WeaponPropertyService } from "../Services/WeaponPropertyService";
 import { BattleMathUtils } from "../../Util/BattleMathUtils";
-import { UniqueIdGenerator } from "../../Util/UniqueIdGenerator";
 
 /**
  * 武器實例管理器 - 專注於實例的創建、緩存和生命周期管理
@@ -96,18 +95,10 @@ export class WeaponInstanceManager {
                 quality,
                 this.generateSeed(weaponData) // 使用穩定的種子確保屬性一致性
             );
+            weaponData.quality = quality;
+            weaponData.setProperties(properties);
+            weaponData.applyProperties(properties);
 
-            // 4. 應用屬性到實例
-            if (properties.length > 0) {
-                // ✅ 先更新 WeaponData（數據源）
-                weaponData.setProperties(properties);
-                weaponData.quality = quality;
-
-                // ✅ applyProperties 會從 weaponData 讀取並應用基礎屬性
-                instance.applyProperties(properties);
-
-                console.log(`🔧 ${weaponData.weaponId} 應用屬性: ${properties.length} 個，品質: ${quality}`);
-            }
         } catch (error) {
             console.warn(`⚠️ 應用屬性失敗 ${weaponData.weaponId}:`, error);
             // 繼續使用舊系統作為後備

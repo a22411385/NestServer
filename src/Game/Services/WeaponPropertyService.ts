@@ -1,6 +1,7 @@
 
-import { PropertyType, PropertyValue, PropertyTypeValue, WeaponQuality } from "../../Types/Equipment/WeaponPropertyTypes";
-import { GoogleSheetCache } from "../../Tasks/GoogleSheetCache";
+import { min } from "class-validator";
+import { PropertyValue, WeaponQuality, WeaponPropertyDefinition, PropertyValueType, compositeFormatCategory } from "../../Types/Equipment/WeaponPropertyTypes";
+import { ConfigManager } from "../Managers/ConfigManager";
 
 /**
  * 武器屬性服務 - 新屬性系統的核心
@@ -8,7 +9,7 @@ import { GoogleSheetCache } from "../../Tasks/GoogleSheetCache";
  */
 export class WeaponPropertyService {
     private static instance: WeaponPropertyService;
-    private weaponProperties: Map<string, any> = new Map();
+    private weaponProperties: Map<string, WeaponPropertyDefinition> = new Map();
     private isInitialized: boolean = false;
 
     private constructor() { }
@@ -28,13 +29,11 @@ export class WeaponPropertyService {
 
         try {
             console.log('🔧 初始化武器屬性系統...');
-
             // 從本地快取載入屬性數據
-            const cachedData = GoogleSheetCache.getInstance().getData();
-
-            if (cachedData && cachedData.WeaponProperties) {
+            const cachedData = ConfigManager.getWeaponProperties();
+            if (cachedData && cachedData) {
                 // 建立屬性數據庫映射
-                for (const property of cachedData.WeaponProperties) {
+                for (const property of cachedData) {
                     this.weaponProperties.set(property.propertyType, property);
                 }
 
@@ -61,24 +60,24 @@ export class WeaponPropertyService {
         weaponId: string,
         quality: WeaponQuality,
         seed: number
-    ): PropertyValue[] {
+    ): { fixed: PropertyValue[], random: PropertyValue[] } {
         if (!this.isInitialized) {
             throw new Error('WeaponPropertyService 未初始化');
         }
 
         try {
             // 獲取武器配置
-            const weaponConfig = this.getWeaponConfig(weaponId);
+            const weaponConfig = ConfigManager.getWeaponConfigById(weaponId);
             if (!weaponConfig) {
                 console.warn(`⚠️ 找不到武器配置: ${weaponId}`);
-                return [];
+                return { fixed: [], random: [] };
             }
 
             const properties: PropertyValue[] = [];
 
             // 1. 解析固定屬性
             const fixedProperties = this.parseFixedProperties(weaponConfig.fixedProperties);
-            properties.push(...fixedProperties);
+            // properties.push(...fixedProperties);
 
             // 2. 生成隨機屬性
             const randomProperties = this.generateRandomProperties(
@@ -86,14 +85,14 @@ export class WeaponPropertyService {
                 quality,
                 seed
             );
-            properties.push(...randomProperties);
+            //properties.push(...randomProperties);
 
             console.log(`🎲 ${weaponId} (${quality}) 生成了 ${properties.length} 個屬性`);
-            return properties;
+            return { fixed: fixedProperties, random: randomProperties }
 
         } catch (error) {
-            console.error(`❌ 生成武器屬性失敗: ${weaponId}`, error);
-            return [];
+            console.error(`❌ 生成武器屬性失敗 ${weaponId}:`, error);
+            return { fixed: [], random: [] }
         }
     }
 
@@ -117,14 +116,8 @@ export class WeaponPropertyService {
 
             try {
                 // 固定屬性使用最大值
-                const value = this.generatePropertyValue(propertyDef, true);
-                properties.push({
-                    type: propType as PropertyTypeValue,
-                    value: value,
-                    isPercentage: this.isPercentageProperty(propType),
-                    description: propertyDef.displayName,
-                    isDynamic: false
-                });
+                const value = this.generatePropertyValue(propertyDef);
+                properties.push(value);
             } catch (error) {
                 console.error(`❌ 生成固定屬性失敗: ${propType}`, error);
                 console.error(`屬性定義:`, propertyDef);
@@ -149,7 +142,7 @@ export class WeaponPropertyService {
         if (!randomPropsString) return [];
 
         const propPool = randomPropsString.split(',').map(s => s.trim());
-        const randomCount = this.getRandomPropertyCount(quality);
+        const randomCount = WeaponPropertyService.getRandomPropertyCount(quality);
 
         if (randomCount === 0) return [];
 
@@ -164,34 +157,14 @@ export class WeaponPropertyService {
             if (!propertyDef) continue;
 
             // 隨機屬性使用隨機值
-            const value = this.generatePropertyValue(propertyDef, false, rng);
-            properties.push({
-                type: propType as PropertyTypeValue,
-                value: value,
-                isPercentage: this.isPercentageProperty(propType),
-                description: propertyDef.displayName,
-                isDynamic: true
-            });
+            const value = this.generatePropertyValue(propertyDef, quality == WeaponQuality.LEGENDARY, rng);
+            properties.push(value);
         }
 
         return properties;
     }
 
-    /**
-     * 根據品質獲取隨機屬性數量
-     * 品質機率: [54,30,10,5,1] 對應 [0,1,2,3,4] 個隨機詞綴
-     */
-    private getRandomPropertyCount(quality: WeaponQuality): number {
-        const qualityMap = {
-            [WeaponQuality.NORMAL]: 0,    // 普通: 0個隨機詞綴
-            [WeaponQuality.MAGIC]: 1,     // 魔法: 1個隨機詞綴
-            [WeaponQuality.RARE]: 2,      // 稀有: 2個隨機詞綴
-            [WeaponQuality.EPIC]: 3,      // 史詩: 3個隨機詞綴
-            [WeaponQuality.LEGENDARY]: 4  // 傳奇: 4個隨機詞綴
-        };
 
-        return qualityMap[quality] || 0;
-    }
 
     /**
      * 隨機選擇屬性
@@ -213,40 +186,95 @@ export class WeaponPropertyService {
     }
 
     /**
-     * 生成屬性值
+     * 解析屬性值
      * @param propertyDef 屬性定義
      * @param useMaxValue 是否使用最大值（固定屬性用）
      * @param rng 隨機數生成器
      * @returns 屬性值
      */
     private generatePropertyValue(
-        propertyDef: any,
+        propertyDef: WeaponPropertyDefinition,
         useMaxValue: boolean = false,
         rng?: () => number
-    ): number | number[] {
-        const { valueType, valueMin, valueMax } = propertyDef;
+    ): PropertyValue {
+        const { valueType, valueMin, valueMax, compositeFormat } = propertyDef;
+        let res = {
+            type: propertyDef.propertyType,
+            valueType: valueType,
+            value: 0,
+            description: propertyDef.description
+        } as PropertyValue
 
+
+        res.probability = this.getProbability(valueType, compositeFormat || '', valueMin, valueMax, useMaxValue);
         switch (valueType) {
             case 'single':
-                return typeof valueMin === 'number' ? valueMin : parseFloat(valueMin);
-
+                res.value = Number(valueMax);
+                break;
             case 'range':
-                if (useMaxValue) {
-                    return typeof valueMax === 'number' ? valueMax : parseFloat(valueMax);
-                }
-
                 const min = typeof valueMin === 'number' ? valueMin : parseFloat(valueMin);
                 const max = typeof valueMax === 'number' ? valueMax : parseFloat(valueMax);
                 const random = rng ? rng() : Math.random();
-                return Math.floor(min + random * (max - min + 1));
+                res.value = Math.floor(min + random * (max - min + 1));
+                break;
 
+            //複合類型
             case 'composite':
-                return this.parseCompositeValue(valueMin, valueMax, useMaxValue, rng);
+                if (compositeFormat)
+                    return this.parseCompositeValue(res, compositeFormat, valueMin, valueMax, useMaxValue);
+                else {
+                    throw new Error(`⚠️ 缺少複合屬性格式: ${propertyDef.propertyType}`);
+                }
+                break;
 
             default:
                 console.warn(`⚠️ 未知的值類型: ${valueType} for property: ${propertyDef.propertyType}`);
-                return 0;
+                break;
         }
+
+        return res;
+    }
+
+    private getProbability(valueType: PropertyValueType, compositeFormat: string, min: number | string, max: number | string, useMaxValue = false): number {
+
+        if (compositeFormat == '' || !compositeFormat.includes('probability')) {
+            return 100;
+        }
+
+        switch (valueType) {
+            case 'single':
+                //如果是單值 直接返回最小值
+                return (typeof min === 'number' ? min : parseFloat(min));
+            case 'range':
+
+
+                const maxNum = typeof max === 'number' ? max : parseFloat(max);
+                const minNum = typeof min === 'number' ? min : parseFloat(min);
+                if (useMaxValue) {
+                    return maxNum;
+                }
+                const random = Math.random();
+                return Math.floor(minNum + random * (maxNum - minNum + 1));
+
+            case 'composite':
+                const composites = compositeFormat.split('|');
+                for (let i = 0; i < composites.length; i++) {
+                    //這個是機率
+                    if (composites[i].includes('probability')) {
+                        const minValues = parseInt(min.toString().split('|')[i]);
+                        const maxValues = parseInt(max.toString().split('|')[i]);
+                        const random = Math.random();
+                        return Math.floor(minValues + random * (maxValues - minValues + 1));
+                    }
+                }
+
+                return 100;
+
+            default:
+                console.warn(`⚠️ 未知的值類型: ${valueType}`);
+                return 100;
+        }
+
     }
 
     /**
@@ -258,45 +286,27 @@ export class WeaponPropertyService {
      * @returns 複合值數組
      */
     private parseCompositeValue(
+        data: PropertyValue,
+        compositeFormat: string,
         minValue: string | number,
         maxValue: string | number,
         useMaxValue: boolean = false,
-        rng?: () => number
-    ): number[] {
+
+    ): PropertyValue {
         try {
+
             // 檢查輸入是否為 null 或 undefined
             if (minValue === null || minValue === undefined || maxValue === null || maxValue === undefined) {
-                console.warn(`⚠️ 複合值輸入為空: minValue=${minValue}, maxValue=${maxValue}`);
-                return [0];
+
+                throw new Error("複合值輸入為空");
             }
 
             // 將輸入轉換為字符串
             const minStr = String(minValue);
             const maxStr = String(maxValue);
 
-            console.log(`🔧 解析複合值: minStr="${minStr}", maxStr="${maxStr}"`);
-
-            // 檢查是否包含分隔符
-            if (!minStr.includes('|') && !maxStr.includes('|')) {
-                // 不是複合值，返回單個值
-                const min = parseFloat(minStr);
-                const max = parseFloat(maxStr);
-
-                if (isNaN(min) || isNaN(max)) {
-                    console.warn(`⚠️ 無法解析數值: minStr="${minStr}", maxStr="${maxStr}"`);
-                    return [0];
-                }
-
-                if (useMaxValue) {
-                    return [max];
-                }
-
-                const random = rng ? rng() : Math.random();
-                return [Math.floor(min + random * (max - min + 1))];
-            }
-
             // 解析複合值
-            const minValues = minStr.split('|').map(v => {
+            let minValues = minStr.split('|').map(v => {
                 const parsed = parseFloat(v.trim());
                 if (isNaN(parsed)) {
                     console.warn(`⚠️ 無法解析最小值: "${v.trim()}"`);
@@ -305,7 +315,7 @@ export class WeaponPropertyService {
                 return parsed;
             });
 
-            const maxValues = maxStr.split('|').map(v => {
+            let maxValues = maxStr.split('|').map(v => {
                 const parsed = parseFloat(v.trim());
                 if (isNaN(parsed)) {
                     console.warn(`⚠️ 無法解析最大值: "${v.trim()}"`);
@@ -315,30 +325,47 @@ export class WeaponPropertyService {
             });
 
             if (minValues.length !== maxValues.length) {
-                console.warn(`⚠️ 複合值長度不匹配: ${minStr} (${minValues.length}) vs ${maxStr} (${maxValues.length})`);
-                return minValues;
+                throw new Error(`⚠️ 複合值長度不匹配: ${minStr} (${minValues.length}) vs ${maxStr} (${maxValues.length})`);
+            }
+            const compositeFormatParts = compositeFormat.split('|').map(s => s.trim());
+            if (minValues.length != compositeFormatParts.length) {
+                throw new Error(`⚠️ 複合值格式長度不匹配: ${compositeFormat} (${compositeFormatParts.length}) vs ${minStr} (${minValues.length})`);
             }
 
             if (useMaxValue) {
-                return maxValues;
+                minValues = maxValues;
+            }
+            //開始解析
+            for (let i = 0; i < compositeFormatParts.length; i++) {
+                const format = compositeFormatParts[i] as compositeFormatCategory;
+                const minVal = minValues[i];
+                const maxVal = maxValues[i];
+                const random = Math.random();
+                const value = Math.floor(minVal + random * (maxVal - minVal + 1));
+                switch (format) {
+                    case 'probability':
+                        data.probability = value;
+                        break;
+                    case 'duration':
+                        data.duration = value;
+                        break;
+                    case 'damage':
+                        data.value = value;
+                        break;
+                    case 'count':
+                    case 'intensity':
+                        data.intensity = value;
+                        break;
+                }
             }
 
-            const result: number[] = [];
-            const random = rng || Math.random;
-
-            for (let i = 0; i < minValues.length; i++) {
-                const min = minValues[i];
-                const max = maxValues[i];
-                result.push(Math.floor(min + random() * (max - min + 1)));
-            }
-
-            console.log(`✅ 複合值解析結果: [${result.join(', ')}]`);
-            return result;
-
+            return data;
         } catch (error) {
             console.error(`❌ 解析複合值失敗: minValue=${minValue}, maxValue=${maxValue}`, error);
-            return [0];
+            throw `❌ 解析複合值失敗: minValue=${minValue}, maxValue=${maxValue}`;
         }
+
+
     }
 
     /**
@@ -356,85 +383,6 @@ export class WeaponPropertyService {
         };
     }
 
-    /**
-     * 判斷屬性是否為百分比類型
-     */
-    private isPercentageProperty(propType: string): boolean {
-        const percentageProps = [
-            'critical_chance', 'critical_damage', 'life_steal',
-            'attack_speed', 'slow'
-        ];
-        return percentageProps.includes(propType);
-    }
-
-    /**
-     * 獲取武器配置
-     * @param weaponId 武器ID
-     * @returns 武器配置
-     */
-    private getWeaponConfig(weaponId: string): any {
-        const cachedData = GoogleSheetCache.getInstance().getData();
-        if (!cachedData || !cachedData.WeaponConfigs) return null;
-
-        return cachedData.WeaponConfigs.find(config => config.id === weaponId);
-    }
-
-    /**
-     * 根據機率生成武器品質
-     * 機率: [54,30,10,5,1] 對應 普通->傳奇
-     */
-    public static generateRandomQuality(): WeaponQuality {
-        const random = Math.random() * 100;
-
-        if (random < 54) return WeaponQuality.NORMAL;     // 54%
-        if (random < 84) return WeaponQuality.MAGIC;      // 30% 
-        if (random < 94) return WeaponQuality.RARE;       // 10%
-        if (random < 99) return WeaponQuality.EPIC;       // 5%
-        return WeaponQuality.LEGENDARY;                   // 1%
-    }
-
-    /**
-     * 獲取屬性定義
-     * @param propertyType 屬性類型
-     * @returns 屬性定義
-     */
-    public getPropertyDefinition(propertyType: string): any {
-        return this.weaponProperties.get(propertyType);
-    }
-
-    /**
-     * 驗證屬性配置
-     * @param weaponId 武器ID
-     * @returns 驗證結果
-     */
-    public validateWeaponConfig(weaponId: string): boolean {
-        const config = this.getWeaponConfig(weaponId);
-        if (!config) return false;
-
-        // 檢查固定屬性是否存在
-        if (config.fixedProperties) {
-            const fixedProps = config.fixedProperties.split(',');
-            for (const prop of fixedProps) {
-                if (!this.weaponProperties.has(prop.trim())) {
-                    console.warn(`⚠️ ${weaponId} 的固定屬性 ${prop} 不存在`);
-                    return false;
-                }
-            }
-        }
-
-        // 檢查隨機屬性池是否存在
-        if (config.randomProperties) {
-            const randomProps = config.randomProperties.split(',');
-            for (const prop of randomProps) {
-                if (!this.weaponProperties.has(prop.trim())) {
-                    console.warn(`⚠️ ${weaponId} 的隨機屬性 ${prop} 不存在`);
-                    return false;
-                }
-            }
-        }
-
-        return true;
-    }
 
     /**
      * 重新載入屬性數據
@@ -446,51 +394,17 @@ export class WeaponPropertyService {
     }
 
     /**
-     * 獲取系統統計
-     */
-    public getStats(): {
-        propertiesCount: number;
-        isInitialized: boolean;
-        basicProperties: number;
-        combatProperties: number;
-        statusProperties: number;
-        attributeProperties: number;
-    } {
-        const properties = Array.from(this.weaponProperties.values());
-
-        return {
-            propertiesCount: this.weaponProperties.size,
-            isInitialized: this.isInitialized,
-            basicProperties: properties.filter(p => p.category === 'basic').length,
-            combatProperties: properties.filter(p => p.category === 'combat').length,
-            statusProperties: properties.filter(p => p.category === 'status').length,
-            attributeProperties: properties.filter(p => p.category === 'attribute').length,
+ * 根據品質獲取隨機屬性數量
+ * 品質機率: [54,30,10,5,1] 對應 [0,1,2,3,4] 個隨機詞綴
+ */
+    private static getRandomPropertyCount(quality: WeaponQuality): number {
+        const qualityMap = {
+            [WeaponQuality.NORMAL]: 0,    // 普通: 0個隨機詞綴
+            [WeaponQuality.MAGIC]: 1,     // 魔法: 1個隨機詞綴
+            [WeaponQuality.RARE]: 2,      // 稀有: 2個隨機詞綴
+            [WeaponQuality.EPIC]: 3,      // 史詩: 3個隨機詞綴
+            [WeaponQuality.LEGENDARY]: 4  // 傳奇: 4個隨機詞綴
         };
+        return qualityMap[quality] || 0;
     }
 }
-
-// 導出便利方法
-const weaponPropertyService = WeaponPropertyService.getInstance();
-
-/**
- * 初始化武器屬性系統
- */
-export async function initializeWeaponPropertySystem(): Promise<void> {
-    await weaponPropertyService.initialize();
-}
-
-/**
- * 生成武器屬性
- */
-export function generateWeaponProperties(
-    weaponId: string,
-    quality: WeaponQuality,
-    seed: number
-): PropertyValue[] {
-    return weaponPropertyService.generateWeaponProperties(weaponId, quality, seed);
-}
-
-/**
- * 生成隨機武器品質
- */
-export const generateRandomWeaponQuality = WeaponPropertyService.generateRandomQuality;

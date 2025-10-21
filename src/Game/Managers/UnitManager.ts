@@ -3,7 +3,7 @@ import { IdGenerator } from "@/Util/IdGenerator";
 import { ServerEnemy } from "../../Colyseus/Schema/Unit/Enemy";
 import { Client, Room } from "colyseus";
 import { GameRoomState, UnitType } from "../../Colyseus/Schema/GameState";
-import { Vector2 } from "@/Colyseus/Schema/Unit/GameUnit";
+import { ServerGameUnit, Vector2 } from "@/Colyseus/Schema/Unit/GameUnit";
 import { StatType } from "@/Types/Game/GameTypes";
 import { ServerHero } from "@/Colyseus/Schema/Unit/Hero";
 
@@ -107,6 +107,9 @@ export class UnitManager {
         return aliveHeroes;
     }
 
+    public getUnitById(unitId: string): ServerGameUnit | undefined {
+        return this.room.state.gameCore.allUnits.get(unitId);
+    }
     /**
     * 處理屬性點分配
     */
