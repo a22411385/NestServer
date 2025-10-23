@@ -263,14 +263,22 @@ export class DamageSystem {
         console.log(`💀 ${deadUnit.name || deadUnit.id} 被 ${killer.name || killer.id} 殺死`);
 
         if (deadUnit.type === UnitType.enemy && killer.type === UnitType.hero) {
-            // 敵人被英雄殺死，給予經驗值
+            // 敵人被英雄殺死，給予經驗值和金幣
             const enemy = deadUnit as ServerEnemy;
             const hero = killer as ServerHero;
 
             const expGained = enemy.expReward || 10;
-            const leveledUp = hero.addExperience(expGained);
+            const goldGained = 100; // 固定掉落100金幣
 
-            console.log(`✨ ${hero.name} 獲得 ${expGained} 經驗值`);
+            // 🆕 計算分享範圍（1000單位）
+            const shareRange = 1000;
+            const nearbyHeroes = this.findNearbyHeroes(enemy.position, shareRange, hero.id);
+
+            // 擊殺者獲得全額獎勵
+            const leveledUp = hero.addExperience(expGained);
+            hero.gold += goldGained;
+
+            console.log(`✨ ${hero.name} 獲得 ${expGained} 經驗值 和 ${goldGained} 金幣`);
 
             if (leveledUp) {
                 console.log(`🆙 ${hero.name} 升級到 ${hero.level} 級！`);
@@ -278,6 +286,27 @@ export class DamageSystem {
                     `${hero.name} 升級到 ${hero.level} 級！`,
                     'event'
                 );
+            }
+
+            // 🆕 附近玩家獲得10%獎勵
+            if (nearbyHeroes.length > 0) {
+                const sharedExp = Math.floor(expGained * 0.1);
+                const sharedGold = Math.floor(goldGained * 0.1);
+
+                for (const nearbyHero of nearbyHeroes) {
+                    const nearbyLeveledUp = nearbyHero.addExperience(sharedExp);
+                    nearbyHero.gold += sharedGold;
+
+                    console.log(`✨ ${nearbyHero.name} (附近) 獲得 ${sharedExp} 經驗值 和 ${sharedGold} 金幣`);
+
+                    if (nearbyLeveledUp) {
+                        console.log(`🆙 ${nearbyHero.name} 升級到 ${nearbyHero.level} 級！`);
+                        this.room.messageHandler.sendBattleLog(
+                            `${nearbyHero.name} 升級到 ${nearbyHero.level} 級！`,
+                            'event'
+                        );
+                    }
+                }
             }
 
             // 🆕 觸發掉落系統
@@ -288,6 +317,25 @@ export class DamageSystem {
             this.room.state.gameCore.allUnits.delete(enemy.id);
 
         }
+    }
+
+    /**
+     * 🆕 尋找附近的英雄（排除擊殺者）
+     */
+    private findNearbyHeroes(position: { x: number, y: number }, range: number, excludeHeroId: string): ServerHero[] {
+        const nearbyHeroes: ServerHero[] = [];
+
+        for (const [, unit] of this.room.state.gameCore.allUnits) {
+            if (unit.type !== UnitType.hero || unit.isDead || unit.id === excludeHeroId) continue;
+
+            const distance = BattleMathUtils.calculateDistanceVector(unit.position, position);
+
+            if (distance <= range) {
+                nearbyHeroes.push(unit as ServerHero);
+            }
+        }
+
+        return nearbyHeroes;
     }
 
     /**

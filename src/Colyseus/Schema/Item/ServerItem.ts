@@ -33,7 +33,7 @@ export class ServerItem extends Schema {
     @type("number") level: number = 1;
     @type("number") enhanceLevel: number = 0;
     @type("number") exp: number = 0;
-    @type("number") durability: number = 100;
+    // @type("number") durability: number = 100;
     @type("string") weaponPropertiesJson: string = ""; // 武器屬性數據（序列化存儲）
 
     private classModule: string = "";
@@ -103,7 +103,7 @@ export class ServerItem extends Schema {
         item.level = weaponData.level;
         item.enhanceLevel = weaponData.enhanceLevel;
         item.exp = weaponData.exp;
-        item.durability = weaponData.durability;
+        // item.durability = weaponData.durability;
         item.classModule = weaponData.classModule;
 
         // 序列化武器屬性數據 (包含完整屬性值)
@@ -134,7 +134,7 @@ export class ServerItem extends Schema {
         weaponData.level = this.level;
         weaponData.enhanceLevel = this.enhanceLevel;
         weaponData.exp = this.exp;
-        weaponData.durability = this.durability;
+        // weaponData.durability = this.durability;
 
         // 反序列化武器屬性
         if (this.weaponPropertiesJson) {
