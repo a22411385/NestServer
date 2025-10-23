@@ -8,7 +8,7 @@ import { HttpResponse } from '@/Types';
 import { SetMetadata } from '@nestjs/common';
 import { ColyseusServer } from './Colyseus/ColyseusServer';
 import { GoogleSheetCache } from './Tasks/GoogleSheetCache';
-import { TalentSystemInitializer } from './Game/Systems/TalentSystemInitializer';
+import { TalentSystemInitializer } from './Game/Systems/Talent/TalentSystemInitializer';
 
 export const IS_PUBLIC_KEY = 'isPublic';
 export const IsPublic = () => SetMetadata(IS_PUBLIC_KEY, true);

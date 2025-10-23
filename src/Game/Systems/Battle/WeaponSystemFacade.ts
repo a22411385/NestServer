@@ -1,7 +1,7 @@
-import { WeaponBasic } from "../../Colyseus/Schema/Weapon/Baisc/WeaponBasic";
-import { WeaponData, WeaponSchema } from "../../Colyseus/Schema/Weapon/WeaponData";
-import { WeaponDataService, FinalWeaponStats } from "../Services/WeaponDataService";
-import { WeaponInstanceManager } from "../Managers/WeaponInstanceManager";
+import { WeaponBasic } from "../../../Colyseus/Schema/Weapon/Baisc/WeaponBasic";
+import { WeaponData, WeaponSchema } from "../../../Colyseus/Schema/Weapon/WeaponData";
+import { WeaponDataService, FinalWeaponStats } from "../../Services/WeaponDataService";
+import { WeaponInstanceManager } from "../../Managers/WeaponInstanceManager";
 
 /**
  * 武器系統門面 - 提供統一的武器操作接口

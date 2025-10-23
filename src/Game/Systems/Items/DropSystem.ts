@@ -1,18 +1,18 @@
-import { GameRoom } from "../../Colyseus/Rooms/GameRoom";
-import { ServerGameUnit } from "../../Colyseus/Schema/Unit/GameUnit";
-import { ServerEnemy } from "../../Colyseus/Schema/Unit/Enemy";
-import { ServerItem } from "../../Colyseus/Schema/Item/ServerItem";
-import { Vector2 } from "../../Colyseus/Schema/Unit/GameUnit";
-import { ConfigManager } from "../Managers/ConfigManager";
-import { BattleMathUtils } from "../../Util/BattleMathUtils";
+import { GameRoom } from "../../../Colyseus/Rooms/GameRoom";
+import { ServerGameUnit } from "../../../Colyseus/Schema/Unit/GameUnit";
+import { ServerEnemy } from "../../../Colyseus/Schema/Unit/Enemy";
+import { ServerItem } from "../../../Colyseus/Schema/Item/ServerItem";
+import { Vector2 } from "../../../Colyseus/Schema/Unit/GameUnit";
+import { ConfigManager } from "../../Managers/ConfigManager";
+import { BattleMathUtils } from "../../../Util/BattleMathUtils";
 import {
     WEAPON_DROP_CONFIG,
     BASIC_DROP_CONFIG
 } from "./DropRates";
-import { WeaponSystemFacade } from "./WeaponSystemFacade";
-import { WeaponData } from "../../Colyseus/Schema/Weapon/WeaponData";
+import { WeaponSystemFacade } from "../Battle/WeaponSystemFacade";
+import { WeaponData } from "../../../Colyseus/Schema/Weapon/WeaponData";
 import { WeaponQuality } from "@/Types/Equipment/WeaponPropertyTypes";
-import { WeaponPropertyService } from "../Services/WeaponPropertyService";
+import { WeaponPropertyService } from "../../Services/WeaponPropertyService";
 
 
 /**

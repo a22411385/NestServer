@@ -2,23 +2,23 @@ import { Room, Client } from "colyseus";
 import { GameRoomState as GameRoomState, GameCoreState, UnitType, MapData } from "@/Colyseus/Schema/GameState";
 
 import { GameManager } from "@/Game/Managers/GameManager";
-import { EnemySystem } from "@/Game/Systems/EnemySystem";
+import { EnemySystem } from "@/Game/Systems/Battle/EnemySystem";
 import { MessageHandler } from "@/Colyseus/Handlers/MessageHandler";
 import { ServerHero } from "@/Colyseus/Schema/Unit/Hero";
-import { MovementSystem } from "@/Game/Systems/MovemnetSystem";
+import { MovementSystem } from "@/Game/Systems/Battle/MovemnetSystem";
 import { UnitManager } from "../../Game/Managers/UnitManager";
 
 import { MiddleRoom } from "./MiddleRoom";
 import { LobbyPlayer, LobbyRoomInfo } from "../Schema/LobbyState";
 import { LobbyRoomBus } from "./LobbyRoom";
-import { DamageSystem } from "../../Game/Systems/DamageSystem";
-import { BulletSystem } from "@/Game/Systems/BulletSystem";
-import { DropSystem } from "@/Game/Systems/DropSystem"; // 🆕 添加掉落系統
-import { ItemPickupSystem } from "@/Game/Systems/ItemPickupSystem"; // 🆕 添加拾取系統
+import { DamageSystem } from "../../Game/Systems/Battle/DamageSystem";
+import { BulletSystem } from "@/Game/Systems/Battle/BulletSystem";
+import { DropSystem } from "@/Game/Systems/Items/DropSystem"; // 🆕 添加掉落系統
+import { ItemPickupSystem } from "@/Game/Systems/Items/ItemPickupSystem"; // 🆕 添加拾取系統
 
 // 🆕 引入新的系統
-import { CombatSystem } from "@/Game/Systems/CombatSystem";
-import { StatusEffectSystem } from "@/Game/Systems/StatusEffectSystem";
+import { CombatSystem } from "@/Game/Systems/Battle/CombatSystem";
+import { StatusEffectSystem } from "@/Game/Systems/Battle/StatusEffectSystem";
 import { WeaponInstanceManager } from "@/Game/Managers/WeaponInstanceManager";
 import { initializeWeaponConfigs } from "@/Game/Factories/WeaponConfig";
 import { WeaponFactory } from "@/Game/Factories/WeaponFactory";

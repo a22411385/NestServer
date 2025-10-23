@@ -1,10 +1,10 @@
-import { ServerBullet } from "../../Colyseus/Schema/Bullet";
+import { ServerBullet } from "../../../Colyseus/Schema/Bullet";
 import { BulletCreateConfig } from "@/Types";
-import { BulletFactory } from "../Factories/BulletFactory";
-import { GameRoom } from "../../Colyseus/Rooms/GameRoom";
-import { ServerEnemy } from "../../Colyseus/Schema/Unit/Enemy";
-import { ServerHero } from "../../Colyseus/Schema/Unit/Hero";
-import { UnitType } from "../../Colyseus/Schema/GameState";
+import { BulletFactory } from "../../Factories/BulletFactory";
+import { GameRoom } from "../../../Colyseus/Rooms/GameRoom";
+import { ServerEnemy } from "../../../Colyseus/Schema/Unit/Enemy";
+import { ServerHero } from "../../../Colyseus/Schema/Unit/Hero";
+import { UnitType } from "../../../Colyseus/Schema/GameState";
 
 import { Vector2 } from "@/Colyseus/Schema/Unit/GameUnit";
 import { ProjectileRegistry } from "@/Colyseus/Schema/Projectile";

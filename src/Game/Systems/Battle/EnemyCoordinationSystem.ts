@@ -1,5 +1,5 @@
-import { ServerEnemy } from "../../Colyseus/Schema/Unit/Enemy";
-import { BattleMathUtils } from "../../Util/BattleMathUtils";
+import { ServerEnemy } from "../../../Colyseus/Schema/Unit/Enemy";
+import { BattleMathUtils } from "../../../Util/BattleMathUtils";
 
 /**
  * 敵人協調系統 - 處理敵人間的群體行為和避免相互干擾

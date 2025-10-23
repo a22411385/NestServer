@@ -45,10 +45,14 @@ export class ServerGameUnit extends Schema {
 
     @type("number") attackRange: number = 100; // 攻擊範圍
     // @type("number") radius: number = 20; // 體積/碰撞半徑 (保留向後兼容)
-    //體力回復
-    @type("number") hpRegen: number = 0;
-    //魔力回復
-    @type("number") mpRegen: number = 0;
+
+    // 回復屬性
+    @type("number") hpRegen: number = 0;  // 生命回復/秒
+    @type("number") mpRegen: number = 0;  // 魔力回復/秒
+
+    // 防禦屬性
+    @type("number") physicalDefense: number = 0;  // 物理防禦
+    @type("number") magicDefense: number = 0;     // 魔法防禦
 
     //體型縮放
     @type("number") scale: number = 1;
@@ -69,7 +73,7 @@ export class ServerGameUnit extends Schema {
     @type(Vector2) position: Vector2 = new Vector2(0, 0);
     // @type("number") y: number = 0;
 
-    moveSpeed: number = 1; // 移動速度
+    @type("number") moveSpeed: number = 1; // 移動速度
     // === 基礎數值 (固定，不受裝備影響) - 不需要同步給客戶端 ===
     protected baseHp: number = 100;
     protected baseAttackDamage: number = 10;

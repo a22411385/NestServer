@@ -1,5 +1,5 @@
-import { GameRoom } from "../../Colyseus/Rooms/GameRoom";
-import { ServerHero } from "../../Colyseus/Schema/Unit/Hero";
+import { GameRoom } from "../../../Colyseus/Rooms/GameRoom";
+import { ServerHero } from "../../../Colyseus/Schema/Unit/Hero";
 
 /**
  * 戰報系統 - 負責處理戰鬥日誌和消息廣播

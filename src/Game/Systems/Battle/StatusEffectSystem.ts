@@ -1,5 +1,5 @@
-import { GameRoom } from '../../Colyseus/Rooms/GameRoom';
-import { ServerGameUnit } from '../../Colyseus/Schema/Unit/GameUnit';
+import { GameRoom } from '../../../Colyseus/Rooms/GameRoom';
+import { ServerGameUnit } from '../../../Colyseus/Schema/Unit/GameUnit';
 
 /**
  * 狀態效果系統

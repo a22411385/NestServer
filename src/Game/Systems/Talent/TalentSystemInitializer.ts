@@ -1,7 +1,7 @@
-import { initializeTalentSystem } from '../Services/TalentService';
-import { initializeTalentManager } from '../Managers/TalentManager';
-import { initializePropertyCalculationService } from '../Services/PropertyCalculationService';
-import { GoogleSheetCache } from '../../Tasks/GoogleSheetCache';
+import { initializeTalentSystem } from '../../Services/TalentService';
+import { initializeTalentManager } from '../../Managers/TalentManager';
+import { initializePropertyCalculationService } from '../../Services/PropertyCalculationService';
+import { GoogleSheetCache } from '../../../Tasks/GoogleSheetCache';
 
 /**
  * 天賦系統初始化器

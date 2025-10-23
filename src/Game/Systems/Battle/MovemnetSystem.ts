@@ -1,8 +1,7 @@
-import { UnitType } from "@/Colyseus/Schema/GameState";
-import { GameRoom } from "../../Colyseus/Rooms/GameRoom";
-import { ServerGameUnit } from "../../Colyseus/Schema/Unit/GameUnit";
+import { GameRoom } from "../../../Colyseus/Rooms/GameRoom";
+import { ServerGameUnit } from "../../../Colyseus/Schema/Unit/GameUnit";
 import { Client } from "colyseus";
-import { BattleMathUtils } from "../../Util/BattleMathUtils";
+import { BattleMathUtils } from "../../../Util/BattleMathUtils";
 
 
 const MOVEMENT_CONFIG = {
@@ -42,19 +41,6 @@ export class MovementSystem {
     }
 
     /**
-     * 🔧 獲取單位移動速度（從服務端狀態）
-     */
-    private getUnitSpeed(unitId: string): number {
-        // 檢查所有單位
-
-        let unit = this.room.state.allUnits.get(unitId);
-        if (unit)
-            return unit.moveSpeed || (unit.type === UnitType.hero ? 3 : 3);
-
-        return 1; // 預設速度
-    }
-
-    /**
      * 🔧 修改移動邏輯，讓所有單位都由統一系統處理
      */
     public MoveAllUnit(): void {
@@ -90,16 +76,6 @@ export class MovementSystem {
         unit.position.x = clampedPosition.x;
         unit.position.y = clampedPosition.y;
     }
-
-    // addMoveData(unitId: string, moveVector: Vector2): void {
-
-    //     const unit = this.room.state.allUnits.get(unitId);
-    //     if (unit) {
-    //         unit.vx = moveVector.x;
-    //         unit.vy = moveVector.y;
-    //     }
-    // }
-
     /**
      * 設定玩家移動向量
      */

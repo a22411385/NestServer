@@ -1,8 +1,8 @@
 import { Delayed } from "colyseus";
 import { RoomStateType, GameRoomState } from "../../Colyseus/Schema/GameState";
 import { GameRoom } from "../../Colyseus/Rooms/GameRoom";
-import { EnemySystem } from "../Systems/EnemySystem";
-import { MovementSystem } from "../Systems/MovemnetSystem";
+import { EnemySystem } from "../Systems/Battle/EnemySystem";
+import { MovementSystem } from "../Systems/Battle/MovemnetSystem";
 import { LobbyRoomBus } from "../../Colyseus/Rooms/LobbyRoom";
 import { UnitType } from "../../Colyseus/Schema/GameState";
 import { WeaponInstanceManager } from "./WeaponInstanceManager";

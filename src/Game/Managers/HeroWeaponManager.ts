@@ -5,7 +5,7 @@
 
 import { WeaponBasic } from "../../Colyseus/Schema/Weapon/Baisc/WeaponBasic";
 import { WeaponData, WeaponSchema } from "../../Colyseus/Schema/Weapon/WeaponSchema";
-import { WeaponSystemFacade } from "../Systems/WeaponSystemFacade";
+import { WeaponSystemFacade } from "../Systems/Battle/WeaponSystemFacade";
 import { WeaponInstanceManager } from "./WeaponInstanceManager";
 import { ServerItem } from "../../Colyseus/Schema/Item/ServerItem";
 import { AttackResult } from "../../Types";
@@ -182,8 +182,11 @@ export class HeroWeaponManager {
         // 修復：使用 WeaponInstanceManager 清除快取，強制重新創建
         WeaponInstanceManager.invalidateCache(weaponData);
 
+        // ✅ 觸發屬性重算（武器屬性會自動被收集並應用）
+        this.hero.recalculateAllStats();
+
         const displayName = WeaponSystemFacade.getWeaponDisplayName(weaponData);
-        console.log(`${this.hero.name} 裝備了武器: ${displayName}`);
+        console.log(`${this.hero.name} 裝備了武器: ${displayName} [屬性: STR+${weaponData.str} INT+${weaponData.int} AGI+${weaponData.agi} VIT+${weaponData.vit}]`);
         return true;
     }
 
@@ -234,8 +237,11 @@ export class HeroWeaponManager {
         // 可選：保留實例快取，避免重複創建（由 WeaponInstanceManager 管理）
         // WeaponInstanceManager.invalidateCache(weaponData); // 卸載時不清理快取
 
+        // ✅ 觸發屬性重算（移除該武器的屬性加成）
+        this.hero.recalculateAllStats();
+
         const displayName = WeaponSystemFacade.getWeaponDisplayName(weaponData);
-        console.log(`[${this.hero.name}] 已卸下武器: ${displayName}`);
+        console.log(`[${this.hero.name}] 已卸下武器: ${displayName} [移除屬性: STR+${weaponData.str} INT+${weaponData.int} AGI+${weaponData.agi} VIT+${weaponData.vit}]`);
         console.log(`[${this.hero.name}] 卸載後裝備武器列表:`, this.hero.equippedWeaponIds.toArray());
         return true;
     }

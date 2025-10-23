@@ -1,9 +1,9 @@
-import { GameRoom } from '../../Colyseus/Rooms/GameRoom';
-import { ServerHero } from '../../Colyseus/Schema/Unit/Hero';
-import { ServerEnemy } from '../../Colyseus/Schema/Unit/Enemy';
-import { ServerGameUnit } from '../../Colyseus/Schema/Unit/GameUnit';
-import { UnitType } from '../../Colyseus/Schema/GameState';
-import { BattleMathUtils } from '../../Util/BattleMathUtils';
+import { GameRoom } from '../../../Colyseus/Rooms/GameRoom';
+import { ServerHero } from '../../../Colyseus/Schema/Unit/Hero';
+import { ServerEnemy } from '../../../Colyseus/Schema/Unit/Enemy';
+import { ServerGameUnit } from '../../../Colyseus/Schema/Unit/GameUnit';
+import { UnitType } from '../../../Colyseus/Schema/GameState';
+import { BattleMathUtils } from '../../../Util/BattleMathUtils';
 
 export interface DamageInfo {
     attacker: ServerGameUnit;
@@ -179,7 +179,7 @@ export class DamageSystem {
     private rollCriticalHit(attacker: ServerGameUnit, target: ServerGameUnit): boolean {
         if (attacker.type === UnitType.hero) {
             const hero = attacker as ServerHero;
-            const critRate = hero.baseCritRate || 0.1; // 使用 baseCritRate
+            const critRate = hero.critRate || 0.1; // 使用 baseCritRate
             return BattleMathUtils.rollProbability(critRate);
         }
         return false;

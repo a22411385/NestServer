@@ -26,11 +26,19 @@ export class ServerHero extends ServerGameUnit {
 
     @type("number") public gold: number = 0; // 新增金幣屬性
     @type("number") public pickupRange: number = 5; // 拾取範圍
+
     // === 基礎屬性點 (永久，升級分配) ===
-    @type("number") public vit: number = 10;        // 體質點數
-    @type("number") public str: number = 10;        // 力量點數
-    @type("number") public agi: number = 10;        // 敏捷點數
-    @type("number") public int: number = 10;        // 智力點數
+    @type("number") public vit: number = 10;        // 體質點數 (基礎)
+    @type("number") public str: number = 10;        // 力量點數 (基礎)
+    @type("number") public agi: number = 10;        // 敏捷點數 (基礎)
+    @type("number") public int: number = 10;        // 智力點數 (基礎)
+
+    // === 🆕 武器屬性加成 (動態，裝備武器獲得) - 同步到客戶端用於UI顯示 ===
+    @type("number") public weaponVit: number = 0;   // 武器提供的體質加成
+    @type("number") public weaponStr: number = 0;   // 武器提供的力量加成
+    @type("number") public weaponAgi: number = 0;   // 武器提供的敏捷加成
+    @type("number") public weaponInt: number = 0;   // 武器提供的智力加成
+
     @type("number") public expToNext: number = 100;     // 升級所需經驗
     @type("number") public skillPoints: number = 0;     // 技能點數
     @type("number") public statPoints: number = 0;      // 屬性點數
@@ -61,10 +69,12 @@ export class ServerHero extends ServerGameUnit {
     @type("number") public maxMp: number = 100;
     @type("number") public mp: number = 100;
 
-    // === 副屬性 - 不需要同步給客戶端 ===
+    // === 🆕 副屬性 (同步到客戶端) ===
+    @type("number") public critRate: number = 0;     // 暴擊率 (百分比)
+    @type("number") public dodgeRate: number = 0;    // 閃避率 (百分比)
+
+    // === 副屬性 (不同步) ===
     public baseExpMultiplier: number = 30;
-    public baseCritRate: number = 0; // 暴擊率 (百分比)
-    public baseDodgeRate: number = 0; // 閃避率 (百分比)
 
     // 🆕 武器管理器
     private weaponManager: HeroWeaponManager;
@@ -190,30 +200,77 @@ export class ServerHero extends ServerGameUnit {
     }
     // 重新計算屬性時也要考慮總屬性加成
     public recalculateAllStats(): void {
-        // 1. 計算屬性點加成
-        const vitBonus = this.vit * 5;      // 每點體質 +5 血量
-        const strBonus = this.str * 2;      // 每點力量 +2 攻擊
-        const agiBonus = this.agi * 0.5;    // 每點敏捷 +0.5 速度
-        const intBonus = this.int * 3;      // 每點智力 +3 魔力
+        // 🔄 0. 首先收集所有裝備武器的屬性加成
+        this.updateWeaponAttributeBonuses();
 
-        // 2. 計算最終數值 = 基礎值 + 屬性加成 + 裝備加成 + Buff加成
+        // 1. 計算總屬性點 (基礎屬性 + 武器屬性)
+        const totalVit = this.vit + this.weaponVit;
+        const totalStr = this.str + this.weaponStr;
+        const totalAgi = this.agi + this.weaponAgi;
+        const totalInt = this.int + this.weaponInt;
+
+        // 2. 計算屬性點加成
+        const vitBonus = totalVit * 5;      // 每點體質 +5 血量
+        const strBonus = totalStr * 2;      // 每點力量 +2 攻擊
+        const agiBonus = totalAgi * 0.5;    // 每點敏捷 +0.5 速度
+        const intBonus = totalInt * 3;      // 每點智力 +3 魔力
+
+        // 🆕 計算回復與防禦
+        const vitRegenBonus = totalVit * 0.1;    // 每點體質 +0.1 生命回復/秒
+        const intRegenBonus = totalInt * 0.2;    // 每點智力 +0.2 魔力回復/秒
+        const vitDefenseBonus = totalVit * 0.5;  // 每點體質 +0.5 物理防禦
+        const intDefenseBonus = totalInt * 0.5;  // 每點智力 +0.5 魔法防禦
+
+        // 3. 計算最終數值 = 基礎值 + 屬性加成 + 裝備加成 + Buff加成
         const finalHp = (this.baseHp + vitBonus + this.equipmentHpBonus + this.buffHpBonus) * this.hpMultiplier;
         const finalAttack = (this.baseAttackDamage + strBonus + this.equipmentAttackBonus + this.buffAttackBonus) * this.attackMultiplier;
-
         const finalMp = (this.baseMp + intBonus + this.equipmentMpBonus + this.buffMpBonus) * this.mpMultiplier;
-        const finalSpeed = this.agi * 0.02 + this.baseMoveSpeed;
+        const finalSpeed = totalAgi * 0.02 + this.baseMoveSpeed;
+
         // 3. 更新最終屬性
         const oldMaxHp = this.maxHp;
         const oldMaxMp = this.maxMp;
 
         this.maxHp = Math.floor(finalHp);
         this.attackDamage = Math.floor(finalAttack);
-
         this.maxMp = Math.floor(finalMp);
         this.moveSpeed = Math.floor(finalSpeed);
 
+        // 🆕 更新回復與防禦屬性
+        this.hpRegen = Math.floor((1 + vitRegenBonus) * 10) / 10;  // 基礎1 + 體質加成，保留1位小數
+        this.mpRegen = Math.floor((0.5 + intRegenBonus) * 10) / 10;  // 基礎0.5 + 智力加成，保留1位小數
+        this.physicalDefense = Math.floor(vitDefenseBonus);  // 體質提供物理防禦
+        this.magicDefense = Math.floor(intDefenseBonus);     // 智力提供魔法防禦
+
+        // 🆕 計算副屬性 (暴擊率、閃避率)
+        this.critRate = Math.floor((totalAgi * 0.1 + totalStr * 0.05) * 10) / 10;  // 每點敏捷 +0.1%，每點力量 +0.05%
+        this.dodgeRate = Math.floor((totalAgi * 0.15) * 10) / 10;                    // 每點敏捷 +0.15%
+
         // 4. 處理當前血量/魔力的變化
         this.adjustCurrentValues(oldMaxHp, oldMaxMp);
+    }
+
+    /**
+     * 🆕 更新武器屬性加成
+     * 遍歷所有裝備的武器，累加它們的基本屬性
+     */
+    private updateWeaponAttributeBonuses(): void {
+        // 重置武器屬性加成
+        this.weaponStr = 0;
+        this.weaponInt = 0;
+        this.weaponAgi = 0;
+        this.weaponVit = 0;
+
+        // 遍歷所有裝備的武器
+        for (const weaponId of this.equippedWeaponIds) {
+            const weaponSchema = this.weaponManager.findWeaponSchemaById(weaponId);
+            if (weaponSchema) {
+                this.weaponStr += weaponSchema.str || 0;
+                this.weaponInt += weaponSchema.int || 0;
+                this.weaponAgi += weaponSchema.agi || 0;
+                this.weaponVit += weaponSchema.vit || 0;
+            }
+        }
     }
 
     /**

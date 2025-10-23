@@ -18,10 +18,10 @@ export const PropertyType = {
     LIFE_STEAL: 'life_steal',
 
     // 角色主屬性
-    STRENGTH: 'strength',         // 力量 - 影響物理攻擊力
-    INTELLIGENCE: 'intelligence', // 智力 - 影響魔法攻擊力  
-    VITALITY: 'vitality',        // 體力 - 影響生命值
-    AGILITY: 'agility',          // 敏捷 - 影響攻擊速度和閃避
+    STRENGTH: 'strength',          // 力量 - 影響物理攻擊力
+    INTELLIGENCE: 'intelligence',  // 智力 - 影響魔法攻擊力  
+    VITALITY: 'vitality',         // 體力 - 影響生命值
+    AGILITY: 'agility',           // 敏捷 - 影響攻擊速度和閃避
 
     // 防禦屬性
     PHYSICAL_RESISTANCE: 'physical_resistance',
