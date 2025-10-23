@@ -107,7 +107,7 @@ export abstract class ProjectileBasic {
       },
       visualEffects: this.createVisualEffects(bullet, affectedTargets),
       // ✅ 傳遞狀態效果配置（燃燒、中毒等）
-      statusEffects: bullet.statusEffects,
+      statusEffects: bullet.statusEffects.filter(se => se.category != 'attribute'),
     };
   }
 
@@ -144,7 +144,7 @@ export abstract class ProjectileBasic {
     let checkedCount = 0;
     let enemyCount = 0;
 
-    console.log(`🔍 [findTargetsInRadius] 搜索範圍 - 中心: (${centerPosition.x}, ${centerPosition.y}), 半徑: ${radius}`);
+    //console.log(`🔍 [findTargetsInRadius] 搜索範圍 - 中心: (${centerPosition.x}, ${centerPosition.y}), 半徑: ${radius}`);
 
     for (const [unitId, unit] of gameRoom.state.gameCore.allUnits) {
       checkedCount++;
@@ -162,7 +162,7 @@ export abstract class ProjectileBasic {
       enemyCount++;
 
       if (unit.id === owner.id) {
-        console.log(`  ❌ 單位 ${unitId} - 是擁有者`);
+        // console.log(`  ❌ 單位 ${unitId} - 是擁有者`);
         continue;
       }
 
@@ -171,14 +171,14 @@ export abstract class ProjectileBasic {
         unit.position.y - centerPosition.y,
       );
 
-      console.log(`  🎯 敵人 ${unitId} at (${unit.position.x}, ${unit.position.y}) - 距離: ${distance.toFixed(2)} ${distance <= radius ? '✅ 在範圍內' : '❌ 超出範圍'}`);
+      //console.log(`  🎯 敵人 ${unitId} at (${unit.position.x}, ${unit.position.y}) - 距離: ${distance.toFixed(2)} ${distance <= radius ? '✅ 在範圍內' : '❌ 超出範圍'}`);
 
       if (distance <= radius) {
         targets.push(unit);
       }
     }
 
-    console.log(`🔍 [findTargetsInRadius] 檢查完成 - 總單位: ${checkedCount}, 敵人: ${enemyCount}, 範圍內: ${targets.length}`);
+    // console.log(`🔍 [findTargetsInRadius] 檢查完成 - 總單位: ${checkedCount}, 敵人: ${enemyCount}, 範圍內: ${targets.length}`);
     return targets;
   }
 }

@@ -1,7 +1,7 @@
 import { GameRoom } from '../../Colyseus/Rooms/GameRoom';
 import { ServerHero } from '../../Colyseus/Schema/Unit/Hero';
 import { ServerGameUnit } from '../../Colyseus/Schema/Unit/GameUnit';
-import { AttackResult, VisualEffect, WeaponType, StatusEffectConfig } from '@/Types';
+import { AttackResult, WeaponType, StatusEffectConfig } from '@/Types';
 
 import { BattleLogSystem } from './BattleLogSystem';
 import { DamageResult } from './DamageSystem';
@@ -141,19 +141,7 @@ export class CombatSystem {
     }
 
     /**
-     * 🆕 從攻擊結果創建投射物實體（重構版）
-     * 
-     * 🎯 職責：
-     * - 直接使用 projectileConfig 創建 ServerBullet
-     * - 不再需要 visualEffects 作為中轉層
-     * - ServerBullet 通過 Colyseus Schema 自動同步到客戶端
-     * 
-     * 📝 配置優先級：
-     * 1. 武器覆蓋配置（projectileConfig 中的可選屬性）
-     * 2. 彈藥默認配置（ProjectileBasic.getConfig）
-     * 
-     * ⚠️ 注意：BulletCreateConfig 只支持部分屬性
-     * - bounceCount, collisionRadius 將在未來版本添加到 BulletCreateConfig
+     * 🆕 從攻擊結果創建投射物實體
      */
     private createProjectilesFromAttackResult(
         hero: ServerHero,
@@ -214,6 +202,7 @@ export class CombatSystem {
         effectConfigs: StatusEffectConfig[],
         attackerPosition?: { x: number; y: number },
     ): void {
+
         for (const config of effectConfigs) {
             // 檢查機率觸發
             if (config.chance !== undefined) {
@@ -223,19 +212,20 @@ export class CombatSystem {
                 }
             }
 
-            // 🆕 检查是否已存在相同类型的效果
-            const existingEffect = this.findExistingEffect(target, config.type);
-
-            if (existingEffect) {
-                // 叠加现有效果
-                this.stackEffect(existingEffect, config);
-                console.log(`🔥 狀態效果疊加: ${config.type} → ${target.id} (${existingEffect.stacks}層)`);
-            } else {
-                // 创建新效果
-                this.createNewEffect(target, config);
-                console.log(`✨ 狀態效果已應用: ${config.type} → ${target.id} (持續 ${config.duration}ms)`);
+            //只有狀態類的才要疊加
+            if (config.category == 'debuff' || config.category == 'buff') {
+                // 🆕 检查是否已存在相同类型的效果
+                const existingEffect = this.findExistingEffect(target, config.type);
+                if (existingEffect) {
+                    // 叠加现有效果
+                    this.stackEffect(existingEffect, config);
+                    //  console.log(`🔥 狀態效果疊加: ${config.type} → ${target.id} (${existingEffect.stacks}層)`);
+                } else {
+                    // 创建新效果
+                    this.createNewEffect(target, config);
+                    // console.log(`✨ 狀態效果已應用: ${config.type} → ${target.id} (持續 ${config.duration}ms)`);
+                }
             }
-
             // 特殊處理：擊退效果
             if (config.type === 'knockback' && attackerPosition) {
                 this.applyKnockback(target, attackerPosition, config.value || 0);

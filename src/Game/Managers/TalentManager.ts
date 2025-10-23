@@ -252,6 +252,8 @@ export class TalentManager {
                 valueType: 'single',
                 probability: 100,
                 duration: 0,
+                stacked: false,
+                category: 'attribute',
                 description: `天賦效果: ${appliedEffect.talentId}`
             };
             properties.push(newProperty);

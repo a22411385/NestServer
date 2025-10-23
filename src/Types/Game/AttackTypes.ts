@@ -3,7 +3,7 @@
  */
 
 import { Vector2 } from '../BaseTypes';
-import { PropertyTypeValue, PropertyValue } from '../Equipment/WeaponPropertyTypes';
+import { CategoryKey, PropertyTypeValue, PropertyValue } from '../Equipment/WeaponPropertyTypes';
 import { BulletCreateConfig } from './BulletTypes';
 
 /**
@@ -73,6 +73,7 @@ export interface StatusEffectConfig {
     value?: number;             // 效果數值 (減速百分比、每秒傷害)
     chance?: number;            // 觸發機率 (0-100)
     direction?: Vector2;        // 方向 (擊退效果用)
+    category: CategoryKey; // 效果類別
 }
 
 /**

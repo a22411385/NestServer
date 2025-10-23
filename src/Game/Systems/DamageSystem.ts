@@ -82,7 +82,7 @@ export class DamageSystem {
         // 應用額外效果
         const effects = this.applyDamageEffects(damageInfo, target);
 
-        console.log(`💥 ${attacker.name} 對 ${target.name} 造成 ${realDamage} 點傷害${isCritical ? ' (暴擊!)' : ''}${wasKilled ? ' (擊殺!)' : ''}`);
+        //console.log(`💥 ${attacker.name} 對 ${target.name} 造成 ${realDamage} 點傷害${isCritical ? ' (暴擊!)' : ''}${wasKilled ? ' (擊殺!)' : ''}`);
 
         return {
             actualDamage: realDamage,

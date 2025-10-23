@@ -53,12 +53,17 @@ export class StatusEffectSystem {
 
         // 遍歷所有狀態效果
         for (const [effectId, effect] of unit.statusEffects) {
+            // 🆕 跳過 duration 為 0 的效果（永久效果或瞬間效果）
+            if (effect.duration === 0) {
+                continue;
+            }
+
             const elapsedTime = currentTime - effect.startTime;
 
             // 檢查效果是否已過期
             if (elapsedTime >= effect.duration) {
                 effectsToRemove.push(effectId);
-                console.log(`⏱️ 狀態效果已過期: ${effect.type} (${unit.id})`);
+                //console.log(`⏱️ 狀態效果已過期: ${effect.type} (${unit.id})`);
                 continue;
             }
 
@@ -143,12 +148,12 @@ export class StatusEffectSystem {
                     timestamp: currentTime,
                 });
 
-                console.log(`🔥 持續傷害: ${effect.type} x${stacks} 對 ${unit.id} 造成 ${totalDamage} 傷害 (${damagePerSecond}/s × ${stacks} × ${ticks}秒)`);
+                //console.log(`🔥 持續傷害: ${effect.type} x${stacks} 對 ${unit.id} 造成 ${totalDamage} 傷害 (${damagePerSecond}/s × ${stacks} × ${ticks}秒)`);
 
                 // 檢查單位是否死亡
                 if (unit.hp <= 0) {
                     unit.isDead = true;
-                    console.log(`💀 單位因持續傷害死亡: ${unit.id} (${effect.type})`);
+                    // console.log(`💀 單位因持續傷害死亡: ${unit.id} (${effect.type})`);
                 }
             }
 

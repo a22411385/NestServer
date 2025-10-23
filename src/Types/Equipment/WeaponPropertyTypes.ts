@@ -65,7 +65,7 @@ export const PropertyType = {
  * 屬性類型的值類型 - 從常數物件推導
  */
 export type PropertyTypeValue = typeof PropertyType[keyof typeof PropertyType];
-
+export type CategoryKey = 'debuff' | 'buff' | 'attribute' | 'combat';
 export type PropertyValueType = 'single' | 'range' | 'composite';
 /**
  * 武器品質等級
@@ -92,7 +92,7 @@ export interface WeaponPropertyDefinition {
 
     triggerProbability: number;
     stacked: boolean;
-    category: 'basic' | 'combat' | 'status' | 'attribute';
+    category: CategoryKey;
     compositeFormat?: string;
 }
 export type compositeFormatCategory = 'probability' | 'duration' | 'damage' | 'count' | 'intensity';
@@ -127,5 +127,6 @@ export interface PropertyValue {
     stacked?: boolean;      // 是否可堆疊
     probability: number;    // 觸發機率 (0-100)
     duration: number;       // 持續時間 (秒)
+    category: CategoryKey; // 效果類別
 }
 

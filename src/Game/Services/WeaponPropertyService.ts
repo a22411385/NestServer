@@ -76,7 +76,7 @@ export class WeaponPropertyService {
             const properties: PropertyValue[] = [];
 
             // 1. 解析固定屬性
-            const fixedProperties = this.parseFixedProperties(weaponConfig.fixedProperties);
+            const fixedProperties = this.parseFixedProperties(weaponConfig.fixedProperties, quality);
             // properties.push(...fixedProperties);
 
             // 2. 生成隨機屬性
@@ -101,7 +101,7 @@ export class WeaponPropertyService {
      * @param fixedPropsString 固定屬性字符串，如 "knockback,stun,sweep_angle"
      * @returns 屬性值列表
      */
-    private parseFixedProperties(fixedPropsString: string): PropertyValue[] {
+    private parseFixedProperties(fixedPropsString: string, quality: WeaponQuality): PropertyValue[] {
         if (!fixedPropsString) return [];
 
         const propTypes = fixedPropsString.split(',').map(s => s.trim());
@@ -116,7 +116,7 @@ export class WeaponPropertyService {
 
             try {
                 // 固定屬性使用最大值
-                const value = this.generatePropertyValue(propertyDef);
+                const value = this.generatePropertyValue(propertyDef, quality == WeaponQuality.LEGENDARY);
                 properties.push(value);
             } catch (error) {
                 console.error(`❌ 生成固定屬性失敗: ${propType}`, error);
@@ -204,6 +204,8 @@ export class WeaponPropertyService {
             value: 0,
             probability: 100,
             duration: 0,
+            stacked: propertyDef.stacked,
+            category: propertyDef.category,
             description: propertyDef.description
         } as PropertyValue
 

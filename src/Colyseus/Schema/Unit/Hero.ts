@@ -81,7 +81,7 @@ export class ServerHero extends ServerGameUnit {
         this.scale = 1.0; // 預設縮放為1
 
         this.type = UnitType.hero;
-        this.attackRange = 1000;
+        this.attackRange = 100;
         this.hpRegen = 1;
         this.mpRegen = 0.5;
 

@@ -100,7 +100,7 @@ export class ServerBullet extends Schema {
         // ✅ 處理狀態效果配置（燃燒、中毒等）
         if (config.statusEffects) {
             this.statusEffects = config.statusEffects;
-            console.log(`💊 [Bullet] 應用 ${config.statusEffects.length} 個狀態效果:`, config.statusEffects);
+            //console.log(`💊 [Bullet] 應用 ${config.statusEffects.length} 個狀態效果:`, config.statusEffects);
         }
     }
 }

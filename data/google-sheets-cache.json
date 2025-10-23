@@ -19,7 +19,7 @@
       "valueMax": "25|3",
       "compositeFormat": "probability|duration",
       "stacked": false,
-      "category": "status"
+      "category": "debuff"
     },
     {
       "propertyType": "strength",
@@ -69,7 +69,7 @@
       "valueMin": 5,
       "valueMax": 20,
       "stacked": true,
-      "category": "basic"
+      "category": "attribute"
     },
     {
       "propertyType": "attack_speed",
@@ -79,7 +79,7 @@
       "valueMin": 50,
       "valueMax": 200,
       "stacked": true,
-      "category": "basic"
+      "category": "attribute"
     },
     {
       "propertyType": "attack_range",
@@ -89,7 +89,7 @@
       "valueMin": 20,
       "valueMax": 100,
       "stacked": true,
-      "category": "basic"
+      "category": "attribute"
     },
     {
       "propertyType": "freeze",
@@ -99,7 +99,7 @@
       "valueMin": 2,
       "valueMax": 2,
       "stacked": false,
-      "category": "status"
+      "category": "debuff"
     },
     {
       "propertyType": "burn",
@@ -110,7 +110,7 @@
       "valueMax": "40|5|15",
       "compositeFormat": "probability|duration|damage",
       "stacked": false,
-      "category": "status"
+      "category": "debuff"
     },
     {
       "propertyType": "poison",
@@ -121,7 +121,7 @@
       "valueMax": "30|6|12",
       "compositeFormat": "probability|duration|damage",
       "stacked": false,
-      "category": "status"
+      "category": "debuff"
     },
     {
       "propertyType": "slow",
@@ -132,7 +132,7 @@
       "valueMax": "50|4|60",
       "compositeFormat": "probability|duration|intensity",
       "stacked": false,
-      "category": "status"
+      "category": "debuff"
     },
     {
       "propertyType": "critical_chance",
@@ -206,7 +206,7 @@
       "valueMin": 50,
       "valueMax": 200,
       "stacked": true,
-      "category": "basic"
+      "category": "attribute"
     },
     {
       "propertyType": "area_of_effect",
@@ -216,7 +216,7 @@
       "valueMin": 120,
       "valueMax": 180,
       "stacked": true,
-      "category": "basic"
+      "category": "attribute"
     },
     {
       "propertyType": "pierce_count",
@@ -226,7 +226,7 @@
       "valueMin": 1,
       "valueMax": 6,
       "stacked": false,
-      "category": "basic"
+      "category": "attribute"
     },
     {
       "propertyType": "heal_amount",
@@ -236,7 +236,7 @@
       "valueMin": 10,
       "valueMax": 50,
       "stacked": true,
-      "category": "basic"
+      "category": "attribute"
     },
     {
       "propertyType": "buff_duration",
@@ -246,7 +246,7 @@
       "valueMin": 1,
       "valueMax": 5,
       "stacked": true,
-      "category": "basic"
+      "category": "attribute"
     },
     {
       "propertyType": "support_radius",
@@ -256,7 +256,7 @@
       "valueMin": 150,
       "valueMax": 300,
       "stacked": true,
-      "category": "basic"
+      "category": "attribute"
     },
     {
       "propertyType": "sweep_angle",
@@ -266,7 +266,7 @@
       "valueMin": 15,
       "valueMax": 60,
       "stacked": true,
-      "category": "basic"
+      "category": "attribute"
     }
   ],
   "WeaponConfigs": [
@@ -1185,5 +1185,5 @@
       "stack_type": "ADDITIVE"
     }
   ],
-  "lastUpdated": "2025-10-21T04:30:23.746Z"
+  "lastUpdated": "2025-10-21T09:09:13.162Z"
 }

@@ -124,7 +124,7 @@ export abstract class MeleeWeapon extends WeaponBasic {
             data: {
                 weaponType: this.weaponId,
                 damage: this.baseDamage,
-                attackRange: this.attackRange,
+                attackRange: this.attackRange + attacker.attackRange,
                 sweepAngle: (this.sweepAngle * 180) / Math.PI, // 轉換為度給客戶端
             },
         };
@@ -143,7 +143,7 @@ export abstract class MeleeWeapon extends WeaponBasic {
         if (aliveTargets.length === 0) {
             return [];
         }
-
+        const atkRange = this.attackRange + attacker.attackRange;
         // 找出攻擊範圍內的所有敵人，並按距離排序
         const targetsInRange = aliveTargets
             .map((target) => ({
@@ -153,7 +153,7 @@ export abstract class MeleeWeapon extends WeaponBasic {
                     target.position.y - attacker.position.y,
                 ),
             }))
-            .filter((item) => item.distance <= this.attackRange + attacker.attackRange)
+            .filter((item) => item.distance <= atkRange)
             .sort((a, b) => a.distance - b.distance);
 
         if (targetsInRange.length === 0) {
@@ -176,7 +176,7 @@ export abstract class MeleeWeapon extends WeaponBasic {
             selectedTargets = this.findTargetsInFanArea(
                 attacker,
                 aliveTargets,
-                this.attackRange,
+                atkRange,
                 this.sweepAngle,
                 attacker.facingDirection,
             );
