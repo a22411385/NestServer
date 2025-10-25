@@ -1,5 +1,5 @@
 import { Server } from "colyseus";
-import { WebSocketTransport } from "@colyseus/ws-transport";
+import { uWebSocketsTransport } from "@colyseus/uwebsockets-transport"
 import express from "express";
 import { monitor } from "@colyseus/monitor";
 import { GameRoom } from "./Rooms/GameRoom";
@@ -12,7 +12,7 @@ export class ColyseusServer {
     constructor() {
         this.app = express();
         this.server = new Server({
-            transport: new WebSocketTransport()
+            transport: new uWebSocketsTransport({ maxPayloadLength: 1024 }), // 設定最大封包大小為 64KB
         });
 
         this.setupRooms();

@@ -53,22 +53,20 @@ export class StatusEffectSystem {
 
         // 遍歷所有狀態效果
         for (const [effectId, effect] of unit.statusEffects) {
-            // 🆕 跳過 duration 為 0 的效果（永久效果或瞬間效果）
-            if (effect.duration === 0) {
-                continue;
-            }
-
-            const elapsedTime = currentTime - effect.startTime;
-
-            // 檢查效果是否已過期
-            if (elapsedTime >= effect.duration) {
+            // 🔧 使用 endTime 檢查是否過期（更直接，減少計算）
+            if (effect.endTime > 0 && currentTime >= effect.endTime) {
                 effectsToRemove.push(effectId);
                 //console.log(`⏱️ 狀態效果已過期: ${effect.type} (${unit.id})`);
                 continue;
             }
 
+            // 🆕 跳過永久效果（endTime === 0）
+            if (effect.endTime === 0) {
+                continue;
+            }
+
             // 處理持續效果
-            this.applyOngoingEffect(unit, effect, elapsedTime);
+            this.applyOngoingEffect(unit, effect, currentTime);
         }
 
         // 移除過期的狀態效果
@@ -83,13 +81,13 @@ export class StatusEffectSystem {
     private applyOngoingEffect(
         unit: ServerGameUnit,
         effect: any,
-        elapsedTime: number,
+        currentTime: number,
     ): void {
         switch (effect.type) {
             case 'burn':
             case 'poison':
                 // 持續傷害效果
-                this.applyDamageOverTime(unit, effect);
+                this.applyDamageOverTime(unit, effect, currentTime);
                 break;
 
             case 'slow':
@@ -116,13 +114,12 @@ export class StatusEffectSystem {
      * 應用持續傷害效果
      * 使用最後傷害時間來避免重複計算
      */
-    private applyDamageOverTime(unit: ServerGameUnit, effect: any): void {
+    private applyDamageOverTime(unit: ServerGameUnit, effect: any, currentTime: number): void {
         // 在 effect 上存儲最後傷害時間（不需要同步到客戶端）
         if (!effect._lastDamageTick) {
             effect._lastDamageTick = effect.startTime;
         }
 
-        const currentTime = Date.now();
         const timeSinceLastTick = currentTime - effect._lastDamageTick;
 
         // 每秒造成一次傷害
@@ -150,15 +147,42 @@ export class StatusEffectSystem {
 
                 //console.log(`🔥 持續傷害: ${effect.type} x${stacks} 對 ${unit.id} 造成 ${totalDamage} 傷害 (${damagePerSecond}/s × ${stacks} × ${ticks}秒)`);
 
-                // 檢查單位是否死亡
+                // 🔧 檢查單位是否死亡並觸發死亡事件
                 if (unit.hp <= 0) {
                     unit.isDead = true;
-                    // console.log(`💀 單位因持續傷害死亡: ${unit.id} (${effect.type})`);
+                    console.log(`💀 單位因 ${effect.type} 效果死亡: ${unit.id}`);
+
+                    // 🆕 觸發死亡處理
+                    this.handleUnitDeath(unit, effect.type);
                 }
             }
 
             // 更新最後傷害時間
             effect._lastDamageTick = currentTime;
+        }
+    }
+
+    /**
+     * 🆕 處理單位死亡
+     */
+    private handleUnitDeath(unit: ServerGameUnit, causeType: string): void {
+        const unitType = unit.type;
+
+        if (unitType === 0) { // UnitType.enemy
+            // 敵人死亡處理
+            const enemy = unit as any; // ServerEnemy
+
+            // 移除單位
+            this.gameRoom.state.removeEnemy(enemy.id);
+
+            // 發送死亡消息
+            this.gameRoom.broadcast('unitRemoved', { id: enemy.id });
+
+            console.log(`💀 敵人 ${enemy.id} 因 ${causeType} 死亡`);
+
+        } else if (unitType === 1) { // UnitType.hero
+            // 英雄死亡處理（由 PlayerManager 統一處理）
+            console.log(`💀 英雄 ${unit.id} 因 ${causeType} 死亡，將由 PlayerManager 處理`);
         }
     }
 
@@ -230,8 +254,7 @@ export class StatusEffectSystem {
         if (!effect) return 0;
 
         const currentTime = Date.now();
-        const elapsedTime = currentTime - effect.startTime;
-        const remaining = effect.duration - elapsedTime;
+        const remaining = effect.endTime - currentTime;
 
         return Math.max(0, remaining);
     }

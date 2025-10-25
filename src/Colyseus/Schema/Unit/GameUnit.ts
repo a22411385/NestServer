@@ -26,11 +26,15 @@ export class Skill extends Schema {
 export class StatusEffect extends Schema {
     @type("string") id: string = "";
     @type("string") type: string = ""; // buff, debuff, heal, damage
-    @type("number") duration: number = 0; // 持續時間 (ms)
+    @type("number") endTime: number = 0; // 🔧 效果結束時間戳 (ms) - 客戶端可計算剩餘時間
     @type("number") value: number = 0; // 效果數值
-    @type("number") startTime: number = 0; // 效果開始時間戳 (ms)
     @type("number") stacks: number = 1; // 🆕 疊加層數（默認1層）
     @type("number") maxStacks: number = 5; // 🆕 最大疊加層數（默認5層）
+
+    // 🔧 伺服器專用屬性（不同步）
+    public duration: number = 0; // 持續時間 (ms) - 僅伺服器使用
+    public startTime: number = 0; // 效果開始時間戳 (ms) - 僅伺服器計算使用
+    public _lastDamageTick?: number; // 最後傷害時間 - 內部使用
 }
 // 單位基底
 export class ServerGameUnit extends Schema {

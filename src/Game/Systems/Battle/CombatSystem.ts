@@ -15,6 +15,9 @@ export class CombatSystem {
     private gameRoom: GameRoom;
     private battleLogSystem: BattleLogSystem;
 
+    // 🎯 狀態效果快速查找緩存 - 避免重複遍歷 MapSchema
+    private effectCache: Map<string, Map<string, StatusEffect>> = new Map();
+
     constructor(gameRoom: GameRoom) {
         this.gameRoom = gameRoom;
         this.battleLogSystem = new BattleLogSystem(gameRoom);
@@ -217,6 +220,17 @@ export class CombatSystem {
                 // 🆕 检查是否已存在相同类型的效果
                 const existingEffect = this.findExistingEffect(target, config.type);
                 if (existingEffect) {
+                    // 🔧 優化：如果已達最大層數且時間充足，直接跳過（避免無效更新）
+                    const now = Date.now();
+                    const remainingTime = existingEffect.endTime - now;
+                    const isMaxStacks = existingEffect.stacks >= existingEffect.maxStacks;
+                    const hasEnoughTime = remainingTime > config.duration * 0.5; // 剩餘時間超過一半
+
+                    if (isMaxStacks && hasEnoughTime) {
+                        // console.log(`⏭️ 跳過無效疊加: ${config.type} (已達最大層數且時間充足)`);
+                        continue; // 跳過這次更新，減少同步
+                    }
+
                     // 叠加现有效果
                     this.stackEffect(existingEffect, config);
                     //  console.log(`🔥 狀態效果疊加: ${config.type} → ${target.id} (${existingEffect.stacks}層)`);
@@ -234,11 +248,26 @@ export class CombatSystem {
     }
 
     /**
-     * 🆕 查找已存在的相同类型效果
+     * 🆕 查找已存在的相同类型效果（優化版本 - 使用緩存）
      */
     private findExistingEffect(target: ServerGameUnit, effectType: string): StatusEffect | null {
+        // 嘗試從緩存獲取
+        const unitCache = this.effectCache.get(target.id);
+        if (unitCache) {
+            const cachedEffect = unitCache.get(effectType);
+            if (cachedEffect) {
+                return cachedEffect;
+            }
+        }
+
+        // 緩存未命中，遍歷查找
         for (const [, effect] of target.statusEffects) {
             if (effect.type === effectType) {
+                // 更新緩存
+                if (!this.effectCache.has(target.id)) {
+                    this.effectCache.set(target.id, new Map());
+                }
+                this.effectCache.get(target.id)!.set(effectType, effect);
                 return effect;
             }
         }
@@ -246,45 +275,86 @@ export class CombatSystem {
     }
 
     /**
-     * 🆕 叠加现有效果
+     * 🎯 清除單位的狀態效果緩存
+     */
+    private clearEffectCache(unitId: string): void {
+        this.effectCache.delete(unitId);
+    }
+
+    /**
+     * 🆕 叠加现有效果（優化：減少不必要的同步）
+     * 
+     * 🔧 優化策略：
+     * 1. 只在疊加層數改變時才更新
+     * 2. endTime 更新閾值：只有當新時間明顯更長時才更新（減少微小差異的同步）
      */
     private stackEffect(existingEffect: StatusEffect, config: StatusEffectConfig): void {
+        const now = Date.now();
+        const currentRemainingTime = existingEffect.endTime - now;
+
+        let needsUpdate = false;
+
         // 增加层数（不超过最大值）
         if (existingEffect.stacks < existingEffect.maxStacks) {
             existingEffect.stacks++;
+            needsUpdate = true;
         }
 
-        // 刷新持续时间为更长的
-        if (config.duration > existingEffect.duration) {
+        // 🔧 優化：只有當新時間比當前剩餘時間長 200ms 以上時才更新（避免頻繁微小更新）
+        const timeDifference = config.duration - currentRemainingTime;
+        if (timeDifference > 200) {
             existingEffect.duration = config.duration;
-            existingEffect.startTime = Date.now(); // 重置开始时间
+            existingEffect.startTime = now; // 重置开始时间
+            existingEffect.endTime = now + config.duration; // 🔧 更新結束時間
+            needsUpdate = true;
         }
 
-        // 更新效果数值为更大的
-        if (config.value && config.value > existingEffect.value) {
+        // 更新效果数值为更大的（只有明顯更大時）
+        if (config.value && config.value > existingEffect.value * 1.1) {
             existingEffect.value = config.value;
+            needsUpdate = true;
+        }
+
+        // 🔧 如果沒有實質更新，跳過同步（減少封包）
+        if (!needsUpdate) {
+            // console.log(`🔇 狀態效果疊加跳過同步: ${existingEffect.type}`);
         }
     }
 
     /**
-     * 🆕 创建新效果
+     * 🆕 创建新效果（優化版本）
+     * 
+     * 🎯 優化點：
+     * 1. 使用簡短的 ID（類型 + 目標ID）- 減少字符串長度
+     * 2. 同步結束時間而非開始時間 - 客戶端可直接計算剩餘時間
      */
     private createNewEffect(target: ServerGameUnit, config: StatusEffectConfig): void {
-        // 生成唯一ID
-        const effectId = `${config.type}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        // 🔧 優化：使用簡短的ID（狀態類型可以保證唯一性）
+        const effectId = `${config.type}_${target.id}`;
+
+        const now = Date.now();
 
         // 創建 StatusEffect Schema
         const statusEffect = new StatusEffect();
         statusEffect.id = effectId;
         statusEffect.type = config.type;
-        statusEffect.duration = config.duration;
+        statusEffect.endTime = now + config.duration; // 🔧 同步結束時間（客戶端可計算：endTime - Date.now()）
         statusEffect.value = config.value || 0;
-        statusEffect.startTime = Date.now(); // 記錄效果開始時間
         statusEffect.stacks = 1; // 初始1层
         statusEffect.maxStacks = this.getMaxStacks(config.type); // 根据类型设置最大层数
 
+        // 🔧 伺服器專用屬性
+        statusEffect.duration = config.duration;
+        statusEffect.startTime = now; // 記錄效果開始時間（由 StatusEffectSystem 使用）
+
         // 應用到目標單位 (自動同步到客戶端)
         target.addStatusEffect(statusEffect);
+
+        // 🎯 更新緩存
+        if (!this.effectCache.has(target.id)) {
+            this.effectCache.set(target.id, new Map());
+        }
+        this.effectCache.get(target.id)!.set(config.type, statusEffect);
     }
 
     /**

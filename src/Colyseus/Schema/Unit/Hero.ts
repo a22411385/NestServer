@@ -26,6 +26,7 @@ export class ServerHero extends ServerGameUnit {
 
     @type("number") public gold: number = 0; // 新增金幣屬性
     @type("number") public pickupRange: number = 5; // 拾取範圍
+    @type("number") public visionRange: number = 1500; // 🔧 視野範圍（用於戰爭迷霧）
 
     // === 基礎屬性點 (永久，升級分配) ===
     @type("number") public vit: number = 10;        // 體質點數 (基礎)

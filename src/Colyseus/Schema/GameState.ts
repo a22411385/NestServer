@@ -35,9 +35,11 @@ export class GameCoreState extends Schema {
     @type('string') status: gameFlowStatus = 'prepare'
     @type("number") aliveHeroes: number = 0; // 存活英雄數量
     @type("number") roundTime: number = 0; // 遊戲
+
+    // 🔧 物品、單位、子彈的過濾在 GameRoom.setupStateFiltering() 中設置
     @type([ServerItem]) mapItems = new ArraySchema<ServerItem>();
 
-    //這裡只同步場上所有單位的存活
+    // 這裡只同步場上所有單位的存活
     @type({ map: ServerGameUnit }) allUnits = new MapSchema<ServerGameUnit>();
 
     // 子彈系統 - Vampire Survivors 風格

@@ -12,14 +12,14 @@ import { HttpModule } from '@nestjs/axios';
 @Module({
   imports: [
     TypeOrmModule.forRoot({
-      type: 'mysql', // 或 'postgres'
-      host: 'localhost',
-      port: 3306,     // 或 postgres 是 5432
-      username: 'root',
-      password: 'root',
-      database: 'game',
+      type: process.env.DB_TYPE as any || 'mysql',
+      host: process.env.DB_HOST || '127.0.0.1',
+      port: parseInt(process.env.DB_PORT || '3306'),
+      username: process.env.DB_USERNAME || 'root',
+      password: process.env.DB_PASSWORD || '',
+      database: process.env.DB_DATABASE || 'game',
       autoLoadEntities: true,
-      synchronize: true, // 開發環境可以設 true，自動建立表格
+      synchronize: process.env.DB_SYNCHRONIZE === 'true',
     }),
     CacheModule.register({
       ttl: 60 * 60 * 24, // 預設快取時間（秒）

@@ -21,6 +21,12 @@ export class BulletSystem {
     // 🆕 記錄子彈上一幀位置 (用於連續碰撞檢測)
     private lastBulletPositions: Map<string, Vector2> = new Map();
 
+    // 🎯 批量廣播緩存 - 減少廣播頻率
+    private pendingBroadcasts: Array<{
+        type: string;
+        data: any;
+    }> = [];
+
     constructor(gameRoom: GameRoom) {
         this.gameRoom = gameRoom;
     }
@@ -76,6 +82,9 @@ export class BulletSystem {
         if (bulletsToRemove.length > 0) {
             this.removeBullets(bulletsToRemove);
         }
+
+        // 🎯 批量發送累積的廣播（減少網絡開銷）
+        this.flushPendingBroadcasts();
     }
 
     /**
@@ -213,8 +222,8 @@ export class BulletSystem {
         const attackResult = projectile.onHit(bullet, enemy, this.gameRoom);
 
         if (attackResult.success) {
-            // 廣播攻擊結果（與武器攻擊保持一致）
-            this.gameRoom.broadcast('projectile_attack', {
+            // 🎯 優化：將廣播加入批次隊列，而不是立即發送
+            this.queueBroadcast('projectile_attack', {
                 projectileId: bullet.id,
                 attackResult: attackResult,
                 timestamp: Date.now()
@@ -299,6 +308,50 @@ export class BulletSystem {
 
         // 🆕 清理位置記錄
         this.lastBulletPositions.clear();
+
+        // 清理待發送廣播
+        this.pendingBroadcasts = [];
+    }
+
+    /**
+     * 🎯 將廣播加入隊列（批量發送優化）
+     */
+    private queueBroadcast(type: string, data: any): void {
+        this.pendingBroadcasts.push({ type, data });
+    }
+
+    /**
+     * 🎯 批量發送累積的廣播（減少網絡開銷）
+     */
+    private flushPendingBroadcasts(): void {
+        if (this.pendingBroadcasts.length === 0) return;
+
+        // 按類型分組廣播
+        const groupedBroadcasts = new Map<string, any[]>();
+
+        for (const broadcast of this.pendingBroadcasts) {
+            if (!groupedBroadcasts.has(broadcast.type)) {
+                groupedBroadcasts.set(broadcast.type, []);
+            }
+            groupedBroadcasts.get(broadcast.type)!.push(broadcast.data);
+        }
+
+        // 批量發送（合併相同類型的廣播）
+        for (const [type, dataList] of groupedBroadcasts) {
+            if (dataList.length === 1) {
+                // 只有一個廣播，直接發送
+                this.gameRoom.broadcast(type, dataList[0]);
+            } else {
+                // 多個廣播，批量發送
+                this.gameRoom.broadcast(`${type}_batch`, {
+                    events: dataList,
+                    count: dataList.length
+                });
+            }
+        }
+
+        // 清空隊列
+        this.pendingBroadcasts = [];
     }
 
     /**

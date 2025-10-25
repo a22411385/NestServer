@@ -62,15 +62,15 @@ export class DropSystem {
     private generateSmartDropItems(enemy: ServerEnemy, x: number, y: number): ServerItem[] {
         const items: ServerItem[] = [];
 
-        // 1. 必定掉落：經驗值
-        const expAmount = this.calculateExpDrop(enemy);
-        items.push(ServerItem.createExp(x, y, expAmount));
+        // // 1. 必定掉落：經驗值
+        // const expAmount = this.calculateExpDrop(enemy);
+        // items.push(ServerItem.createExp(x, y, expAmount));
 
-        // 2. 高機率掉落：金幣
-        if (this.rollDrop(BASIC_DROP_CONFIG.gold.dropRate)) {
-            const goldAmount = this.calculateGoldDrop(enemy);
-            items.push(ServerItem.createGold(x, y, goldAmount));
-        }
+        // // 2. 高機率掉落：金幣
+        // if (this.rollDrop(BASIC_DROP_CONFIG.gold.dropRate)) {
+        //     const goldAmount = this.calculateGoldDrop(enemy);
+        //     items.push(ServerItem.createGold(x, y, goldAmount));
+        // }
 
         // 4. 🎯 武器掉落：使用武器管理器生成完整武器
         if (this.rollDrop(this.calculateWeaponDropRate(enemy))) {

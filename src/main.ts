@@ -14,6 +14,7 @@ export const IS_PUBLIC_KEY = 'isPublic';
 export const IsPublic = () => SetMetadata(IS_PUBLIC_KEY, true);
 
 dotenv.config();
+
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.enableCors({

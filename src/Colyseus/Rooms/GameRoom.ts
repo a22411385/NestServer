@@ -5,6 +5,10 @@ import { GameManager } from "@/Game/Managers/GameManager";
 import { EnemySystem } from "@/Game/Systems/Battle/EnemySystem";
 import { MessageHandler } from "@/Colyseus/Handlers/MessageHandler";
 import { ServerHero } from "@/Colyseus/Schema/Unit/Hero";
+import { ServerGameUnit } from "@/Colyseus/Schema/Unit/GameUnit";
+import { ServerEnemy } from "@/Colyseus/Schema/Unit/Enemy";
+import { ServerBullet } from "@/Colyseus/Schema/Bullet";
+import { ServerItem } from "@/Colyseus/Schema/Item/ServerItem";
 import { MovementSystem } from "@/Game/Systems/Battle/MovemnetSystem";
 import { UnitManager } from "../../Game/Managers/UnitManager";
 
@@ -108,7 +112,7 @@ export class GameRoom extends MiddleRoom<GameRoomState> {
             this.state.maxPlayers = options.maxPlayers;
             this.state.state = "waiting";
             this.state.roomType = options.roomType || "normal"; // 設置房間類型
-            this.state.isTestMode = true; // 設置測試模式
+            this.state.isTestMode = process.env.TEST_MODE === 'true'; // 設置測試模式
 
             // 初始化遊戲數據，避免 undefined
             this.state.gameCore = new GameCoreState;
@@ -131,6 +135,8 @@ export class GameRoom extends MiddleRoom<GameRoomState> {
             //  this.messageHandler.setupMessageHandlers();
             LobbyRoomBus.emit("roomCreated", { roomId: this.roomId, roomInfo: this.roomInfo });
 
+            // 🔧 設置封包過濾：只同步視野範圍內的數據
+            this.setupStateFiltering();
 
             console.log(`GameRoom ${this.roomId} created successfully`);
         } catch (error) {
@@ -184,6 +190,70 @@ export class GameRoom extends MiddleRoom<GameRoomState> {
         LobbyRoomBus.emit("roomDeleted", { roomId: this.roomId });
     }
 
+
+    /**
+     * 🔧 設置狀態同步過濾（視野範圍）
+     * 使用英雄的 visionRange 屬性來決定過濾範圍
+     */
+    private setupStateFiltering(): void {
+        // 過濾單位（allUnits）- 使用英雄的視野範圍
+        (this.state.gameCore.allUnits as any).$filters = {
+            onAdd: (instance: ServerGameUnit, key: string) => {
+                return (client: Client, value: ServerGameUnit) => {
+                    // 自己的英雄永遠同步
+                    if (value.id === "hero_" + client.sessionId) {
+                        return true;
+                    }
+
+                    const hero = this.state.getHero(client.sessionId);
+                    if (!hero) return false;
+
+                    // 🔧 使用英雄的視野範圍屬性
+                    const visionRange = hero.visionRange || 1500;
+                    const dx = value.position.x - hero.position.x;
+                    const dy = value.position.y - hero.position.y;
+                    const distSq = dx * dx + dy * dy;
+                    return distSq <= visionRange * visionRange;
+                };
+            }
+        };
+
+        // 過濾子彈（bullets）- 視野範圍 + 額外緩衝區
+        (this.state.gameCore.bullets as any).$filters = {
+            onAdd: (instance: ServerBullet, key: string) => {
+                return (client: Client, value: ServerBullet) => {
+                    const hero = this.state.getHero(client.sessionId);
+                    if (!hero) return false;
+
+                    // 🔧 子彈範圍 = 視野範圍 + 500 緩衝區（避免突然出現）
+                    const bulletRange = (hero.visionRange || 1500) + 500;
+                    const dx = value.startPosition.x - hero.position.x;
+                    const dy = value.startPosition.y - hero.position.y;
+                    const distSq = dx * dx + dy * dy;
+                    return distSq <= bulletRange * bulletRange;
+                };
+            }
+        };
+
+        // 過濾物品（mapItems）- 使用英雄的視野範圍
+        (this.state.gameCore.mapItems as any).$filters = {
+            onAdd: (instance: ServerItem, index: number) => {
+                return (client: Client, value: ServerItem) => {
+                    const hero = this.state.getHero(client.sessionId);
+                    if (!hero) return false;
+
+                    // 🔧 使用英雄的視野範圍屬性
+                    const visionRange = hero.visionRange || 1500;
+                    const dx = value.x - hero.position.x;
+                    const dy = value.y - hero.position.y;
+                    const distSq = dx * dx + dy * dy;
+                    return distSq <= visionRange * visionRange;
+                };
+            }
+        };
+
+        console.log(`✅ 已啟用動態視野過濾系統（基於英雄 visionRange 屬性）`);
+    }
 
     /**
      * 處理遊戲 Tick - 整合所有系統更新

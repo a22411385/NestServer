@@ -412,7 +412,7 @@
       "sellPrice": 1,
       "category": "currency",
       "usable": false,
-      "enabled": true
+      "enabled": false
     },
     {
       "id": "gem",
@@ -425,7 +425,7 @@
       "sellPrice": 100,
       "category": "currency",
       "usable": false,
-      "enabled": false
+      "enabled": true
     },
     {
       "id": "crystal",
@@ -438,7 +438,7 @@
       "sellPrice": 1000,
       "category": "currency",
       "usable": false,
-      "enabled": true
+      "enabled": false
     },
     {
       "id": "iron_ore",
@@ -1185,5 +1185,5 @@
       "stack_type": "ADDITIVE"
     }
   ],
-  "lastUpdated": "2025-10-21T09:09:13.162Z"
+  "lastUpdated": "2025-10-24T13:13:40.401Z"
 }
