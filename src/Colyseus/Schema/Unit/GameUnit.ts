@@ -63,8 +63,8 @@ export class ServerGameUnit extends Schema {
 
 
     // 矩形碰撞屬性
-    @type("number") collisionWidth: number = 64; // 碰撞寬度
-    @type("number") collisionHeight: number = 128; // 碰撞高度
+    @type("number") collisionWidth: number = 32; // 碰撞寬度
+    @type("number") collisionHeight: number = 32; // 碰撞高度
 
     //單位面相角度
     @type("number") facingDirection: number = 0;

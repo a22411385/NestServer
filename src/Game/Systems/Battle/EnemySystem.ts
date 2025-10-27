@@ -192,8 +192,8 @@ export class EnemySystem {
         enemy.expReward = 0;
 
         // 設置碰撞框
-        enemy.collisionWidth = 64;
-        enemy.collisionHeight = 64;
+        enemy.collisionWidth = 32;
+        enemy.collisionHeight = 32;
         enemy.scale = 1.2; // 稍微大一點以便觀察
 
         // 設置位置
