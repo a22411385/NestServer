@@ -3,16 +3,13 @@ import { ServerGameUnit } from "../../../Colyseus/Schema/Unit/GameUnit";
 import { ServerEnemy } from "../../../Colyseus/Schema/Unit/Enemy";
 import { ServerItem } from "../../../Colyseus/Schema/Item/ServerItem";
 import { Vector2 } from "../../../Colyseus/Schema/Unit/GameUnit";
-import { ConfigManager } from "../../Managers/ConfigManager";
 import { BattleMathUtils } from "../../../Util/BattleMathUtils";
 import {
     WEAPON_DROP_CONFIG,
     BASIC_DROP_CONFIG
 } from "./DropRates";
 import { WeaponSystemFacade } from "../Battle/WeaponSystemFacade";
-import { WeaponData } from "../../../Colyseus/Schema/Weapon/WeaponData";
-import { WeaponQuality } from "@/Types/Equipment/WeaponPropertyTypes";
-import { WeaponPropertyService } from "../../Services/WeaponPropertyService";
+import { ServerHero } from "@/Colyseus/Schema/Unit/Hero";
 
 
 /**
@@ -61,33 +58,8 @@ export class DropSystem {
      */
     private generateSmartDropItems(enemy: ServerEnemy, x: number, y: number): ServerItem[] {
         const items: ServerItem[] = [];
-
-        // // 1. 必定掉落：經驗值
-        // const expAmount = this.calculateExpDrop(enemy);
-        // items.push(ServerItem.createExp(x, y, expAmount));
-
-        // // 2. 高機率掉落：金幣
-        // if (this.rollDrop(BASIC_DROP_CONFIG.gold.dropRate)) {
-        //     const goldAmount = this.calculateGoldDrop(enemy);
-        //     items.push(ServerItem.createGold(x, y, goldAmount));
-        // }
-
-        // 4. 🎯 武器掉落：使用武器管理器生成完整武器
-        if (this.rollDrop(this.calculateWeaponDropRate(enemy))) {
-            const weaponData = this.generateCompleteWeapon(enemy);
-            if (weaponData) {
-                try {
-                    // 使用 WeaponData 創建掉落物品（包含完整屬性）
-                    const weaponItem = ServerItem.createFromWeaponData(weaponData, x, y);
-                    items.push(weaponItem);
-                    console.log(`🗡️ 掉落武器: ${weaponData.name} (品質: ${weaponData.quality}, 等級: ${weaponData.level})`);
-                } catch (error) {
-                    console.error('❌ 創建武器掉落物品失敗:', error);
-                }
-            } else {
-                console.warn(`⚠️ 無法生成武器，跳過武器掉落`);
-            }
-        }
+        // 掉落材料
+        // 尚未實作
 
         return items;
     }
@@ -108,100 +80,6 @@ export class DropSystem {
     }
 
     /**
-     * 🎯 生成完整武器數據（使用武器管理器）
-     */
-    private generateCompleteWeapon(enemy: ServerEnemy): WeaponData {
-        try {
-            const enabledWeapons = ConfigManager.getEnabledWeapons();
-            if (enabledWeapons.length === 0) {
-                console.warn('❌ 沒有可用的武器配置');
-                throw new Error('沒有可用的武器配置');
-            }
-
-            // 隨機選擇武器
-            const weaponConfig = enabledWeapons[Math.floor(Math.random() * enabledWeapons.length)];
-            const weaponId = weaponConfig.id;
-
-            // 使用 WeaponSystemFacade 創建完整武器
-            const { data: weaponData } = WeaponSystemFacade.createAndGetWeapon(weaponId, weaponConfig.classModule);
-            if (!weaponData) {
-                //   console.warn(`❌ 無法創建武器數據: ${weaponId}`);
-                throw new Error(`無法創建武器數據: ${weaponId}`);
-            }
-
-            // 根據敵人等級調整武器等級
-            const enemyLevel = enemy.lv || 1;
-            const weaponLevel = Math.max(1, enemyLevel + Math.floor(Math.random() * 3) - 1);
-
-            // 設置武器等級（這會觸發重新計算屬性）
-            weaponData.level = weaponLevel;
-
-            // 根據配置的品質機率重新確定品質（可選）
-            const desiredQuality = this.rollQualityFromConfig(WEAPON_DROP_CONFIG.qualityRates);
-            if (desiredQuality !== weaponData.quality) {
-                // 品質改變時需要重新生成屬性,確保隨機屬性數量與品質匹配
-                const propertyService = WeaponPropertyService.getInstance();
-                // 使用 weaponId, uniqueId, obtainedAt 組合生成種子數字
-                const seedStr = `${weaponData.weaponId}_${weaponData.uniqueId}_${weaponData.obtainedAt}`;
-                const seedNum = parseInt(seedStr.split('').map(c => c.charCodeAt(0)).join('').slice(0, 10));
-                const newProperties = propertyService.generateWeaponProperties(weaponId, desiredQuality, seedNum);
-
-                weaponData.quality = desiredQuality;
-                weaponData.setProperties(newProperties);
-                weaponData.invalidateLogicInstance();
-            }
-
-            console.log(`🔧 生成完整武器: ${weaponId} Lv.${weaponLevel} (品質: ${weaponData.quality})`);
-            return weaponData;
-        } catch (error) {
-            console.error('❌ 生成完整武器失敗:', error);
-            throw error;
-        }
-    }
-
-
-
-    /**
-     * 🎯 根據配置機率抽取品質（轉換為 WeaponQuality 枚舉）
-     */
-    private rollQualityFromConfig(rates: Record<string, number>): WeaponQuality {
-        const qualityString = this.rollQuality(rates);
-
-        // 轉換字符串到 WeaponQuality 枚舉
-        switch (qualityString.toLowerCase()) {
-            case 'common':
-            case 'normal':
-                return WeaponQuality.NORMAL;
-            case 'uncommon':
-            case 'magic':
-                return WeaponQuality.MAGIC;
-            case 'rare':
-                return WeaponQuality.RARE;
-            case 'epic':
-                return WeaponQuality.EPIC;
-            case 'legendary':
-                return WeaponQuality.LEGENDARY;
-            default:
-                return WeaponQuality.NORMAL;
-        }
-    }
-    /**
-     * 🎯 品質抽取
-     */
-    private rollQuality(rates: Record<string, number>): string {
-        const roll = Math.random();
-        let cumulative = 0;
-
-        for (const [quality, rate] of Object.entries(rates)) {
-            cumulative += rate;
-            if (roll <= cumulative) {
-                return quality;
-            }
-        }
-        return 'common';
-    }
-
-    /**
      * 🎯 機率判定
      */
     private rollDrop(probability: number): boolean {
@@ -210,8 +88,9 @@ export class DropSystem {
 
     /**
      * 🎯 計算經驗值掉落
+     *  可能依照英雄裝備或天賦變化
      */
-    private calculateExpDrop(enemy: ServerEnemy): number {
+    private calculateExpDrop(enemy: ServerEnemy, killer: ServerHero): number {
         const enemyLevel = enemy.lv || 1;
         const baseAmount = BASIC_DROP_CONFIG.exp.baseAmount;
         const levelMultiplier = BASIC_DROP_CONFIG.exp.levelMultiplier;
@@ -223,7 +102,7 @@ export class DropSystem {
     /**
      * 🎯 計算金幣掉落
      */
-    private calculateGoldDrop(enemy: ServerEnemy): number {
+    private calculateGoldDrop(enemy: ServerEnemy, killer: ServerHero): number {
         const enemyLevel = enemy.lv || 1;
         const baseAmount = BASIC_DROP_CONFIG.gold.baseAmount;
         const levelMultiplier = BASIC_DROP_CONFIG.gold.levelMultiplier;

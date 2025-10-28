@@ -3,9 +3,6 @@ import { Vector2 } from "../Unit/GameUnit";
 import { WeaponSchema } from "../Weapon/WeaponSchema";
 import { UniqueIdGenerator } from "../../../Util/UniqueIdGenerator";
 
-// 類型別名保持兼容性
-type WeaponData = WeaponSchema;
-
 export enum ItemType {
     CURRENCY = "CURRENCY",
     EXP = "EXP",

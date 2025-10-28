@@ -72,16 +72,7 @@ export class EquipmentHandler extends BaseMessageHandler {
         if (!hero) {
             throw new Error("玩家不存在");
         }
-
-
-        // 首先嘗試作為 uniqueId 裝備（已存在的武器實例）
-        if (hero.isWeaponEquipped(weaponId) || hero.weaponInventory.find(w => w.uniqueId === weaponId)) {
-            hero.equipWeapon(weaponId);
-        } else {
-            // 如果不是 uniqueId，則作為新武器類型ID添加到背包並裝備
-            const weaponUniqueId = hero.addWeaponToInventory(weaponId);
-            hero.equipWeapon(weaponUniqueId);
-        }
+        hero.equip(weaponId);
     }
 
     /**
@@ -101,7 +92,7 @@ export class EquipmentHandler extends BaseMessageHandler {
             throw new Error("玩家不存在");
         }
 
-        hero.unequipWeapon(weaponId);
+        hero.unequip(weaponId);
 
 
     }
@@ -123,7 +114,7 @@ export class EquipmentHandler extends BaseMessageHandler {
             throw new Error("玩家不存在");
         }
 
-        const weaponUniqueId = hero.addWeaponToInventory(weaponId);
+        const weaponUniqueId = hero.adddWeapon(weaponId);
 
         // 🎯 武器添加會通過Schema自動同步到前端
         console.log(`✅ Added weapon ${weaponId} (${weaponUniqueId}) to player ${playerId}`);
@@ -146,7 +137,7 @@ export class EquipmentHandler extends BaseMessageHandler {
             throw new Error("玩家不存在");
         }
 
-        const success = hero.removeWeaponFromInventory(weaponUniqueId);
+        const success = hero.removeWeapon(weaponUniqueId);
 
         if (success) {
             // 🎯 武器移除會通過Schema自動同步到前端

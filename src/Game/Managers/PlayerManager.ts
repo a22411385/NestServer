@@ -4,7 +4,6 @@ import { IdGenerator } from "../../Util/IdGenerator";
 import { ServerHero } from "../../Colyseus/Schema/Unit/Hero";
 import { Vector2 } from "../../Colyseus/Schema/Unit/GameUnit";
 import { LobbyPlayer } from "../../Colyseus/Schema/LobbyState";
-import { ConfigManager } from "./ConfigManager";
 
 /**
  * 玩家管理器 - 負責處理玩家的生命週期、狀態管理和 Hero 單位管理
@@ -181,7 +180,7 @@ export class PlayerManager {
             for (const weaponId of availableWeapons) {
                 try {
 
-                    const weaponUniqueId = hero.addWeaponToInventory(weaponId);
+                    const weaponUniqueId = hero.adddWeapon(weaponId);
                     addedWeapons.push(weaponUniqueId);
                     console.log(`  ✅ 添加武器: ${weaponId} (${weaponUniqueId})`);
 
@@ -192,8 +191,8 @@ export class PlayerManager {
 
             // 默認裝備前兩個武器（球棒和火球）
             if (addedWeapons.length >= 2) {
-                hero.equipWeapon(addedWeapons[0]); // 球棒
-                hero.equipWeapon(addedWeapons[1]); // 火球
+                hero.equip(addedWeapons[0]); // 球棒
+                hero.equip(addedWeapons[1]); // 火球
                 console.log(`  🔧 默認裝備: ${availableWeapons[0]} 和 ${availableWeapons[1]}`);
             }
 

@@ -1,4 +1,4 @@
-import { Schema, type, ArraySchema } from "@colyseus/schema";
+import { Schema, type } from "@colyseus/schema";
 import { WeaponType } from "../../../Types";
 import { UniqueIdGenerator } from "../../../Util/UniqueIdGenerator";
 import { WeaponConfigManager } from "@/Game/Factories/WeaponConfig";
@@ -86,7 +86,7 @@ export class WeaponSchema extends Schema {
         this.uniqueId = UniqueIdGenerator.generateWeaponId();
         this.classModule = classModule;
 
-        const allConfigs = WeaponConfigManager.getInstance().getAllConfigs();
+        const allConfigs = WeaponConfigManager.getAllConfigs();
         // 從武器配置載入顯示資訊
         const config = allConfigs[weaponId];
         if (config) {
@@ -135,6 +135,10 @@ export class WeaponSchema extends Schema {
             fixed: this.fixedProperties,
             random: []
         };
+    }
+
+    public hasProperty(type: string): boolean {
+        return this.fixedProperties.some(prop => prop.type === type);
     }
     /**
      * 更新基礎屬性

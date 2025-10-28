@@ -1,16 +1,15 @@
 import { ServerGameUnit } from '../../Unit/GameUnit';
 import { UnitType } from '../../GameState';
-import { WeaponType, AttackResult, PropertyType, StatusEffectConfig } from '../../../../Types';
+import { WeaponType, AttackResult, StatusEffectConfig } from '../../../../Types';
 import {
   PropertyTypeValue,
   PropertyValue,
   WeaponConfigDefinition,
 } from '@/Types/Equipment/WeaponPropertyTypes';
-import { getWeaponConfig } from '../../../../Game/Factories/WeaponConfig';
 import { createEffectFromProperty } from '../EffectsParser';
+import { WeaponSchema } from '../WeaponSchema';
+import { WeaponConfigManager } from '@/Game/Factories/WeaponConfig';
 
-// ✅ 引入 WeaponSchema 類型（避免循環依賴，使用延遲導入）
-type WeaponSchema = import('../WeaponSchema').WeaponSchema;
 
 //武器基類：負責攻擊邏輯和目標選擇，不處理傷害計算
 // 現在是純邏輯層類，不再同步到客戶端
@@ -19,10 +18,10 @@ export abstract class WeaponBasic {
 
 
   // 🆕 WeaponSchema 引用 - 作為唯一數據源
-  protected weaponSchema: WeaponSchema | null = null;
+  protected weaponSchema: WeaponSchema;
 
   // 🆕 配置相關
-  protected weaponConfig: WeaponConfigDefinition | null = null;
+  protected weaponConfig: WeaponConfigDefinition;
 
 
   public get weaponId(): string {
@@ -98,14 +97,13 @@ export abstract class WeaponBasic {
   /**
    * 🆕 從配置初始化武器 - 新的標準初始化方法
    */
-  public initializeFromConfig(weaponId: string): boolean {
-    this.weaponConfig = getWeaponConfig(weaponId);
-
-    if (!this.weaponConfig) {
-      console.error(`❌ 無法找到武器配置: ${weaponId}`);
-      return false;
+  public initializeFromConfig(weaponId: string) {
+    const weaponConfig = WeaponConfigManager.getConfig(weaponId);
+    if (!weaponConfig) {
+      throw new Error('WeaponConfig 未設置，請先調用 setWeaponSchema');
     }
-    return true;
+    this.weaponConfig = weaponConfig;
+
   }
 
   /**

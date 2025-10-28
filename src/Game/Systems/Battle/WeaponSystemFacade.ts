@@ -1,7 +1,7 @@
 import { WeaponBasic } from "../../../Colyseus/Schema/Weapon/Baisc/WeaponBasic";
-import { WeaponData, WeaponSchema } from "../../../Colyseus/Schema/Weapon/WeaponData";
 import { WeaponDataService, FinalWeaponStats } from "../../Services/WeaponDataService";
 import { WeaponInstanceManager } from "../../Managers/WeaponInstanceManager";
+import { WeaponSchema } from "@/Colyseus/Schema/Weapon/WeaponSchema";
 
 /**
  * 武器系統門面 - 提供統一的武器操作接口
@@ -14,7 +14,7 @@ export class WeaponSystemFacade {
     /**
      * 🎯 便利方法：獲取完整的武器實例（含計算屬性）
      */
-    public static getCompleteWeaponInstance(weaponData: WeaponData): {
+    public static getCompleteWeaponInstance(weaponData: WeaponSchema): {
         instance: WeaponBasic | null;
         stats: FinalWeaponStats;
     } {
@@ -48,7 +48,7 @@ export class WeaponSystemFacade {
     /**
      * 🎯 便利方法：武器升級（組合多個服務的操作）
      */
-    public static upgradeWeapon(weaponData: WeaponData, expAmount: number): boolean {
+    public static upgradeWeapon(weaponData: WeaponSchema, expAmount: number): boolean {
         // 1. 業務邏輯處理（委託給服務）
         const success = WeaponDataService.addExp(weaponData, expAmount);
 
@@ -71,14 +71,14 @@ export class WeaponSystemFacade {
     /**
      * 🎯 便利方法：獲取武器顯示名稱
      */
-    public static getWeaponDisplayName(weaponData: WeaponData): string {
+    public static getWeaponDisplayName(weaponData: WeaponSchema): string {
         return WeaponDataService.generateDisplayName(weaponData);
     }
 
     /**
      * 🎯 便利方法：檢查武器是否可升級
      */
-    public static canUpgradeWeapon(weaponData: WeaponData): boolean {
+    public static canUpgradeWeapon(weaponData: WeaponSchema): boolean {
         // 委託給業務邏輯服務
         return WeaponDataService.canLevelUp(weaponData);
     }

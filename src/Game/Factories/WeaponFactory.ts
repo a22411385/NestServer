@@ -1,13 +1,14 @@
 import { WeaponBasic } from "../../Colyseus/Schema/Weapon/Baisc/WeaponBasic";
-import { getWeaponConfig, getAllWeaponConfigs, initializeWeaponConfigs } from "./WeaponConfig";
 import { WeaponClassRegistry } from "./WeaponClassRegistry";
 import { WeaponType } from "@/Types";
 import { WeaponConfigDefinition } from "@/Types/Equipment/WeaponPropertyTypes";
+import { WeaponConfigManager } from "./WeaponConfig";
 
 /**
  * 武器工廠 - 負責創建各種武器實例
  * 🆕 完全基於配置驅動，武器類別無需構造函數參數
  */
+
 export class WeaponFactory {
     // 🆕 動態武器類別映射，從配置中載入
     private static dynamicWeaponClassMap = new Map<string, any>();
@@ -24,16 +25,11 @@ export class WeaponFactory {
 
         try {
             console.log('🏭 初始化武器工廠...');
-
-            // 首先初始化武器配置系統
-            await initializeWeaponConfigs();
+            await WeaponConfigManager.initialize();
+            console.log("🎮 武器配置系統已初始化");
 
             // 獲取所有武器配置
-            const allConfigs = getAllWeaponConfigs();
-            const weaponConfigs = allConfigs.reduce((map, config) => {
-                map[config.id] = config;
-                return map;
-            }, {} as Record<string, WeaponConfigDefinition>);
+            const weaponConfigs = WeaponConfigManager.getAllConfigs();
 
             // 載入所有武器類別
             this.dynamicWeaponClassMap = await WeaponClassRegistry.loadWeaponClasses(weaponConfigs);
@@ -61,7 +57,7 @@ export class WeaponFactory {
             });
         }
 
-        const config = getWeaponConfig(weaponId);
+        const config = WeaponConfigManager.getConfig(weaponId);
         if (!config) {
             console.warn(`❌ 未找到武器配置: ${weaponId}`);
             return null;
@@ -85,11 +81,7 @@ export class WeaponFactory {
             const weapon = new weaponClass();
 
             // 🆕 從配置初始化武器
-            const success = weapon.initializeFromConfig(weaponId);
-            if (!success) {
-                console.error(`❌ 武器初始化失敗: ${weaponId}`);
-                return null;
-            }
+            weapon.initializeFromConfig(weaponId);
 
             console.log(`✅ 成功創建武器: ${config.name} (${weaponId})`);
             return weapon;
@@ -104,8 +96,8 @@ export class WeaponFactory {
      * 🆕 根據類型獲取武器ID列表
      */
     public static getWeaponIdsByType(weaponType: string): string[] {
-        const allConfigs = getAllWeaponConfigs();
-        return allConfigs
+        const weaponConfigs = WeaponConfigManager.getAllConfigs();
+        return Object.values(weaponConfigs)
             .filter(config => config.classModule === weaponType)
             .map(config => config.id);
     }
@@ -114,8 +106,8 @@ export class WeaponFactory {
      * 🆕 獲取所有可用的武器ID
      */
     public static getAvailableWeaponIds(): string[] {
-        const allConfigs = getAllWeaponConfigs();
-        return allConfigs
+        const weaponConfigs = WeaponConfigManager.getAllConfigs();
+        return Object.values(weaponConfigs)
             .filter(config => config.enabled !== false)
             .map(config => config.id);
     }
@@ -124,22 +116,23 @@ export class WeaponFactory {
      * 獲取所有可用武器的資訊
      */
     public static getAllWeapons(): WeaponConfigDefinition[] {
-        return getAllWeaponConfigs();
+        const weaponConfigs = WeaponConfigManager.getAllConfigs();
+        return Object.values(weaponConfigs).filter(config => config.enabled !== false);
     }
 
     /**
      * 檢查武器是否存在
      */
     public static weaponExists(weaponId: string): boolean {
-        return getWeaponConfig(weaponId) !== null;
+        return WeaponConfigManager.getConfig(weaponId) !== null;
     }
 
     /**
      * 根據類型獲取武器
      */
     public static getWeaponsByType(type: WeaponType): WeaponConfigDefinition[] {
-        const allConfigs = getAllWeaponConfigs();
-        return allConfigs.filter(config => {
+        const allConfigs = WeaponConfigManager.getAllConfigs();
+        return Object.values(allConfigs).filter(config => {
             // 根據 classModule 判斷武器類型
             switch (type) {
                 case WeaponType.MELEE_WEAPON:
@@ -177,7 +170,7 @@ export class WeaponFactory {
      * 🆕 檢查武器類別是否可用
      */
     public static isWeaponClassAvailable(weaponId: string): boolean {
-        const config = getWeaponConfig(weaponId);
+        const config = WeaponConfigManager.getConfig(weaponId);
         if (!config) return false;
 
         // 檢查動態映射
@@ -194,9 +187,9 @@ export class WeaponFactory {
      */
     public static validateConfiguration(): { valid: boolean; issues: string[] } {
         const issues: string[] = [];
-        const allConfigs = getAllWeaponConfigs();
+        const allConfigs = WeaponConfigManager.getAllConfigs();
 
-        for (const config of allConfigs) {
+        for (const config of Object.values(allConfigs)) {
             // 檢查必要欄位
             if (!config.id) issues.push(`武器缺少 ID: ${JSON.stringify(config)}`);
             if (!config.name) issues.push(`武器 ${config.id} 缺少名稱`);

@@ -103,21 +103,11 @@ export class ItemPickupSystem {
         let success = false;
 
         switch (item.itemType) {
-            case ItemType.CURRENCY:
-                success = this.pickupGold(hero, item);
-                break;
-
-            case ItemType.EXP:
-                success = this.pickupExp(hero, item);
-                break;
 
             case ItemType.MATERIAL:
                 success = this.pickupMaterial(hero, item);
                 break;
 
-            case ItemType.WEAPON:
-                success = this.pickupWeapon(hero, item);
-                break;
 
             default:
                 console.warn(`未知物品類型: ${item.itemType}`);
@@ -133,31 +123,6 @@ export class ItemPickupSystem {
             console.log(`❌ 拾取失敗 ${item.itemType} (背包可能已滿)`);
             return false;
         }
-    }
-
-    /**
-     * 🎯 拾取金幣
-     */
-    private pickupGold(hero: ServerHero, item: ServerItem): boolean {
-        const amount = item.value || 0;
-        hero.gold += amount;
-
-        console.log(`💰 玩家 ${hero.name} 獲得 ${amount} 金幣 (總計: ${hero.gold})`);
-        return true;
-    }
-
-    /**
-     * 🎯 拾取經驗值
-     */
-    private pickupExp(hero: ServerHero, item: ServerItem): boolean {
-        const amount = item.value || 0;
-        hero.exp += amount;
-
-        // 檢查升級
-        this.checkLevelUp(hero);
-
-        console.log(`⭐ 玩家 ${hero.name} 獲得 ${amount} 經驗值 (總計: ${hero.exp})`);
-        return true;
     }
 
     /**
@@ -213,30 +178,6 @@ export class ItemPickupSystem {
             console.log(`📦 獲得新材料: ${itemConfig?.name || itemId} x${quantity}`);
             return true;
         }
-    }
-
-    /**
-     * 🎯 拾取武器
-     */
-    private pickupWeapon(hero: ServerHero, item: ServerItem): boolean {
-        // 檢查武器背包空間
-        if (hero.weaponInventory.length >= 255) { // 假設武器背包上限10個
-            console.log(`⚔️ 武器背包已滿，無拾取武器`);
-            return false;
-        }
-
-        // 將 ServerItem 轉換為 WeaponData
-        const weaponData = item.toWeaponData();
-        if (!weaponData) {
-            console.error(`❌ 無法轉換武器數據: ${item.itemId}`);
-            return false;
-        }
-
-        // 添加到武器背包
-        hero.weaponInventory.push(weaponData);
-
-        console.log(`⚔️ 獲得武器: ${weaponData.weaponId} (品質: ${weaponData.quality}, 等級: ${weaponData.level})`);
-        return true;
     }
 
     /**

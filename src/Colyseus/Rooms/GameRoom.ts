@@ -6,7 +6,6 @@ import { EnemySystem } from "@/Game/Systems/Battle/EnemySystem";
 import { MessageHandler } from "@/Colyseus/Handlers/MessageHandler";
 import { ServerHero } from "@/Colyseus/Schema/Unit/Hero";
 import { ServerGameUnit } from "@/Colyseus/Schema/Unit/GameUnit";
-import { ServerEnemy } from "@/Colyseus/Schema/Unit/Enemy";
 import { ServerBullet } from "@/Colyseus/Schema/Bullet";
 import { ServerItem } from "@/Colyseus/Schema/Item/ServerItem";
 import { MovementSystem } from "@/Game/Systems/Battle/MovemnetSystem";
@@ -24,7 +23,6 @@ import { ItemPickupSystem } from "@/Game/Systems/Items/ItemPickupSystem"; // �
 import { CombatSystem } from "@/Game/Systems/Battle/CombatSystem";
 import { StatusEffectSystem } from "@/Game/Systems/Battle/StatusEffectSystem";
 import { WeaponInstanceManager } from "@/Game/Managers/WeaponInstanceManager";
-import { initializeWeaponConfigs } from "@/Game/Factories/WeaponConfig";
 import { WeaponFactory } from "@/Game/Factories/WeaponFactory";
 
 // 🆕 引入統一類型定義
@@ -63,9 +61,6 @@ export class GameRoom extends MiddleRoom<GameRoomState> {
     * 初始化所有管理器
     */
     public async initializeManagers(): Promise<void> {
-        // 🔧 首先初始化武器配置系統
-        await initializeWeaponConfigs();
-        console.log("🎮 武器配置系統已初始化");
 
         // 🆕 初始化武器工廠（載入動態類別映射）
         await WeaponFactory.initialize();

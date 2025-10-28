@@ -1,6 +1,6 @@
-import { WeaponSchema } from "@/Colyseus/Schema/Weapon/WeaponData";
-import { getWeaponConfig } from "../Factories/WeaponConfig";
+import { WeaponSchema } from "@/Colyseus/Schema/Weapon/WeaponSchema";
 import { PropertyType } from "@/Types";
+import { WeaponConfigManager } from "../Factories/WeaponConfig";
 
 /**
  * 最終武器屬性接口
@@ -26,7 +26,7 @@ export class WeaponDataService {
      * 計算武器的最終屬性
      */
     static calculateFinalStats(weaponData: WeaponSchema): FinalWeaponStats {
-        const config = getWeaponConfig(weaponData.weaponId);
+        const config = WeaponConfigManager.getConfig(weaponData.weaponId);
 
         if (!config) {
             throw new Error(`無法找到武器配置: ${weaponData.weaponId}`);
@@ -89,7 +89,7 @@ export class WeaponDataService {
      * 生成武器顯示名稱
      */
     static generateDisplayName(weaponData: WeaponSchema, config?: any): string {
-        const weaponConfig = config || getWeaponConfig(weaponData.weaponId);
+        const weaponConfig = config || WeaponConfigManager.getConfig(weaponData.weaponId);
         let baseName = weaponConfig?.name || weaponData.weaponId
             .replace(/_/g, ' ')
             .replace(/\b\w/g, l => l.toUpperCase());
