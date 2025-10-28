@@ -61,6 +61,7 @@ export class WeaponSchema extends Schema {
 
     @type("string") description: string = "";           // 武器描述
     @type("string") rarity: WeaponQuality = "normal";          // 稀有度
+    @type("string") craftingBranch: string = "none";    // 製作分支 (poison/frost/flame/lightning/explosive/none)
 
     // === 玩家培養數據 ===
     @type("number") level: number = 1;                  // 武器等級
@@ -76,8 +77,8 @@ export class WeaponSchema extends Schema {
     /**
      * 簡單的武器類型推斷（最小邏輯）
      */
-    private get getWeaponType(): WeaponType {
-        return WeaponType[this.classModule as keyof typeof WeaponType];
+    private getWeaponType(type: string): WeaponType {
+        return WeaponType[type as keyof typeof WeaponType];
     }
 
     constructor(weaponId: string, classModule: string) {
@@ -93,7 +94,7 @@ export class WeaponSchema extends Schema {
             this.name = config.name;
             this.description = config.description || "";
             // rarity 不存在於配置中，使用默認值
-            this.weaponType = this.getWeaponType;
+            this.weaponType = config.classModule;
             this.weaponBasicDataSetting(config);
 
         } else {

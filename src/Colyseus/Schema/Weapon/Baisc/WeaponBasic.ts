@@ -61,7 +61,7 @@ export abstract class WeaponBasic {
   }
 
   public get weaponType(): WeaponType {
-    return this.weaponSchema?.weaponType as WeaponType || WeaponType.MELEE_WEAPON;
+    return this.weaponSchema.weaponType as WeaponType;
   }
 
   public get name(): string {

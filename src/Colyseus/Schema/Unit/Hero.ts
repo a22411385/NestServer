@@ -1,4 +1,4 @@
-import { ArraySchema, type } from "@colyseus/schema";
+import { ArraySchema, MapSchema, type } from "@colyseus/schema";
 import { UnitType } from "../GameState";
 
 import { ServerGameUnit } from "./GameUnit";
@@ -22,6 +22,8 @@ export class ServerHero extends ServerGameUnit {
     @type([WeaponSchema]) public weaponInventory = new ArraySchema<WeaponSchema>();
     //道具欄
     @type([ServerItem]) public inventory = new ArraySchema<ServerItem>();
+    // 材料庫存 (key: MaterialType, value: quantity)
+    @type({ map: "number" }) public materials = new MapSchema<number>();
 
     @type("number") public gold: number = 0; // 新增金幣屬性
     @type("number") public pickupRange: number = 5; // 拾取範圍
@@ -490,34 +492,10 @@ export class ServerHero extends ServerGameUnit {
 
     // =================== ⚔️ 裝備管理 ===================
 
+    /**
+     * 裝備武器
+     */
     public equip(weaponIdentifier: string): boolean {
-
-        const weaponData = this.findWeaponSchemaById(weaponIdentifier);
-        if (!weaponData) {
-            console.warn(`找不到武器: ${weaponIdentifier}`);
-            return false;
-        }
-
-        if (!weaponData.isEquipped) {
-            const displayName = WeaponSystemFacade.getWeaponDisplayName(weaponData);
-            console.warn(`武器未裝備: ${displayName}`);
-            return false;
-        }
-
-        // 卸下武器
-        weaponData.isEquipped = false;
-
-        // ✅ 觸發屬性重算
-        this.recalculateAllStats();
-
-        const displayName = WeaponSystemFacade.getWeaponDisplayName(weaponData);
-        console.log(`[${this.name}] 已卸下武器: ${displayName}`);
-        return true;
-
-    }
-
-
-    public unequip(weaponIdentifier: string): boolean {
 
         const weaponData = this.findWeaponSchemaById(weaponIdentifier);
         if (!weaponData) {
@@ -548,7 +526,35 @@ export class ServerHero extends ServerGameUnit {
         this.recalculateAllStats();
 
         const displayName = WeaponSystemFacade.getWeaponDisplayName(weaponData);
-        console.log(`${this.name} 裝備了武器: ${displayName} [屬性: STR+${weaponData.str} INT+${weaponData.int} AGI+${weaponData.agi} VIT+${weaponData.vit}]`);
+        console.log(`[${this.name}] 裝備了武器: ${displayName}`);
+        return true;
+    }
+
+    /**
+     * 卸下武器
+     */
+    public unequip(weaponIdentifier: string): boolean {
+
+        const weaponData = this.findWeaponSchemaById(weaponIdentifier);
+        if (!weaponData) {
+            console.warn(`找不到武器: ${weaponIdentifier}`);
+            return false;
+        }
+
+        if (!weaponData.isEquipped) {
+            const displayName = WeaponSystemFacade.getWeaponDisplayName(weaponData);
+            console.warn(`武器未裝備: ${displayName}`);
+            return false;
+        }
+
+        // 卸下武器
+        weaponData.isEquipped = false;
+
+        // ✅ 觸發屬性重算
+        this.recalculateAllStats();
+
+        const displayName = WeaponSystemFacade.getWeaponDisplayName(weaponData);
+        console.log(`[${this.name}] 已卸下武器: ${displayName}`);
         return true;
     }
 
