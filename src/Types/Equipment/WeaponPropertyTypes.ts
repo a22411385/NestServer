@@ -70,13 +70,7 @@ export type PropertyValueType = 'single' | 'range' | 'composite';
 /**
  * 武器品質等級
  */
-export enum WeaponQuality {
-    NORMAL = 'normal',      // 普通 - 0個隨機詞綴
-    MAGIC = 'magic',        // 魔法 - 1個隨機詞綴
-    RARE = 'rare',          // 稀有 - 2個隨機詞綴
-    EPIC = 'epic',          // 史詩 - 3個隨機詞綴
-    LEGENDARY = 'legendary'  // 傳奇 - 4個隨機詞綴
-}
+export type WeaponQuality = 'normal' | 'magic' | 'rare' | 'epic' | 'legendary';
 
 /**
  * 屬性定義 (從 google-sheets-cache.json 載入)

@@ -59,7 +59,7 @@ export class WeaponPropertyService {
     public generateWeaponProperties(
         weaponId: string,
         quality: WeaponQuality,
-        seed: number
+
     ): { fixed: PropertyValue[], random: PropertyValue[] } {
         if (!this.isInitialized) {
             throw new Error('WeaponPropertyService 未初始化');
@@ -80,15 +80,15 @@ export class WeaponPropertyService {
             // properties.push(...fixedProperties);
 
             // 2. 生成隨機屬性
-            const randomProperties = this.generateRandomProperties(
-                weaponConfig.randomProperties,
-                quality,
-                seed
-            );
+            // const randomProperties = this.generateRandomProperties(
+            //     weaponConfig.randomProperties,
+            //     quality,
+
+            // );
             //properties.push(...randomProperties);
 
             console.log(`🎲 ${weaponId} (${quality}) 生成了 ${properties.length} 個屬性`);
-            return { fixed: fixedProperties, random: randomProperties }
+            return { fixed: fixedProperties, random: [] }
 
         } catch (error) {
             console.error(`❌ 生成武器屬性失敗 ${weaponId}:`, error);
@@ -116,7 +116,7 @@ export class WeaponPropertyService {
 
             try {
                 // 固定屬性使用最大值
-                const value = this.generatePropertyValue(propertyDef, quality == WeaponQuality.LEGENDARY);
+                const value = this.generatePropertyValue(propertyDef, true);
                 properties.push(value);
             } catch (error) {
                 console.error(`❌ 生成固定屬性失敗: ${propType}`, error);
@@ -126,65 +126,6 @@ export class WeaponPropertyService {
 
         return properties;
     }
-
-    /**
-     * 生成隨機屬性
-     * @param randomPropsString 隨機屬性池字符串
-     * @param quality 武器品質
-     * @param seed 隨機種子
-     * @returns 隨機屬性列表
-     */
-    private generateRandomProperties(
-        randomPropsString: string,
-        quality: WeaponQuality,
-        seed: number
-    ): PropertyValue[] {
-        if (!randomPropsString) return [];
-
-        const propPool = randomPropsString.split(',').map(s => s.trim());
-        const randomCount = WeaponPropertyService.getRandomPropertyCount(quality);
-
-        if (randomCount === 0) return [];
-
-        // 使用種子生成偽隨機數
-        const rng = this.createSeededRNG(seed);
-        const selectedProps = this.selectRandomProperties(propPool, randomCount, rng);
-
-        const properties: PropertyValue[] = [];
-
-        for (const propType of selectedProps) {
-            const propertyDef = this.weaponProperties.get(propType);
-            if (!propertyDef) continue;
-
-            // 隨機屬性使用隨機值
-            const value = this.generatePropertyValue(propertyDef, quality == WeaponQuality.LEGENDARY, rng);
-            properties.push(value);
-        }
-
-        return properties;
-    }
-
-
-
-    /**
-     * 隨機選擇屬性
-     * @param propPool 屬性池
-     * @param count 選擇數量
-     * @param rng 隨機數生成器
-     * @returns 選中的屬性類型列表
-     */
-    private selectRandomProperties(propPool: string[], count: number, rng: () => number): string[] {
-        const shuffled = [...propPool];
-
-        // Fisher-Yates 洗牌算法
-        for (let i = shuffled.length - 1; i > 0; i--) {
-            const j = Math.floor(rng() * (i + 1));
-            [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-        }
-
-        return shuffled.slice(0, Math.min(count, shuffled.length));
-    }
-
     /**
      * 解析屬性值
      * @param propertyDef 屬性定義
@@ -370,45 +311,5 @@ export class WeaponPropertyService {
         }
 
 
-    }
-
-    /**
-     * 創建基於種子的偽隨機數生成器
-     * @param seed 種子值
-     * @returns 隨機數生成器函數
-     */
-    private createSeededRNG(seed: number): () => number {
-        let currentSeed = seed;
-
-        return () => {
-            // Linear Congruential Generator
-            currentSeed = (currentSeed * 1664525 + 1013904223) % Math.pow(2, 32);
-            return currentSeed / Math.pow(2, 32);
-        };
-    }
-
-
-    /**
-     * 重新載入屬性數據
-     */
-    public async reload(): Promise<void> {
-        this.isInitialized = false;
-        this.weaponProperties.clear();
-        await this.initialize();
-    }
-
-    /**
- * 根據品質獲取隨機屬性數量
- * 品質機率: [54,30,10,5,1] 對應 [0,1,2,3,4] 個隨機詞綴
- */
-    private static getRandomPropertyCount(quality: WeaponQuality): number {
-        const qualityMap = {
-            [WeaponQuality.NORMAL]: 0,    // 普通: 0個隨機詞綴
-            [WeaponQuality.MAGIC]: 1,     // 魔法: 1個隨機詞綴
-            [WeaponQuality.RARE]: 2,      // 稀有: 2個隨機詞綴
-            [WeaponQuality.EPIC]: 3,      // 史詩: 3個隨機詞綴
-            [WeaponQuality.LEGENDARY]: 4  // 傳奇: 4個隨機詞綴
-        };
-        return qualityMap[quality] || 0;
     }
 }

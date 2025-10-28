@@ -8,16 +8,10 @@ import { MessageData, PermissionLevel } from "@/Types";
  */
 export class EquipmentHandler extends BaseMessageHandler {
     private supportedTypes = [
-        "equipItem",
-        "unequipItem",
         "equip_weapon",        // 🔧 修正為前端使用的消息類型
         "unequip_weapon",      // 🔧 修正為前端使用的消息類型
-        "swapEquipment",
-        "getEquipmentSlots",
-        "updateEquipmentStats",
         "addWeapon",           // 🆕 添加武器到背包
         "removeWeapon",        // 🆕 從背包移除武器
-        "getWeaponInventory"   // 🆕 獲取武器背包
     ];
 
     getPermissionLevel(): PermissionLevel {
@@ -44,23 +38,13 @@ export class EquipmentHandler extends BaseMessageHandler {
                 case "unequip_weapon":    // 🔧 修正消息類型
                     this.handleUnequipWeapon(client, data);
                     break;
-                case "swapEquipment":
-                    this.handleSwapEquipment(client, data);
-                    break;
-                case "getEquipmentSlots":
-                    this.handleGetEquipmentSlots(client, data);
-                    break;
-
                 case "addWeapon":
                     this.handleAddWeapon(client, data);
                     break;
                 case "removeWeapon":
                     this.handleRemoveWeapon(client, data);
                     break;
-                case "getWeaponInventory":
-                    this.handleGetWeaponInventory(client, data);
-                    break;
-                    break;
+
                 default:
                     throw new Error(`Unsupported equipment message type: ${type}`);
             }
@@ -123,36 +107,6 @@ export class EquipmentHandler extends BaseMessageHandler {
     }
 
     /**
-     * 處理裝備交換請求
-     */
-    private handleSwapEquipment(client: Client, data: any): void {
-        if (!this.validateMessage(data, ['fromSlot', 'toSlot'])) {
-            throw new Error("無效的裝備交換數據");
-        }
-
-        const { fromSlot, toSlot } = data;
-        const playerId = client.sessionId;
-
-        // TODO: 實作裝備交換邏輯
-        throw new Error("裝備交換功能尚未實作");
-    }
-
-    /**
-     * 處理獲取裝備槽信息請求
-     */
-    private handleGetEquipmentSlots(client: Client, data: any): void {
-        const playerId = client.sessionId;
-        const hero = this.state.getHero(playerId);
-
-        const equipmentSlots = hero?.getEquippedWeapons();
-
-        this.sendSuccess(client, {
-            message: "獲取裝備槽信息成功",
-            equipmentSlots
-        });
-    }
-
-    /**
      * 處理添加武器到背包請求
      * 🎯 使用Schema自動同步武器背包狀態
      */
@@ -202,31 +156,4 @@ export class EquipmentHandler extends BaseMessageHandler {
         }
     }
 
-    /**
-     * 處理獲取武器背包請求
-     * 🎯 返回當前武器背包狀態（用於初次載入或重新同步）
-     */
-    private handleGetWeaponInventory(client: Client, data: any): void {
-        const playerId = client.sessionId;
-        const hero = this.state.getHero(playerId);
-
-        if (!hero) {
-            throw new Error("玩家不存在");
-        }
-
-        // 🎯 這個方法主要用於調試或重新同步，正常情況下Schema會自動同步
-        this.sendSuccess(client, {
-            message: "獲取武器背包成功",
-            weaponInventory: hero.weaponInventory.map(w => ({
-                weaponId: w.weaponId,
-                uniqueId: w.uniqueId,
-                name: w.name,
-                level: w.level,
-                exp: w.exp,
-                rarity: w.rarity,
-                weaponType: w.weaponType
-            })),
-            equippedWeaponIds: [...hero.equippedWeaponIds]
-        });
-    }
 }

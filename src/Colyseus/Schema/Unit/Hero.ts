@@ -15,12 +15,7 @@ export class ServerHero extends ServerGameUnit {
     @type("number") level: number = 1;
     @type("number") exp: number = 0;
 
-    // 🆕 武器數據陣列（同步到客戶端）
     @type([WeaponSchema]) public weaponInventory = new ArraySchema<WeaponSchema>();
-
-    // 🆕 當前裝備的武器唯一ID（同步到客戶端）
-    @type(["string"]) public equippedWeaponIds = new ArraySchema<string>();
-
     //道具欄
     @type([ServerItem]) public inventory = new ArraySchema<ServerItem>();
 
@@ -263,8 +258,8 @@ export class ServerHero extends ServerGameUnit {
         this.weaponVit = 0;
 
         // 遍歷所有裝備的武器
-        for (const weaponId of this.equippedWeaponIds) {
-            const weaponSchema = this.weaponManager.findWeaponSchemaById(weaponId);
+        for (const weapon of this.weaponInventory) {
+            const weaponSchema = this.weaponManager.findWeaponSchemaById(weapon.uniqueId);
             if (weaponSchema) {
                 this.weaponStr += weaponSchema.str || 0;
                 this.weaponInt += weaponSchema.int || 0;
@@ -481,13 +476,6 @@ export class ServerHero extends ServerGameUnit {
      */
     public isWeaponEquipped(weaponUniqueId: string): boolean {
         return this.weaponManager.isEquipped(weaponUniqueId);
-    }
-
-    /**
-     * 🆕 丟棄武器到地圖（給其他玩家撿起）
-     */
-    public dropWeapon(weaponUniqueId: string, targetX?: number, targetY?: number): import("../Item/ServerItem").ServerItem | null {
-        return this.weaponManager.dropWeapon(weaponUniqueId, targetX, targetY);
     }
 
     /**

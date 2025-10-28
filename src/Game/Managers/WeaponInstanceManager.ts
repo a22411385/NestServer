@@ -1,10 +1,8 @@
-import { WeaponQuality } from "@/Types/Equipment/WeaponPropertyTypes";
 import { WeaponBasic } from "../../Colyseus/Schema/Weapon/Baisc/WeaponBasic";
-import { WeaponData } from "../../Colyseus/Schema/Weapon/WeaponData";
 import { WeaponFactory } from "../Factories/WeaponFactory";
 import { WeaponDataService } from "../Services/WeaponDataService";
 import { WeaponPropertyService } from "../Services/WeaponPropertyService";
-import { BattleMathUtils } from "../../Util/BattleMathUtils";
+import { WeaponSchema } from "@/Colyseus/Schema/Weapon/WeaponData";
 
 /**
  * 武器實例管理器 - 專注於實例的創建、緩存和生命周期管理
@@ -48,7 +46,7 @@ export class WeaponInstanceManager {
     /**
      * 獲取或創建武器實例 - 重構為純管理邏輯
      */
-    public static getOrCreateInstance(weaponData: WeaponData): WeaponBasic | null {
+    public static getOrCreateInstance(weaponData: WeaponSchema): WeaponBasic {
         const cacheKey = WeaponDataService.generateStatsKey(weaponData);
 
         // 更新使用時間
@@ -72,119 +70,36 @@ export class WeaponInstanceManager {
     /**
      * ✅ 創建新武器實例 - 協調 Factory 和新屬性系統
      */
-    private static createNewInstance(weaponData: WeaponData): WeaponBasic | null {
+    private static createNewInstance(weaponData: WeaponSchema): WeaponBasic {
         // 1. 使用 WeaponFactory 創建基礎實例
         const instance = WeaponFactory.createWeapon(weaponData.weaponId);
         if (!instance) {
-            console.warn(`無法創建武器實例: ${weaponData.weaponId}`);
-            return null;
+
+            throw new Error(`無法創建武器實例: ${weaponData.weaponId}`);
         }
 
         // ✅ 1.5. 設置 WeaponSchema 引用（關鍵：建立數據連接）
         instance.setWeaponSchema(weaponData);
 
         // 2. 確定武器品質（從 weaponData 或根據等級計算）
-        const quality = this.determineWeaponQuality(weaponData);
+        const quality = weaponData.rarity
 
         // 3. 使用新屬性系統生成屬性
         const propertyService = WeaponPropertyService.getInstance();
+        const properties = propertyService.generateWeaponProperties(
+            weaponData.weaponId,
+            quality);
 
-        try {
-            const properties = propertyService.generateWeaponProperties(
-                weaponData.weaponId,
-                quality,
-                this.generateSeed(weaponData) // 使用穩定的種子確保屬性一致性
-            );
-            weaponData.quality = quality;
-            weaponData.setProperties(properties);
-            weaponData.applyProperties(properties);
-
-        } catch (error) {
-            console.warn(`⚠️ 應用屬性失敗 ${weaponData.weaponId}:`, error);
-            // 繼續使用舊系統作為後備
-        }
+        weaponData.applyProperties(properties);
         return instance;
-    }
-
-    /**
-     * 根據武器數據確定品質等級
-     */
-    private static determineWeaponQuality(weaponData: WeaponData): WeaponQuality {
-        // 使用穩定種子確保相同武器總是生成相同品質
-        const seed = this.generateSeed(weaponData);
-        const seededRandom = this.createSeededRandom(seed);
-
-        // 基礎品質機率：[54,30,10,5,1] 對應 [普通,魔法,稀有,史詩,傳奇]
-        let baseProbability = seededRandom() * 100;
-
-        // 強化等級影響品質機率（每級+2%機率提升品質）
-        const enhanceBonus = weaponData.enhanceLevel * 2;
-        const levelBonus = BattleMathUtils.atLeast(weaponData.level - 1, 0) * 1; // 等級影響較小
-
-        // 調整機率（減少隨機數，提升品質機率）
-        baseProbability -= (enhanceBonus + levelBonus);
-
-        // 確保機率在合理範圍內
-        baseProbability = BattleMathUtils.clamp(baseProbability, 0, 100);
-
-        // 根據調整後的機率確定品質
-        if (baseProbability < 54) return WeaponQuality.NORMAL;     // 54%
-        if (baseProbability < 84) return WeaponQuality.MAGIC;      // 30% 
-        if (baseProbability < 94) return WeaponQuality.RARE;       // 10%
-        if (baseProbability < 99) return WeaponQuality.EPIC;       // 5%
-        return WeaponQuality.LEGENDARY;                            // 1%
-    }
-
-    /**
-     * 創建基於種子的穩定隨機數生成器
-     */
-    private static createSeededRandom(seed: number): () => number {
-        let currentSeed = seed;
-        return () => {
-            currentSeed = (currentSeed * 9301 + 49297) % 233280;
-            return currentSeed / 233280;
-        };
-    }
-
-    /**
-     * 生成穩定的種子確保同一武器數據總是產生相同的隨機屬性
-     * 🔧 改進版：確保即使沒有 uniqueId 也有足夠的區分度
-     */
-    private static generateSeed(weaponData: WeaponData): number {
-        // 如果有 uniqueId，優先使用它來生成種子
-        if (weaponData.uniqueId) {
-            let seed = 0;
-            const str = weaponData.uniqueId;
-            for (let i = 0; i < str.length; i++) {
-                seed = ((seed << 5) - seed + str.charCodeAt(i)) & 0xffffffff;
-            }
-            return Math.abs(seed);
-        }
-
-        // 沒有 uniqueId 時，使用安全的隨機種子但保持一致性
-        // 組合所有會影響屬性的因素
-        const baseString = `${weaponData.weaponId}_${weaponData.level}_${weaponData.enhanceLevel}_${weaponData.exp || 0}`;
-
-        // 為了確保相同屬性的武器有一致的隨機性，但不同武器有不同的種子
-        // 我們使用基礎屬性的哈希作為種子
-        let seed = 0;
-        for (let i = 0; i < baseString.length; i++) {
-            seed = ((seed << 5) - seed + baseString.charCodeAt(i)) & 0xffffffff;
-        }
-
-        // 添加一些額外的混合因子，但保持確定性
-        seed = seed ^ (weaponData.level << 16);
-        seed = seed ^ (weaponData.enhanceLevel << 8);
-
-        return Math.abs(seed);
     }
 
     /**
      * 移除特定武器的緩存 - 使用 Service 的緩存鍵生成
      */
-    public static invalidateCache(weaponData: WeaponData): void {
+    public static invalidateCache(weaponData: WeaponSchema): void {
         const exactKey = WeaponDataService.generateStatsKey(weaponData);
-        const pattern = `${weaponData.weaponId}_lv${weaponData.level}_enh${weaponData.enhanceLevel}`;
+        const pattern = `${weaponData.weaponId}_lv${weaponData.level}`;
 
         const keysToDelete: string[] = [];
 

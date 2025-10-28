@@ -4,15 +4,16 @@
  */
 
 import { WeaponBasic } from "../../Colyseus/Schema/Weapon/Baisc/WeaponBasic";
-import { WeaponData, WeaponSchema } from "../../Colyseus/Schema/Weapon/WeaponSchema";
+import { WeaponSchema } from "../../Colyseus/Schema/Weapon/WeaponSchema";
 import { WeaponSystemFacade } from "../Systems/Battle/WeaponSystemFacade";
 import { WeaponInstanceManager } from "./WeaponInstanceManager";
-import { ServerItem } from "../../Colyseus/Schema/Item/ServerItem";
 import { AttackResult } from "../../Types";
 import { ServerHero } from "@/Colyseus/Schema/Unit/Hero";
+import { WeaponQuality } from "@/Types/Equipment/WeaponPropertyTypes";
+import { ServerGameUnit } from "@/Colyseus/Schema/Unit/GameUnit";
 
 
-
+const HERO_MAX_WEAPON_SLOTS = 8;
 export class HeroWeaponManager {
     private hero: ServerHero;
 
@@ -53,9 +54,15 @@ export class HeroWeaponManager {
     public getEquippedWeapons(): WeaponBasic[] {
         const weapons: WeaponBasic[] = [];
 
-        for (let i = 0; i < this.hero.equippedWeaponIds.length; i++) {
-            const weaponId = this.hero.equippedWeaponIds[i];
-            const weapon = this.getWeaponLogicInstance(weaponId);
+        for (let i = 0; i < this.hero.weaponInventory.length; i++) {
+            const weaponSchema = this.hero.weaponInventory[i];
+
+            // 只返回已裝備的武器
+            if (!weaponSchema.isEquipped) {
+                continue;
+            }
+
+            const weapon = this.getWeaponLogicInstance(weaponSchema.uniqueId);
             if (weapon) {
                 weapons.push(weapon);
             }
@@ -84,18 +91,14 @@ export class HeroWeaponManager {
     public removeFromInventory(weaponUniqueId: string): boolean {
         // 先確保武器未裝備
         if (this.isEquipped(weaponUniqueId)) {
-            this.unequipById(weaponUniqueId);
+            this.unequip(weaponUniqueId);
         }
 
         // 從背包移除
         const index = this.hero.weaponInventory.findIndex((weapon: WeaponSchema) => weapon.uniqueId === weaponUniqueId);
         if (index !== -1) {
             const weaponSchema = this.hero.weaponInventory[index];
-            this.hero.weaponInventory.splice(index, 1);
-
-            // 清理實例快取
-            weaponSchema.invalidateLogicInstance();
-
+            this.hero.weaponInventory.splice(index, 1)
             const displayName = WeaponSystemFacade.getWeaponDisplayName(weaponSchema);
             console.log(`${this.hero.name} 移除了武器: ${displayName}`);
             return true;
@@ -107,59 +110,38 @@ export class HeroWeaponManager {
 
     // =================== ⚔️ 裝備管理 ===================
 
-    /**
-     * 🔄 裝備武器 - 方法重載
-     * @param weaponUniqueId 武器唯一ID
-     */
-    public equip(weaponUniqueId: string): boolean;
+    public equip(weaponIdentifier: string): boolean {
 
-    /**
-     * 🔄 裝備武器 - 方法重載
-     * @param inventoryIndex 背包索引
-     */
-    public equip(inventoryIndex: number): boolean;
-
-    /**
-     * 🔄 裝備武器 - 實現
-     */
-    public equip(weaponIdentifier: string | number): boolean {
-        if (typeof weaponIdentifier === 'string') {
-            return this.equipById(weaponIdentifier);
-        } else {
-            return this.equipByIndex(weaponIdentifier);
-        }
-    }
-
-    /**
-     * 🔄 卸下武器 - 方法重載
-     * @param weaponUniqueId 武器唯一ID
-     */
-    public unequip(weaponUniqueId: string): boolean;
-
-    /**
-     * 🔄 卸下武器 - 方法重載
-     * @param slotIndex 裝備槽索引
-     */
-    public unequip(slotIndex: number): boolean;
-
-    /**
-     * 🔄 卸下武器 - 實現
-     */
-    public unequip(weaponIdentifier: string | number): boolean {
-        if (typeof weaponIdentifier === 'string') {
-            return this.unequipById(weaponIdentifier);
-        } else {
-            return this.unequipBySlot(weaponIdentifier);
-        }
-    }
-
-    /**
-     * 裝備武器（通過武器唯一ID）
-     */
-    public equipById(weaponUniqueId: string): boolean {
-        const weaponData = this.findWeaponSchemaById(weaponUniqueId);
+        const weaponData = this.findWeaponSchemaById(weaponIdentifier);
         if (!weaponData) {
-            console.warn(`找不到武器: ${weaponUniqueId}`);
+            console.warn(`找不到武器: ${weaponIdentifier}`);
+            return false;
+        }
+
+        if (!weaponData.isEquipped) {
+            const displayName = WeaponSystemFacade.getWeaponDisplayName(weaponData);
+            console.warn(`武器未裝備: ${displayName}`);
+            return false;
+        }
+
+        // 卸下武器
+        weaponData.isEquipped = false;
+
+        // ✅ 觸發屬性重算
+        this.hero.recalculateAllStats();
+
+        const displayName = WeaponSystemFacade.getWeaponDisplayName(weaponData);
+        console.log(`[${this.hero.name}] 已卸下武器: ${displayName}`);
+        return true;
+
+    }
+
+
+    public unequip(weaponIdentifier: string): boolean {
+
+        const weaponData = this.findWeaponSchemaById(weaponIdentifier);
+        if (!weaponData) {
+            console.warn(`找不到武器: ${weaponIdentifier}`);
             return false;
         }
 
@@ -169,15 +151,15 @@ export class HeroWeaponManager {
             return false;
         }
 
-        // 檢查裝備槽
-        if (this.hero.equippedWeaponIds.length >= 8) {
+        // 檢查裝備槽 - 計算當前已裝備的武器數量
+        const equippedCount = this.hero.weaponInventory.filter((w: WeaponSchema) => w.isEquipped).length;
+        if (equippedCount >= HERO_MAX_WEAPON_SLOTS) {
             console.warn("裝備槽已滿");
             return false;
         }
 
-        // 裝備武器
+        // 裝備武器 (只設置標記，不需要 push，因為武器已經在 inventory 裡)
         weaponData.isEquipped = true;
-        this.hero.equippedWeaponIds.push(weaponUniqueId);
 
         // 修復：使用 WeaponInstanceManager 清除快取，強制重新創建
         WeaponInstanceManager.invalidateCache(weaponData);
@@ -191,122 +173,18 @@ export class HeroWeaponManager {
     }
 
     /**
-     * 裝備武器（通過背包索引 - 便利方法）
-     */
-    public equipByIndex(inventoryIndex: number): boolean {
-        if (inventoryIndex < 0 || inventoryIndex >= this.hero.weaponInventory.length) {
-            console.warn(`無效的武器索引: ${inventoryIndex}`);
-            return false;
-        }
-
-        const weaponData = this.hero.weaponInventory[inventoryIndex];
-        if (!weaponData) {
-            console.warn(`找不到武器，索引: ${inventoryIndex}`);
-            return false;
-        }
-
-        return this.equipById(weaponData.uniqueId);
-    }
-
-    /**
-     * 卸下武器（通過裝備槽索引）
-     */
-    public unequipBySlot(slotIndex: number): boolean {
-        console.log(`[${this.hero.name}] 嘗試卸下裝備槽 ${slotIndex} 的武器`);
-        console.log(`[${this.hero.name}] 當前裝備武器列表:`, this.hero.equippedWeaponIds.toArray());
-
-        if (slotIndex < 0 || slotIndex >= this.hero.equippedWeaponIds.length) {
-            console.warn(`[${this.hero.name}] 無效的裝備槽索引: ${slotIndex}, 總裝備數: ${this.hero.equippedWeaponIds.length}`);
-            return false;
-        }
-
-        const weaponUniqueId = this.hero.equippedWeaponIds[slotIndex];
-        console.log(`[${this.hero.name}] 準備卸下武器: ${weaponUniqueId}`);
-
-        const weaponData = this.findWeaponSchemaById(weaponUniqueId);
-
-        if (!weaponData) {
-            console.warn(`[${this.hero.name}] 找不到武器數據，ID: ${weaponUniqueId}`);
-            return false;
-        }
-
-        // 卸下武器
-        weaponData.isEquipped = false;
-        this.hero.equippedWeaponIds.splice(slotIndex, 1);
-
-        // 可選：保留實例快取，避免重複創建（由 WeaponInstanceManager 管理）
-        // WeaponInstanceManager.invalidateCache(weaponData); // 卸載時不清理快取
-
-        // ✅ 觸發屬性重算（移除該武器的屬性加成）
-        this.hero.recalculateAllStats();
-
-        const displayName = WeaponSystemFacade.getWeaponDisplayName(weaponData);
-        console.log(`[${this.hero.name}] 已卸下武器: ${displayName} [移除屬性: STR+${weaponData.str} INT+${weaponData.int} AGI+${weaponData.agi} VIT+${weaponData.vit}]`);
-        console.log(`[${this.hero.name}] 卸載後裝備武器列表:`, this.hero.equippedWeaponIds.toArray());
-        return true;
-    }
-
-    /**
-     * 卸下武器（通過武器唯一ID）
-     */
-    public unequipById(weaponUniqueId: string): boolean {
-        const slotIndex = this.hero.equippedWeaponIds.findIndex((id: string) => id === weaponUniqueId);
-        if (slotIndex === -1) {
-            console.warn(`武器未裝備: ${weaponUniqueId}`);
-            return false;
-        }
-        return this.unequipBySlot(slotIndex);
-    }
-
-    /**
      * 檢查武器是否已裝備
      */
     public isEquipped(weaponUniqueId: string): boolean {
-        return this.hero.equippedWeaponIds.includes(weaponUniqueId);
+        return this.hero.weaponInventory.some((weapon: WeaponSchema) => weapon.uniqueId === weaponUniqueId);
     }
 
     // =================== 💰 武器交易 ===================
-
-    /**
-     * 丟棄武器到地圖（給其他玩家撿起）
-     */
-    public dropWeapon(weaponUniqueId: string, targetX?: number, targetY?: number): ServerItem | null {
-        // 找到要丟棄的武器
-        const weaponIndex = this.hero.weaponInventory.findIndex((weapon: WeaponData) => weapon.uniqueId === weaponUniqueId);
-
-        if (weaponIndex === -1) {
-            console.warn(`${this.hero.name} 找不到要丟棄的武器: ${weaponUniqueId}`);
-            return null;
-        }
-
-        const weaponData = this.hero.weaponInventory[weaponIndex];
-
-        // 先卸下武器（如果已裝備）
-        if (this.isEquipped(weaponUniqueId)) {
-            this.unequipById(weaponUniqueId);
-        }
-
-        // 使用 ServerItem 的轉換方法創建掉落物品
-        const dropX = targetX !== undefined ? targetX : this.hero.position.x + (Math.random() - 0.5) * 100;
-        const dropY = targetY !== undefined ? targetY : this.hero.position.y + (Math.random() - 0.5) * 100;
-
-        const dropItem = ServerItem.createFromWeaponData(weaponData, dropX, dropY);
-
-        // 從背包移除
-        this.hero.weaponInventory.splice(weaponIndex, 1);
-
-        // 清理武器實例快取
-        WeaponInstanceManager.invalidateCache(weaponData);
-
-        console.log(`${this.hero.name} 丟棄了武器: ${weaponData.weaponId} (${weaponData.quality})`);
-        return dropItem;
-    }
-
     /**
      * 賣掉武器（轉為金幣）
      */
     public sellWeapon(weaponUniqueId: string): number {
-        const weaponIndex = this.hero.weaponInventory.findIndex((weapon: WeaponData) => weapon.uniqueId === weaponUniqueId);
+        const weaponIndex = this.hero.weaponInventory.findIndex((weapon: WeaponSchema) => weapon.uniqueId === weaponUniqueId);
 
         if (weaponIndex === -1) {
             console.warn(`${this.hero.name} 找不到要賣掉的武器: ${weaponUniqueId}`);
@@ -317,7 +195,7 @@ export class HeroWeaponManager {
 
         // 先卸下武器（如果已裝備）
         if (this.isEquipped(weaponUniqueId)) {
-            this.unequipById(weaponUniqueId);
+            this.unequip(weaponUniqueId);
         }
 
         // 計算武器價值
@@ -339,25 +217,23 @@ export class HeroWeaponManager {
     /**
      * 計算武器賣價
      */
-    public calculateSellPrice(weaponData: WeaponData): number {
+    public calculateSellPrice(weaponData: WeaponSchema): number {
         let basePrice = 100; // 基礎價格
 
         // 品質加成
-        const qualityMultiplier: Record<string, number> = {
-            'common': 1,
-            'uncommon': 2,
+        const qualityMultiplier: Record<WeaponQuality, number> = {
+            'normal': 1,
             'rare': 5,
+            'magic': 30,
             'epic': 15,
             'legendary': 50
         };
 
-        const multiplier = qualityMultiplier[weaponData.quality] || 1;
+        const multiplier = qualityMultiplier[weaponData.rarity] || 1;
 
         // 等級和強化加成
         const levelBonus = weaponData.level * 10;
-        const enhanceBonus = weaponData.enhanceLevel * 50;
-
-        return Math.floor(basePrice * multiplier + levelBonus + enhanceBonus);
+        return Math.floor(basePrice * multiplier + levelBonus);
     }
 
     // =================== ⚔️ 戰鬥系統 ===================
@@ -365,7 +241,7 @@ export class HeroWeaponManager {
     /**
      * 嘗試進行攻擊
      */
-    public tryAttack(enemies: any[]): AttackResult[] {
+    public tryAttack(enemies: ServerGameUnit[]): AttackResult[] {
         const results: AttackResult[] = [];
 
         // 使用新的武器系統
