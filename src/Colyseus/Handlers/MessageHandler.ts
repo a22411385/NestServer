@@ -7,7 +7,6 @@ import { WaveControlHandler } from "./WaveControlHandler";
 import { DebugHandler } from "./DebugHandler";
 import { EquipmentHandler } from "./EquipmentHandler"; // 🆕 引入裝備處理器
 import { CharacterHandler } from "./CharacterHandler"; // 🆕 引入角色處理器
-import { ItemPickupHandler } from "./ItemPickupHandler"; // 🆕 引入物品撿取處理器
 
 /**
  * 主要消息處理器 - 使用路由模式分發消息到專門的處理器
@@ -31,7 +30,7 @@ export class MessageHandler {
             new DebugHandler(this.room),
             new EquipmentHandler(this.room), // 🆕 添加裝備處理器
             new CharacterHandler(this.room), // 🆕 添加角色處理器
-            new ItemPickupHandler(this.room) // 🆕 添加物品撿取處理器
+
         ];
 
         // 記錄已註冊的處理器

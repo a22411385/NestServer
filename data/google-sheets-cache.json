@@ -924,6 +924,158 @@
       "enabled": false
     }
   ],
+  "MaterialConfigs": [
+    {
+      "id": "poison_essence",
+      "name": "毒精華",
+      "description": "蘊含劇毒能量的精華",
+      "rarity": "common",
+      "category": "essence",
+      "stackSize": 999,
+      "sellPrice": 5,
+      "baseDropRate": 15,
+      "minDropQuantity": 1,
+      "maxDropQuantity": 3,
+      "iconPath": "items/essence_poison.png",
+      "dropFromEnemyLevel": 1,
+      "enabled": true
+    },
+    {
+      "id": "frost_essence",
+      "name": "冰霜精華",
+      "description": "散發寒冷氣息的精華",
+      "rarity": "common",
+      "category": "essence",
+      "stackSize": 999,
+      "sellPrice": 5,
+      "baseDropRate": 15,
+      "minDropQuantity": 1,
+      "maxDropQuantity": 3,
+      "iconPath": "items/essence_frost.png",
+      "dropFromEnemyLevel": 1,
+      "enabled": true
+    },
+    {
+      "id": "flame_essence",
+      "name": "火焰精華",
+      "description": "燃燒著熾熱火焰的精華",
+      "rarity": "common",
+      "category": "essence",
+      "stackSize": 999,
+      "sellPrice": 5,
+      "baseDropRate": 15,
+      "minDropQuantity": 1,
+      "maxDropQuantity": 3,
+      "iconPath": "items/essence_flame.png",
+      "dropFromEnemyLevel": 1,
+      "enabled": true
+    },
+    {
+      "id": "lightning_essence",
+      "name": "閃電精華",
+      "description": "充滿雷電之力的精華",
+      "rarity": "common",
+      "category": "essence",
+      "stackSize": 999,
+      "sellPrice": 5,
+      "baseDropRate": 15,
+      "minDropQuantity": 1,
+      "maxDropQuantity": 3,
+      "iconPath": "items/essence_lightning.png",
+      "dropFromEnemyLevel": 1,
+      "enabled": true
+    },
+    {
+      "id": "explosive_essence",
+      "name": "爆炸精華",
+      "description": "不穩定的爆炸能量結晶",
+      "rarity": "common",
+      "category": "essence",
+      "stackSize": 999,
+      "sellPrice": 5,
+      "baseDropRate": 15,
+      "minDropQuantity": 1,
+      "maxDropQuantity": 3,
+      "iconPath": "items/essence_explosive.png",
+      "dropFromEnemyLevel": 1,
+      "enabled": true
+    },
+    {
+      "id": "iron_ore",
+      "name": "鐵礦石",
+      "description": "最常見的礦石材料",
+      "rarity": "common",
+      "category": "ore",
+      "stackSize": 999,
+      "sellPrice": 10,
+      "baseDropRate": 20,
+      "minDropQuantity": 2,
+      "maxDropQuantity": 5,
+      "iconPath": "items/ore_iron.png",
+      "dropFromEnemyLevel": 1,
+      "enabled": true
+    },
+    {
+      "id": "mithril_ore",
+      "name": "祕銀礦石",
+      "description": "稀有的藍色礦石",
+      "rarity": "rare",
+      "category": "ore",
+      "stackSize": 999,
+      "sellPrice": 50,
+      "baseDropRate": 8,
+      "minDropQuantity": 1,
+      "maxDropQuantity": 2,
+      "iconPath": "items/ore_mithril.png",
+      "dropFromEnemyLevel": 5,
+      "enabled": true
+    },
+    {
+      "id": "adamantite_ore",
+      "name": "精金礦石",
+      "description": "傳說中的最硬礦石",
+      "rarity": "epic",
+      "category": "ore",
+      "stackSize": 999,
+      "sellPrice": 200,
+      "baseDropRate": 3,
+      "minDropQuantity": 1,
+      "maxDropQuantity": 1,
+      "iconPath": "items/ore_adamantite.png",
+      "dropFromEnemyLevel": 10,
+      "enabled": true
+    },
+    {
+      "id": "weapon_scroll",
+      "name": "武器卷軸",
+      "description": "記載武器製作方法的卷軸",
+      "rarity": "rare",
+      "category": "special",
+      "stackSize": 99,
+      "sellPrice": 30,
+      "baseDropRate": 5,
+      "minDropQuantity": 1,
+      "maxDropQuantity": 1,
+      "iconPath": "items/scroll_weapon.png",
+      "dropFromEnemyLevel": 3,
+      "enabled": true
+    },
+    {
+      "id": "blessing_stone",
+      "name": "祝福石",
+      "description": "蘊含神聖力量的寶石",
+      "rarity": "epic",
+      "category": "special",
+      "stackSize": 99,
+      "sellPrice": 100,
+      "baseDropRate": 2,
+      "minDropQuantity": 1,
+      "maxDropQuantity": 1,
+      "iconPath": "items/stone_blessing.png",
+      "dropFromEnemyLevel": 8,
+      "enabled": true
+    }
+  ],
   "TalentConfigs": [
     {
       "id": "combat_dmg_boost_1",
@@ -1185,5 +1337,5 @@
       "stack_type": "ADDITIVE"
     }
   ],
-  "lastUpdated": "2025-10-24T13:13:40.401Z"
+  "lastUpdated": "2025-10-29T04:22:30.961Z"
 }

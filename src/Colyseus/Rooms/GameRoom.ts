@@ -7,7 +7,7 @@ import { MessageHandler } from "@/Colyseus/Handlers/MessageHandler";
 import { ServerHero } from "@/Colyseus/Schema/Unit/Hero";
 import { ServerGameUnit } from "@/Colyseus/Schema/Unit/GameUnit";
 import { ServerBullet } from "@/Colyseus/Schema/Bullet";
-import { ServerItem } from "@/Colyseus/Schema/Item/ServerItem";
+
 import { MovementSystem } from "@/Game/Systems/Battle/MovemnetSystem";
 import { UnitManager } from "../../Game/Managers/UnitManager";
 
@@ -17,7 +17,6 @@ import { LobbyRoomBus } from "./LobbyRoom";
 import { DamageSystem } from "../../Game/Systems/Battle/DamageSystem";
 import { BulletSystem } from "@/Game/Systems/Battle/BulletSystem";
 import { DropSystem } from "@/Game/Systems/Items/DropSystem"; // 🆕 添加掉落系統
-import { ItemPickupSystem } from "@/Game/Systems/Items/ItemPickupSystem"; // 🆕 添加拾取系統
 
 // 🆕 引入新的系統
 import { CombatSystem } from "@/Game/Systems/Battle/CombatSystem";
@@ -51,7 +50,6 @@ export class GameRoom extends MiddleRoom<GameRoomState> {
     public statusEffectSystem: StatusEffectSystem; // 🆕 狀態效果系統
 
     public dropSystem: DropSystem; // 🆕 掉落系統
-    public itemPickupSystem: ItemPickupSystem; // 🆕 拾取系統
 
     public roomInfo: LobbyRoomInfo;
     private lastItemCleanup: number = 0; // 上次物品清理時間
@@ -83,7 +81,6 @@ export class GameRoom extends MiddleRoom<GameRoomState> {
 
         this.dropSystem = new DropSystem(this); // 🆕 初始化掉落系統
         this.dropSystem.initialize(); // 🆕 初始化掉落系統配置
-        this.itemPickupSystem = new ItemPickupSystem(this); // 🆕 初始化拾取系統
 
         this.gameManager = new GameManager(this);
 
@@ -177,7 +174,7 @@ export class GameRoom extends MiddleRoom<GameRoomState> {
 
         // 原有的清理邏輯
         this.gameManager.stopGameLoop();
-        this.enemySystem.cleanup();
+
         this.bulletSystem.cleanup(); // 🆕 清理子彈系統
         this.messageHandler.cleanup();
 
@@ -229,24 +226,6 @@ export class GameRoom extends MiddleRoom<GameRoomState> {
                 };
             }
         };
-
-        // 過濾物品（mapItems）- 使用英雄的視野範圍
-        (this.state.gameCore.mapItems as any).$filters = {
-            onAdd: (instance: ServerItem, index: number) => {
-                return (client: Client, value: ServerItem) => {
-                    const hero = this.state.getHero(client.sessionId);
-                    if (!hero) return false;
-
-                    // 🔧 使用英雄的視野範圍屬性
-                    const visionRange = hero.visionRange || 1500;
-                    const dx = value.x - hero.position.x;
-                    const dy = value.y - hero.position.y;
-                    const distSq = dx * dx + dy * dy;
-                    return distSq <= visionRange * visionRange;
-                };
-            }
-        };
-
         console.log(`✅ 已啟用動態視野過濾系統（基於英雄 visionRange 屬性）`);
     }
 
@@ -293,6 +272,8 @@ export class GameRoom extends MiddleRoom<GameRoomState> {
             this.gameManager.forceEndGame();
             return;
         }
+
+        this.movementSystem.updateUnitMovements(deltaTime);
     }
 
     /**

@@ -19,7 +19,7 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.enableCors({
 
-    origin: ["http://localhost:5175"],
+    origin: ["http://192.168.50.144:5175"],
     methods: ["GET", "POST", 'OPTIONS'],
     credentials: true,
   })
@@ -42,7 +42,7 @@ async function bootstrap() {
   }));
 
 
-  await app.listen(process.env.PORT ?? 8000, 'localhost');
+  await app.listen(process.env.PORT ?? 8000, process.env.HOST ?? 'localhost');
 
 
   const colyseusServer = new ColyseusServer();

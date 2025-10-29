@@ -23,6 +23,10 @@ export class MovementSystem {
     constructor(room: GameRoom) {
         this.room = room;
     }
+    //每次tick廣播位置
+    public updateUnitMovements(deltaTime: number): void {
+        this.room.broadcast("updateGameState", this.getAllUnitPositions());
+    }
 
     /**
      * 獲取所有單位的位置（用於強制同步）

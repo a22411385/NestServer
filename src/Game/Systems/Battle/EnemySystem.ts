@@ -1,14 +1,14 @@
-import { Delayed } from "colyseus";
+import { Vector2 } from "../../../Colyseus/Schema/Unit/GameUnit";
 import { MapSchema } from "@colyseus/schema";
 import { GameRoomState, UnitType } from "../../../Colyseus/Schema/GameState";
 import { IdGenerator } from "../../../Util/IdGenerator";
 import { ServerEnemy } from "../../../Colyseus/Schema/Unit/Enemy";
 import { ServerHero } from "../../../Colyseus/Schema/Unit/Hero";
 import { GameRoom } from "../../../Colyseus/Rooms/GameRoom";
-import { Vector2 } from "../../../Colyseus/Schema/Unit/GameUnit";
 import { WaveManager } from "../../Managers/WaveManager/WaveManager";
 import { EnemyCoordinationSystem } from "./EnemyCoordinationSystem";
 import { BattleMathUtils } from "../../../Util/BattleMathUtils";
+import { EnemyFactory } from "../../Factories/EnemyFactory";
 
 const mapSize = 1000;
 
@@ -18,7 +18,7 @@ const mapSize = 1000;
 export class EnemySystem {
     private room: GameRoom;
     private state: GameRoomState;
-    private enemySpawnTimer: Delayed | null = null;
+
     private waveManager: WaveManager;
     private enemyCoordination: EnemyCoordinationSystem;
 
@@ -111,47 +111,21 @@ export class EnemySystem {
         return this.enemyCoordination;
     }
 
-    /**
-     * 開始敵人生成循環
-     */
-    startEnemySpawning(): void {
-        if (this.enemySpawnTimer) {
-            this.enemySpawnTimer.clear();
-        }
-
-        // 每秒生成一隻
-        this.enemySpawnTimer = this.room.clock.setInterval(() => {
-            this.room.unitManager.spawnZombies();
-        }, 1000);
-    }
-
-    /**
-     * 停止敵人生成
-     */
-    stopEnemySpawning(): void {
-        if (this.enemySpawnTimer) {
-            this.enemySpawnTimer.clear();
-            this.enemySpawnTimer = null;
-        }
-    }
-
 
     /**
      * 測試房專用：生成單隻敵人到指定位置
+     * 🔧 修改為使用 EnemyFactory 以保持屬性一致性
      */
     spawnSingleEnemy(x: number, y: number, type: number = 1): string {
-        const enemy = new ServerEnemy();
-        // 🔧 使用統一的測試ID生成系統
-        enemy.id = IdGenerator.generateTestEnemyId(type);
-
-        // 設置敵人類型
-        enemy.initializeByType(type);
-
-        // 設置指定位置
-        enemy.position = new Vector2(
+        // 使用 EnemyFactory 創建敵人(確保屬性與正式遊戲一致)
+        const position = new Vector2(
             BattleMathUtils.clamp(x, 0, 1000),
             BattleMathUtils.clamp(y, 0, 800)
         );
+
+        const enemy = EnemyFactory.createEnemy(type, position, 1);
+        // 🔧 使用統一的測試ID生成系統
+        enemy.id = IdGenerator.generateTestEnemyId(type);
 
         // 添加到遊戲狀態
         this.state.addEnemy(enemy);
@@ -232,21 +206,19 @@ export class EnemySystem {
             this.enemyCoordination.coordinateEnemyMovement(enemies);
         }
 
-        // 🔧 修改敵人AI更新方式
+        // 🔧 效能優化:先收集所有英雄,避免在每個敵人的迴圈中重複創建
+        const heroes = new MapSchema<ServerHero>();
         for (const unit of allUnits.values()) {
-            if (unit instanceof ServerEnemy && !unit.isDead) {
-                // 🎯 讓敵人AI更新速度向量，而不是直接移動
-                const heroes = new MapSchema<ServerHero>();
-                for (const unit of allUnits.values()) {
-                    if (unit instanceof ServerHero && !unit.isDead) {
-                        heroes.set(unit.id, unit);
-                    }
-                }
-                unit.updateAI(heroes, deltaTime, currentTime, allUnits);
-
-                // 🎯 AI 只更新速度向量 (vx, vy)，不直接移動位置
-                // 移動由 MovementSystem.MoveAllUnit() 統一處理
+            if (unit instanceof ServerHero && !unit.isDead) {
+                heroes.set(unit.id, unit);
             }
+        }
+
+        // 更新所有敵人的AI
+        for (const enemy of enemies) {
+            // 🎯 AI 只更新速度向量 (vx, vy)，不直接移動位置
+            // 移動由 MovementSystem.MoveAllUnit() 統一處理
+            enemy.updateAI(heroes, deltaTime, currentTime, allUnits);
         }
     }
 
@@ -256,7 +228,6 @@ export class EnemySystem {
     clearAllEnemies(): void {
         this.state.removeAllEnemy();
     }
-
     /**
      * 獲取存活的敵人數量
      */
@@ -268,12 +239,5 @@ export class EnemySystem {
             }
         }
         return count;
-    }
-
-    /**
-     * 清理系統資源
-     */
-    cleanup(): void {
-        this.stopEnemySpawning();
     }
 }

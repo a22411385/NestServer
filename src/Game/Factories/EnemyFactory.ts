@@ -1,7 +1,6 @@
 import { ServerEnemy } from "../../Colyseus/Schema/Unit/Enemy";
-import { Vector2 } from "../../Colyseus/Schema/Unit/GameUnit";
 import { UnitType } from "../../Colyseus/Schema/GameState";
-
+import { Vector2 } from "../../Colyseus/Schema/Unit/GameUnit";
 // 🆕 使用統一類型定義
 import { EnemyType, EnemyConfig } from "@/Types";
 
@@ -90,6 +89,11 @@ export class EnemyFactory {
         enemy.attackDamage = Math.floor(config.attackDamage * waveMultiplier.damage);
         enemy.moveSpeed = config.moveSpeed;
 
+        // 🔧 設置獎勵屬性(之前漏掉了!)
+        enemy.expReward = Math.floor(config.experienceReward * waveMultiplier.exp);
+        // 注意: goldReward 需要在 DropSystem 中處理,因為 ServerEnemy 沒有 gold 屬性
+        // DropSystem 會從 config.goldReward 讀取
+
         // 視覺和碰撞屬性
         enemy.scale = config.scale * waveMultiplier.scale;
         enemy.collisionWidth = config.collisionWidth;
@@ -97,7 +101,8 @@ export class EnemyFactory {
 
         // 位置設置
         enemy.position = new Vector2(position.x, position.y);
-
+        enemy.birthX = position.x;
+        enemy.birthY = position.y;
         // 敵人名稱
         enemy.name = this.getEnemyName(enemyType, waveNumber);
 
@@ -108,13 +113,14 @@ export class EnemyFactory {
     /**
      * 根據波次獲取屬性加成倍數
      */
-    private static getWaveMultiplier(waveNumber: number): { hp: number; damage: number; scale: number } {
+    private static getWaveMultiplier(waveNumber: number): { hp: number; damage: number; scale: number; exp: number } {
         const baseMultiplier = 1 + (waveNumber - 1) * 0.15; // 每波15%增長
 
         return {
             hp: baseMultiplier,
             damage: 1 + (waveNumber - 1) * 0.1, // 每波10%攻擊力增長
-            scale: Math.min(1 + (waveNumber - 1) * 0.05, 1.5) // 每波5%大小增長，最大1.5倍
+            scale: Math.min(1 + (waveNumber - 1) * 0.05, 1.5), // 每波5%大小增長，最大1.5倍
+            exp: baseMultiplier // 經驗值也隨波次增長
         };
     }
 
@@ -138,6 +144,18 @@ export class EnemyFactory {
      */
     public static getEnemyConfig(enemyType: EnemyType): EnemyConfig | undefined {
         return this.enemyConfigs.get(enemyType);
+    }
+
+    /**
+     * 🆕 根據敵人類型和波次獲取金幣獎勵
+     * (供 DropSystem 使用)
+     */
+    public static getGoldReward(enemyType: EnemyType, waveNumber: number = 1): number {
+        const config = this.enemyConfigs.get(enemyType);
+        if (!config) return 0;
+
+        const waveMultiplier = this.getWaveMultiplier(waveNumber);
+        return Math.floor(config.goldReward * waveMultiplier.exp); // 金幣也隨波次增長
     }
 
     /**

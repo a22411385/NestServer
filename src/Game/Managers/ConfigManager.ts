@@ -1,6 +1,7 @@
 import { GoogleCacheData } from '@/Types';
 import { ItemConfigDefinition } from '@/Types/Equipment/ItemTypes';
 import { WeaponConfigDefinition, WeaponPropertyDefinition } from '@/Types/Equipment/WeaponPropertyTypes';
+import { MaterialConfigDefinition } from '@/Types/Equipment/MaterialTypes';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -59,6 +60,57 @@ export class ConfigManager {
     public static getWeaponProperties(): WeaponPropertyDefinition[] {
         const cache = this.loadCache();
         return cache.WeaponProperties || [];
+    }
+
+    /**
+     * 🆕 獲取素材配置
+     */
+    public static getMaterialConfigs(): MaterialConfigDefinition[] {
+        const cache = this.loadCache();
+        return cache.MaterialConfigs || [];
+    }
+
+    /**
+     * 🆕 根據ID獲取素材配置
+     */
+    public static getMaterialConfigById(materialId: string): MaterialConfigDefinition | null {
+        const materials = this.getMaterialConfigs();
+        return materials.find(material => material.id === materialId) || null;
+    }
+
+    /**
+     * 🆕 根據稀有度獲取素材列表
+     */
+    public static getMaterialsByRarity(rarity: string): MaterialConfigDefinition[] {
+        const materials = this.getMaterialConfigs();
+        return materials.filter(material => material.rarity === rarity && material.enabled);
+    }
+
+    /**
+     * 🆕 根據類別獲取素材列表
+     */
+    public static getMaterialsByCategory(category: string): MaterialConfigDefinition[] {
+        const materials = this.getMaterialConfigs();
+        return materials.filter(material => material.category === category && material.enabled);
+    }
+
+    /**
+     * 🆕 根據敵人等級獲取可掉落的素材列表
+     */
+    public static getMaterialsByEnemyLevel(enemyLevel: number): MaterialConfigDefinition[] {
+        const materials = this.getMaterialConfigs();
+        return materials.filter(material =>
+            material.enabled &&
+            material.dropFromEnemyLevel <= enemyLevel
+        );
+    }
+
+    /**
+     * 🆕 獲取啟用的素材列表
+     */
+    public static getEnabledMaterials(): MaterialConfigDefinition[] {
+        const materials = this.getMaterialConfigs();
+        return materials.filter(material => material.enabled);
     }
 
     /**

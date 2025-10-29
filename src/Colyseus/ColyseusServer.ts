@@ -47,10 +47,10 @@ export class ColyseusServer {
 
     public listen(port: number = 3001): Promise<void> {
         return new Promise((resolve) => {
-            this.server.listen(port).then(() => {
+            this.server.listen(port, process.env.HOST ?? 'localhost').then(() => {
                 console.log(`🎮 Colyseus Server listening on port ${port} (uWebSockets)`);
                 if (process.env.NODE_ENV !== 'production') {
-                    console.log(`📊 Monitor panel: http://localhost:${port}/colyseus`);
+                    console.log(`📊 Monitor panel: http://${process.env.HOST ?? 'localhost'}:${port}/colyseus`);
                 }
                 resolve();
             });

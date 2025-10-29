@@ -3,7 +3,6 @@ import { UnitType } from "../GameState";
 
 import { ServerGameUnit } from "./GameUnit";
 import { WeaponBasic } from "../Weapon/Baisc/WeaponBasic";
-import { ServerItem } from "../Item/ServerItem";
 import { WeaponSchema } from "../Weapon/WeaponSchema";
 import { AttackResult, AttributeBonus, BuffEffect, StatType } from "@/Types";
 import { ConfigManager } from "@/Game/Managers/ConfigManager";
@@ -20,8 +19,7 @@ export class ServerHero extends ServerGameUnit {
     @type("number") exp: number = 0;
 
     @type([WeaponSchema]) public weaponInventory = new ArraySchema<WeaponSchema>();
-    //道具欄
-    @type([ServerItem]) public inventory = new ArraySchema<ServerItem>();
+
     // 材料庫存 (key: MaterialType, value: quantity)
     @type({ map: "number" }) public materials = new MapSchema<number>();
 

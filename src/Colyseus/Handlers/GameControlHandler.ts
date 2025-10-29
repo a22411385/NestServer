@@ -10,7 +10,6 @@ export class GameControlHandler extends BaseMessageHandler {
     private supportedTypes = [
         "toggleReady",
         "startGame",
-        "updateGameState",
         "pauseGame",
         "resumeGame",
         "endGame",
@@ -39,9 +38,6 @@ export class GameControlHandler extends BaseMessageHandler {
                     break;
                 case "startGame":
                     this.handleStartGame(client, data);
-                    break;
-                case "updateGameState":
-                    this.handleUpdateGameState(client, data);
                     break;
                 case "pauseGame":
                     this.handlePauseGame(client, data);
@@ -84,19 +80,6 @@ export class GameControlHandler extends BaseMessageHandler {
 
         this.room.gameManager.startGame();
         this.sendSuccess(client, { message: "遊戲開始" });
-    }
-
-    private handleUpdateGameState(client: Client, data: any): void {
-        if (!this.checkPermissions(client)) {
-            throw new Error("權限不足");
-        }
-
-        if (!this.validateMessage(data, ['gameState'])) {
-            throw new Error("無效的遊戲狀態數據");
-        }
-
-        // 更新遊戲狀態邏輯
-        console.log(`更新遊戲狀態: ${JSON.stringify(data.gameState)}`);
     }
 
     private handlePauseGame(client: Client, data: any): void {

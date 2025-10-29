@@ -1,8 +1,3 @@
-import { WeaponBasic } from "../../Colyseus/Schema/Weapon/Baisc/WeaponBasic";
-import { BaseballBat } from "../../Colyseus/Schema/Weapon/MeleeWeapon/BaseballBat";
-import { Fireball } from "../../Colyseus/Schema/Weapon/ProjectileWeapon/Fireball";
-import { HealingPotion } from "../../Colyseus/Schema/Weapon/SupportWeapon/HealingPotion";
-
 /**
  * 武器類別註冊器 - 管理所有可用的武器類別
  */

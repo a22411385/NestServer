@@ -2,7 +2,6 @@ import { Client, Room } from "colyseus";
 import { GameRoomState, GamePlayer, UnitType } from "../../Colyseus/Schema/GameState";
 import { IdGenerator } from "../../Util/IdGenerator";
 import { ServerHero } from "../../Colyseus/Schema/Unit/Hero";
-import { Vector2 } from "../../Colyseus/Schema/Unit/GameUnit";
 import { LobbyPlayer } from "../../Colyseus/Schema/LobbyState";
 
 /**
@@ -154,7 +153,8 @@ export class PlayerManager {
             hero.name = player.name;
             hero.owner = playerId;
             hero.position = new Vector2(0, 0);
-
+            hero.birthX = hero.position.x;
+            hero.birthY = hero.position.y;
             hero.hp = hero.maxHp;
             hero.invincibleRemaining = 0;
 

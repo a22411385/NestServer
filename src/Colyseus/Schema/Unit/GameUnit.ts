@@ -1,12 +1,12 @@
 import { MapSchema, Schema, type } from "@colyseus/schema";
 import { UnitType } from "../GameState";
 
-export class Vector2 extends Schema {
-    @type("number") x: number = 0;
-    @type("number") y: number = 0;
+export class Vector2 {
+    x: number = 0;
+    y: number = 0;
 
     constructor(x: number, y: number) {
-        super();
+
         this.x = x;
         this.y = y;
     }
@@ -73,8 +73,11 @@ export class ServerGameUnit extends Schema {
     @type({ map: Skill }) skills = new MapSchema<Skill>();
 
     @type({ map: StatusEffect }) statusEffects = new MapSchema<StatusEffect>();
+    @type("number") birthX: number = 0;
+    @type("number") birthY: number = 0;
+    //@type(Vector2) 
 
-    @type(Vector2) position: Vector2 = new Vector2(0, 0);
+    position: Vector2 = new Vector2(0, 0);
     // @type("number") y: number = 0;
 
     @type("number") moveSpeed: number = 1; // 移動速度

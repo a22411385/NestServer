@@ -14,7 +14,7 @@ const RoundTimeSetting = {
     rest: 10
 }
 
-const ONE_TICK_TIME = 100;
+const ONE_TICK_TIME = 133;
 /**
  * 🎯 服務端移動配置 - 與客戶端保持一致
  */

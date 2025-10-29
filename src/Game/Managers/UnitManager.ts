@@ -1,9 +1,7 @@
-import { IdGenerator } from "@/Util/IdGenerator";
-
 import { ServerEnemy } from "../../Colyseus/Schema/Unit/Enemy";
 import { Client, Room } from "colyseus";
 import { GameRoomState, UnitType } from "../../Colyseus/Schema/GameState";
-import { ServerGameUnit, Vector2 } from "@/Colyseus/Schema/Unit/GameUnit";
+import { ServerGameUnit } from "@/Colyseus/Schema/Unit/GameUnit";
 import { StatType } from "@/Types/Game/GameTypes";
 import { ServerHero } from "@/Colyseus/Schema/Unit/Hero";
 
@@ -20,60 +18,6 @@ export class UnitManager {
         this.room = room;
         this.mapWidth = room.state.mapData.width;
         this.mapHeight = room.state.mapData.height;
-    }
-
-
-    /**
-        * 生成殭屍到 enemies，數量不超過最大上限
-        */
-    public spawnZombies(): void {
-        const currentCount = this.room.state.getEnemyCount();
-        const canSpawn = Math.max(0, MAX_ENEMY_COUNT - currentCount);
-        const spawnCount = Math.min(1, canSpawn);
-
-        if (spawnCount <= 0) {
-            console.warn("無法生成更多殭屍，已達上限");
-            return;
-        }
-        let spawnedCount = 0;
-        for (let i = 0; i < spawnCount; i++) {
-            // 隨機決定殭屍類型
-            const randomType = Math.floor(Math.random() * 3) + 1;
-
-            const enemy = new ServerEnemy();
-            // 🔧 使用統一的ID生成系統
-            enemy.id = IdGenerator.generateEnemyId(randomType);
-            enemy.initializeByType(randomType);
-
-            let position = new Vector2(0, 0);
-            // 隨機在地圖邊緣生成
-            const edge = Math.floor(Math.random() * 4);
-            switch (edge) {
-                case 0: // 上
-                    position.x = Math.random() * this.mapWidth;
-                    position.y = 0;
-                    break;
-                case 1: // 下
-                    position.x = Math.random() * this.mapWidth;
-                    position.y = this.mapHeight;
-                    break;
-                case 2: // 左
-                    position.x = 0;
-                    position.y = Math.random() * this.mapHeight;
-                    break;
-                case 3: // 右
-                    position.x = this.mapWidth;
-                    position.y = Math.random() * this.mapHeight;
-                    break;
-            }
-            enemy.position = position;
-            //名稱先寫死
-            enemy.name = ZombieName[randomType - 1];
-            // console.log('生成殭屍', enemy.id, '類型:', randomType, '位置:', position);
-            // 使用新的添加方法
-            this.room.state.addEnemy(enemy);
-            spawnedCount++;
-        }
     }
 
     /**
@@ -170,18 +114,5 @@ export class UnitManager {
 
         // 重置屬性邏輯 (需要在 Hero 中實作)
         // hero.resetStats();
-    }
-
-    /**
-     * 獲取屬性顯示名稱
-     */
-    private getStatDisplayName(stat: string): string {
-        const statNames = {
-            'vitality': '體質',
-            'strength': '力量',
-            'agility': '敏捷',
-            'intelligence': '智慧'
-        };
-        return statNames[stat as keyof typeof statNames] || stat;
     }
 }

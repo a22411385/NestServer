@@ -1,11 +1,10 @@
 
 
-import { Schema, type, MapSchema, ArraySchema } from "@colyseus/schema";
-import { ServerGameUnit, StatusEffect, Vector2 } from "./Unit/GameUnit";
+import { Schema, type, MapSchema } from "@colyseus/schema";
+import { ServerGameUnit } from "./Unit/GameUnit";
 import { ServerEnemy } from "./Unit/Enemy";
 import { ServerHero } from "./Unit/Hero";
 import { ServerBullet } from "./Bullet";
-import { ServerItem } from "./Item/ServerItem";
 
 export type RoomStateType = "waiting" | 'playing';
 export type gameFlowStatus = "prepare" | 'battle' | 'rest' | 'settlement' | 'test_mode';
@@ -35,9 +34,6 @@ export class GameCoreState extends Schema {
     @type('string') status: gameFlowStatus = 'prepare'
     @type("number") aliveHeroes: number = 0; // 存活英雄數量
     @type("number") roundTime: number = 0; // 遊戲
-
-    // 🔧 物品、單位、子彈的過濾在 GameRoom.setupStateFiltering() 中設置
-    @type([ServerItem]) mapItems = new ArraySchema<ServerItem>();
 
     // 這裡只同步場上所有單位的存活
     @type({ map: ServerGameUnit }) allUnits = new MapSchema<ServerGameUnit>();
@@ -72,7 +68,7 @@ export class GameCoreState extends Schema {
         this.waveNumber = 1;
         this.status = 'prepare';
         this.aliveHeroes = 0;
-        this.mapItems.clear();
+
         this.bullets.clear();
     }
 }

@@ -5,6 +5,7 @@
 
 import { ItemConfigDefinition } from "./Equipment/ItemTypes";
 import { WeaponConfigDefinition, WeaponPropertyDefinition } from "./Equipment/WeaponPropertyTypes";
+import { MaterialConfigDefinition } from "./Equipment/MaterialTypes";
 import { TalentConfig, TalentEffect } from "./Game/TalentTypes";
 
 /**
@@ -66,6 +67,7 @@ export interface GoogleCacheData {
     WeaponProperties: WeaponPropertyDefinition[];
     WeaponConfigs: WeaponConfigDefinition[];
     ItemConfigs: ItemConfigDefinition[];
+    MaterialConfigs: MaterialConfigDefinition[];
     TalentConfigs: TalentConfig[];
     TalentEffects: TalentEffect[];
     lastUpdated: string;
