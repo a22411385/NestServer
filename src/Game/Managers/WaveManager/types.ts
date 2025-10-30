@@ -3,7 +3,7 @@
  * 整合自 WaveManager.ts 的所有接口
  */
 
-import { EnemyType } from "../../../Types/Game/EnemyTypes";
+import { EnemyCategory } from "@/Types";
 import { SpawnType } from "../SpawnManager";
 
 
@@ -44,7 +44,7 @@ export interface GameFlowConfig {
  */
 export interface WaveConfig {
     waveNumber: number;
-    enemyTypes: EnemyType[];
+    enemyTypes: EnemyCategory[];
     enemyCount: number;
     spawnType: SpawnType;
     preparationTime: number;    // 準備時間（毫秒）

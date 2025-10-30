@@ -1,11 +1,8 @@
 import { EnemyFactory } from "../../Factories/EnemyFactory";
 import { SpawnManager } from "../SpawnManager/SpawnManager";
-import { Vector2 } from "../../../Colyseus/Schema/Unit/GameUnit";
 import { ServerEnemy } from "../../../Colyseus/Schema/Unit/Enemy";
 import { ServerGameUnit } from "../../../Colyseus/Schema/Unit/GameUnit";
 
-// 🆕 使用統一類型定義
-import { EnemyType } from "../../../Types/Game/EnemyTypes";
 import { SpawnType, SpawnConfig } from "../SpawnManager/types";
 import {
     WaveState,
@@ -356,7 +353,7 @@ export class WaveManager {
         console.log(`🌊 Starting Wave ${this.currentWave} immediately (${battleDurationSeconds}s battle time)...`);
         console.log(`📊 Wave Config:`, {
             enemies: this.activeWaveConfig.enemyCount,
-            types: this.activeWaveConfig.enemyTypes.map(t => EnemyType[t]).join(', '),
+            types: this.activeWaveConfig.enemyTypes.join(', '), // 🔄 現在直接是字符串ID
             isBoss: this.activeWaveConfig.isBossWave,
             spawnInterval: `${this.activeWaveConfig.spawnInterval}ms`
         });
@@ -395,7 +392,7 @@ export class WaveManager {
         console.log(`🌊 Starting Wave ${this.currentWave}...`);
         console.log(`📊 Wave Config:`, {
             enemies: this.activeWaveConfig.enemyCount,
-            types: this.activeWaveConfig.enemyTypes.map(t => EnemyType[t]).join(', '),
+            types: this.activeWaveConfig.enemyTypes.join(', '), // 🔄 現在直接是字符串ID
             isBoss: this.activeWaveConfig.isBossWave
         });
 
@@ -486,9 +483,6 @@ export class WaveManager {
     private createEnemyForCurrentWave(): ServerEnemy | null {
         if (!this.activeWaveConfig) return null;
 
-        // 選擇敵人類型
-        const enemyType = this.selectEnemyType();
-
         // 獲取生成位置
         const spawnConfig = this.getSpawnConfigForWave();
         const existingUnits = this.getCurrentUnits(); // 需要外部提供
@@ -502,21 +496,15 @@ export class WaveManager {
         // 選擇一個生成位置
         const position = spawnPositions[0];
 
-        // 創建敵人
-        const enemy = EnemyFactory.createEnemy(enemyType, position, this.currentWave);
+        // 🔄 使用動態配置系統生成敵人
+        const enemy = EnemyFactory.createRandomEnemyByWave(position, this.currentWave);
+
+        if (!enemy) {
+            console.warn(`⚠️ No available enemies for wave ${this.currentWave}`);
+            return null;
+        }
 
         return enemy;
-    }
-
-    /**
-     * 選擇敵人類型
-     */
-    private selectEnemyType(): EnemyType {
-        if (!this.activeWaveConfig) return EnemyType.NORMAL_ZOMBIE;
-
-        const availableTypes = this.activeWaveConfig.enemyTypes;
-        const randomIndex = Math.floor(Math.random() * availableTypes.length);
-        return availableTypes[randomIndex];
     }
 
     /**
@@ -621,11 +609,17 @@ export class WaveManager {
     }
 
     /**
-     * 生成波次配置 - 配合 GameManager 的時間設置
+     * 🔄 生成波次配置 - 配合 GameManager 的時間設置（使用動態敵人系統）
      */
     private generateWaveConfig(waveNumber: number, battleDuration: number = 30): WaveConfig {
-        const isBossWave = waveNumber % 5 === 0;
-        const enemyTypes = EnemyFactory.getRecommendedEnemyTypes(waveNumber);
+        // 🔄 使用動態配置獲取可用敵人ID
+        const availableEnemyIds = EnemyFactory.getAvailableEnemyIds(waveNumber);
+
+        // 檢查是否為 Boss 波次
+        const bossEnemies = EnemyFactory.getEnemiesByAIType(waveNumber, 'boss');
+        const isBossWave = bossEnemies.length > 0 && waveNumber % 5 === 0;
+
+        // 敵人數量計算
         const enemyCount = EnemyFactory.calculateEnemyCount(waveNumber);
 
         // 根據戰鬥時間動態調整生成間隔
@@ -634,7 +628,7 @@ export class WaveManager {
 
         return {
             waveNumber,
-            enemyTypes,
+            enemyTypes: availableEnemyIds as any, // 🔄 現在存儲字符串ID而非枚舉
             enemyCount,
             spawnType: isBossWave ? SpawnType.BOSS_CENTER : SpawnType.RANDOM_EDGE,
             preparationTime: 0, // 準備時間由 GameManager 控制

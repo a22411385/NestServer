@@ -125,13 +125,6 @@ export class DropSystem {
     }
 
     /**
-     * 🎯 機率判定
-     */
-    private rollDrop(probability: number): boolean {
-        return BattleMathUtils.rollProbability(probability);
-    }
-
-    /**
      * 🎯 計算經驗值掉落
      *  可能依照英雄裝備或天賦變化
      */
@@ -155,21 +148,6 @@ export class DropSystem {
 
         return Math.floor(enemyLevel * baseAmount * levelMultiplier + BattleMathUtils.randomFloatRange(0, randomRange));
     }
-
-    /**
-     * 獲取隨機掉落位置（在原位置周圍散佈）
-     */
-    private getRandomDropPosition(basePosition: Vector2): Vector2 {
-        const scatterRadius = 50; // 散佈半徑
-        const angle = Math.random() * 2 * Math.PI;
-        const distance = Math.random() * scatterRadius;
-
-        return new Vector2(
-            basePosition.x + Math.cos(angle) * distance,
-            basePosition.y + Math.sin(angle) * distance
-        );
-    }
-
     /**
      * 清理系統資源
      */

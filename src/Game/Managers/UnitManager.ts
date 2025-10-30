@@ -27,7 +27,7 @@ export class UnitManager {
     public getAllAliveEnemies(): ServerEnemy[] {
         const aliveEnemies: ServerEnemy[] = [];
 
-        for (const [, unit] of this.room.state.gameCore.allUnits) {
+        for (const [, unit] of this.room.state.allUnits) {
             if (unit.type === UnitType.enemy && !unit.isDead) {
                 aliveEnemies.push(unit as ServerEnemy);
             }
@@ -42,7 +42,7 @@ export class UnitManager {
     public getAllAliveHeroes(): ServerHero[] {
         const aliveHeroes = [];
 
-        for (const [, unit] of this.room.state.gameCore.allUnits) {
+        for (const [, unit] of this.room.state.allUnits) {
             if (unit.type === UnitType.hero && !unit.isDead) {
                 aliveHeroes.push(unit as ServerHero);
             }
@@ -52,7 +52,7 @@ export class UnitManager {
     }
 
     public getUnitById(unitId: string): ServerGameUnit | undefined {
-        return this.room.state.gameCore.allUnits.get(unitId);
+        return this.room.state.allUnits.get(unitId);
     }
     /**
     * 處理屬性點分配

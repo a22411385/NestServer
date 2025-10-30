@@ -5,6 +5,7 @@ import axios from 'axios';
 import { WeaponConfigDefinition, WeaponPropertyDefinition } from '@/Types/Equipment/WeaponPropertyTypes';
 import { ItemConfigDefinition } from '@/Types/Equipment/ItemTypes';
 import { MaterialConfigDefinition } from '@/Types/Equipment/MaterialTypes';
+import { EnemyConfigDefinition } from '@/Types/Game/EnemyTypes';
 import { GoogleCacheData } from '@/Types';
 import { TalentConfig, TalentEffect } from '@/Types/Game/TalentTypes';
 
@@ -74,9 +75,10 @@ export class GoogleSheetCache {
             const weaponConfigsSheet = workbook.Sheets['WeaponConfigs'];
             const itemConfigsSheet = workbook.Sheets['ItemConfigs'];
             const materialConfigsSheet = workbook.Sheets['MaterialConfigs'];
+            const enemyConfigsSheet = workbook.Sheets['EnemyConfigs'];  // 🆕 敵人配置表
             const talentConfigSheet = workbook.Sheets['Talents'];
             const talentEffectSheet = workbook.Sheets['TalentEffects'];
-            if (!weaponPropertiesSheet || !weaponConfigsSheet || !itemConfigsSheet || !materialConfigsSheet || !talentConfigSheet || !talentEffectSheet) {
+            if (!weaponPropertiesSheet || !weaponConfigsSheet || !itemConfigsSheet || !materialConfigsSheet || !enemyConfigsSheet || !talentConfigSheet || !talentEffectSheet) {
                 throw new Error('Required sheets not found in the workbook');
             }
 
@@ -84,6 +86,7 @@ export class GoogleSheetCache {
             const weaponConfigs = XLSX.utils.sheet_to_json<WeaponConfigDefinition>(weaponConfigsSheet);
             const itemConfigs = XLSX.utils.sheet_to_json<ItemConfigDefinition>(itemConfigsSheet);
             const materialConfigs = XLSX.utils.sheet_to_json<MaterialConfigDefinition>(materialConfigsSheet);
+            const enemyConfigs = XLSX.utils.sheet_to_json<EnemyConfigDefinition>(enemyConfigsSheet);  // 🆕 讀取敵人配置
             const talentConfigs = XLSX.utils.sheet_to_json<TalentConfig>(talentConfigSheet);
             const talentEffects = XLSX.utils.sheet_to_json<TalentEffect>(talentEffectSheet);
             this.cacheData = {
@@ -91,6 +94,7 @@ export class GoogleSheetCache {
                 WeaponConfigs: weaponConfigs,
                 ItemConfigs: itemConfigs,
                 MaterialConfigs: materialConfigs,
+                EnemyConfigs: enemyConfigs,  // 🆕 添加到快取數據
                 TalentConfigs: talentConfigs,
                 TalentEffects: talentEffects,
                 lastUpdated: new Date().toISOString()

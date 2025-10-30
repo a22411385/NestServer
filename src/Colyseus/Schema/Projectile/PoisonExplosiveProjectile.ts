@@ -75,7 +75,7 @@ export class PoisonExplosiveProjectile extends ExplosiveProjectile {
         const poisonExplosionEffect: VisualEffect = {
             type: 'explosion',
             position: { x: currentPos.x, y: currentPos.y },
-            direction: { x: bullet.direction.x, y: bullet.direction.y },
+            direction: { x: bullet.directionX, y: bullet.directionY },
             data: {
                 radius: bullet.areaOfEffect,
                 colors: [0x00ff00, 0x88ff00, 0xaaff00], // 綠色毒霧

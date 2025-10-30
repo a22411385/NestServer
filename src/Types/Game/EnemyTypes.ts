@@ -3,32 +3,61 @@
  * 整合自 EnemyFactory.ts 的所有接口和枚舉
  */
 
-/**
- * 敵人類型枚舉
- */
-export enum EnemyType {
-    NORMAL_ZOMBIE = 1,
-    FAST_ZOMBIE = 2,
-    STRONG_ZOMBIE = 3,
-    BOSS_ZOMBIE = 4
-}
+/** 敵人分類 */
+export type EnemyCategory = 'undead' | 'beast' | 'demon' | 'humanoid' | 'elemental' | 'construct';
 
 /**
- * 敵人配置接口
+ * AI 類型
  */
-export interface EnemyConfig {
-    type: EnemyType;
-    hp: number;
-    maxHp: number;
-    attackDamage: number;
-    moveSpeed: number;
-    scale: number;
-    collisionWidth: number;
-    collisionHeight: number;
-    experienceReward: number;
-    goldReward: number;
-}
+export type EnemyAIType =
+    | 'aggressive'  // 主動攻擊，直接沖向玩家
+    | 'defensive'   // 防禦型，保持距離
+    | 'chase'       // 追擊型，高速追逐
+    | 'tank'        // 肉盾型，緩慢但堅固
+    | 'ranged'      // 遠程攻擊
+    | 'boss'        // Boss 行為
+    | 'elite'       // 精英怪行為
+    | 'ambush'      // 伏擊型
+    | 'summoner'    // 召喚師
+    | 'phantom';    // 幽靈型（可穿牆）
 
+/**
+ * 🆕 敵人配置定義（從 Google Sheets 載入）
+ */
+export interface EnemyConfigDefinition {
+    id: string;                      // 敵人ID（唯一標識）
+    name: string;                    // 內部名稱
+    displayName: string;             // 顯示名稱模板（支持 {wave} 變數）
+    description: string;             // 描述
+    category: EnemyCategory;         // 分類
+
+    // 基礎屬性
+    baseHp: number;                  // 基礎生命值
+    baseAttackDamage: number;        // 基礎攻擊力
+    baseMoveSpeed: number;           // 基礎移動速度
+    baseExpReward: number;           // 基礎經驗獎勵
+    baseGoldReward: number;          // 基礎金幣獎勵
+
+    // 視覺屬性
+    scale: number;                   // 縮放比例
+    collisionWidth: number;          // 碰撞寬度
+    collisionHeight: number;         // 碰撞高度
+    iconPath: string;                // 圖標路徑
+    modelPath: string;               // 模型/動畫路徑
+
+    // AI 行為
+    aiType: EnemyAIType;            // AI 類型
+
+    // 生成控制
+    spawnWeight: number;             // 生成權重（越高越常出現）
+    minWave: number;                 // 最小出現波次
+    maxWave: number;                 // 最大出現波次（0 = 無限制）
+
+    // 特殊能力
+    specialAbilities: string;        // 特殊能力（逗號分隔）
+
+    enabled: boolean;                // 是否啟用
+}
 /**
  * 敵人AI狀態枚舉
  */
@@ -41,35 +70,3 @@ export enum EnemyAIState {
     DEAD = "dead"
 }
 
-/**
- * 敵人行為配置接口
- */
-export interface EnemyBehaviorConfig {
-    detectionRange: number;     // 偵測範圍
-    attackRange: number;        // 攻擊範圍
-    chaseRange: number;         // 追擊範圍
-    patrolRadius: number;       // 巡邏半徑
-    attackCooldown: number;     // 攻擊冷卻時間
-    maxChaseTime: number;       // 最大追擊時間
-}
-
-/**
- * 敵人生成數據接口
- */
-export interface EnemySpawnData {
-    type: EnemyType;
-    position: { x: number; y: number };
-    level?: number;
-    customConfig?: Partial<EnemyConfig>;
-}
-
-/**
- * 敵人統計接口
- */
-export interface EnemyStats {
-    enemiesSpawned: number;
-    enemiesKilled: number;
-    totalDamageDealt: number;
-    totalExperienceGiven: number;
-    totalGoldDropped: number;
-}

@@ -51,7 +51,7 @@ export class FireExplosiveProjectile extends ExplosiveProjectile {
         const fireExplosionEffect: VisualEffect = {
             type: 'explosion',
             position: { x: currentPos.x, y: currentPos.y },
-            direction: { x: bullet.direction.x, y: bullet.direction.y },
+            direction: { x: bullet.directionX, y: bullet.directionY },
             data: {
                 radius: bullet.areaOfEffect,
                 colors: [0xff4500, 0xff6600, 0xffaa00, 0xffff00], // 火焰漸層色

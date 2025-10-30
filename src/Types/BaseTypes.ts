@@ -7,6 +7,7 @@ import { ItemConfigDefinition } from "./Equipment/ItemTypes";
 import { WeaponConfigDefinition, WeaponPropertyDefinition } from "./Equipment/WeaponPropertyTypes";
 import { MaterialConfigDefinition } from "./Equipment/MaterialTypes";
 import { TalentConfig, TalentEffect } from "./Game/TalentTypes";
+import { EnemyConfigDefinition } from "./Game/EnemyTypes";
 
 /**
  * JWT 載荷接口
@@ -68,6 +69,7 @@ export interface GoogleCacheData {
     WeaponConfigs: WeaponConfigDefinition[];
     ItemConfigs: ItemConfigDefinition[];
     MaterialConfigs: MaterialConfigDefinition[];
+    EnemyConfigs: EnemyConfigDefinition[];  // 🆕 敵人配置
     TalentConfigs: TalentConfig[];
     TalentEffects: TalentEffect[];
     lastUpdated: string;

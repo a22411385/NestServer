@@ -15,7 +15,7 @@ import { ProjectileRegistry } from "@/Colyseus/Schema/Projectile";
 export class BulletSystem {
     private gameRoom: GameRoom;
     private get bullets() {
-        return this.gameRoom.state.gameCore.bullets;
+        return this.gameRoom.state.bullets;
     }
 
     // 🆕 記錄子彈上一幀位置 (用於連續碰撞檢測)
@@ -110,7 +110,7 @@ export class BulletSystem {
         const lastPos = this.lastBulletPositions.get(bullet.id);
 
         // 檢查與敵人的碰撞
-        for (const [enemyId, unit] of this.gameRoom.state.gameCore.allUnits) {
+        for (const [enemyId, unit] of this.gameRoom.state.allUnits) {
             if (unit.type !== UnitType.enemy || unit.isDead) continue;
 
             const enemy = unit as ServerEnemy;
@@ -209,7 +209,7 @@ export class BulletSystem {
      * 處理子彈命中 - 使用新的投射物系統
      */
     private handleBulletHit(bullet: ServerBullet, enemy: ServerEnemy): void {
-        const owner = this.gameRoom.state.gameCore.allUnits.get(bullet.ownerId);
+        const owner = this.gameRoom.state.allUnits.get(bullet.ownerId);
         if (!owner) {
             console.warn(`⚠️ 找不到子彈擁有者: ${bullet.ownerId}`);
             return;
@@ -231,7 +231,7 @@ export class BulletSystem {
 
             // 對所有受影響的目標造成傷害
             for (const targetId of attackResult.targetIds || []) {
-                const target = this.gameRoom.state.gameCore.allUnits.get(targetId);
+                const target = this.gameRoom.state.allUnits.get(targetId);
                 if (!target) {
                     console.warn(`⚠️ 找不到目標單位: ${targetId}`);
                     continue;
@@ -269,7 +269,7 @@ export class BulletSystem {
      * 處理敵人被擊殺
      */
     private handleEnemyKilled(bullet: ServerBullet, enemy: ServerEnemy, enemyId: string): void {
-        const owner = this.gameRoom.state.gameCore.allUnits.get(bullet.ownerId);
+        const owner = this.gameRoom.state.allUnits.get(bullet.ownerId);
 
         if (owner && owner.type === UnitType.hero) {
             const hero = owner as ServerHero;
@@ -295,7 +295,7 @@ export class BulletSystem {
             });
         }
 
-        this.gameRoom.state.gameCore.allUnits.delete(enemyId);
+        this.gameRoom.state.allUnits.delete(enemyId);
     }
 
     /**

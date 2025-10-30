@@ -222,18 +222,18 @@ export class GameManager {
 
         // 清理所有敵人
         const enemiesToRemove = [];
-        for (const [id, unit] of this.state.gameCore.allUnits) {
+        for (const [id, unit] of this.state.allUnits) {
             if (unit.type === UnitType.enemy) {
                 enemiesToRemove.push(id);
             }
         }
 
         enemiesToRemove.forEach(id => {
-            this.state.gameCore.allUnits.delete(id);
+            this.state.allUnits.delete(id);
         });
 
         // 清理所有子彈
-        this.state.gameCore.bullets.clear();
+        this.state.bullets.clear();
 
         // 重置英雄狀態
         for (const [, hero] of this.state.getAllHeroes()) {

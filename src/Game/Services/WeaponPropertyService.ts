@@ -1,6 +1,5 @@
 
-import { min } from "class-validator";
-import { PropertyValue, WeaponQuality, WeaponPropertyDefinition, PropertyValueType, compositeFormatCategory } from "../../Types/Equipment/WeaponPropertyTypes";
+import { PropertyValue, WeaponQuality, WeaponPropertyDefinition, PropertyValueType, compositeFormatCategory, WeaponConfigDefinition } from "../../Types/Equipment/WeaponPropertyTypes";
 import { ConfigManager } from "../Managers/ConfigManager";
 
 /**
@@ -67,7 +66,7 @@ export class WeaponPropertyService {
 
         try {
             // 獲取武器配置
-            const weaponConfig = ConfigManager.getWeaponConfigById(weaponId);
+            const weaponConfig = ConfigManager.getById<WeaponConfigDefinition>('WeaponConfigs', weaponId);
             if (!weaponConfig) {
                 console.warn(`⚠️ 找不到武器配置: ${weaponId}`);
                 return { fixed: [], random: [] };

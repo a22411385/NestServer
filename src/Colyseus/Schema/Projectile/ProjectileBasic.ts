@@ -40,7 +40,7 @@ export abstract class ProjectileBasic {
     gameRoom: GameRoom,
   ): AttackResult {
     // 1. 檢查子彈擁有者是否存在
-    const owner = gameRoom.state.gameCore.allUnits.get(bullet.ownerId);
+    const owner = gameRoom.state.allUnits.get(bullet.ownerId);
     if (!owner) {
       return {
         success: false,
@@ -102,7 +102,7 @@ export abstract class ProjectileBasic {
       baseDamage: damage,
       attackData: {
         position: bullet.getCurrentPosition(),
-        direction: { x: bullet.direction.x, y: bullet.direction.y },
+        direction: { x: bullet.directionX, y: bullet.directionY },
         range: bullet.areaOfEffect,
       },
       visualEffects: this.createVisualEffects(bullet, affectedTargets),
@@ -146,7 +146,7 @@ export abstract class ProjectileBasic {
 
     //console.log(`🔍 [findTargetsInRadius] 搜索範圍 - 中心: (${centerPosition.x}, ${centerPosition.y}), 半徑: ${radius}`);
 
-    for (const [unitId, unit] of gameRoom.state.gameCore.allUnits) {
+    for (const [unitId, unit] of gameRoom.state.allUnits) {
       checkedCount++;
 
       // 詳細記錄每個單位的檢查過程

@@ -5,8 +5,8 @@ import { BattleMathUtils } from "../../../Util/BattleMathUtils";
 
 
 const MOVEMENT_CONFIG = {
-    MOVEMENT_SCALE: 3,        // 移動縮放係數，與客戶端保持一致
-    FIXED_DELTA: 1 / 60        // 固定 delta time (60 FPS)
+    MOVEMENT_SCALE: 6,        // 移動縮放係數，與客戶端保持一致
+    FIXED_DELTA: 1 / 30       // 固定 delta time (60 FPS)
 };
 
 /**

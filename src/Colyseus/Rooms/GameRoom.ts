@@ -189,7 +189,7 @@ export class GameRoom extends MiddleRoom<GameRoomState> {
      */
     private setupStateFiltering(): void {
         // 過濾單位（allUnits）- 使用英雄的視野範圍
-        (this.state.gameCore.allUnits as any).$filters = {
+        (this.state.allUnits as any).$filters = {
             onAdd: (instance: ServerGameUnit, key: string) => {
                 return (client: Client, value: ServerGameUnit) => {
                     // 自己的英雄永遠同步
@@ -211,7 +211,7 @@ export class GameRoom extends MiddleRoom<GameRoomState> {
         };
 
         // 過濾子彈（bullets）- 視野範圍 + 額外緩衝區
-        (this.state.gameCore.bullets as any).$filters = {
+        (this.state.bullets as any).$filters = {
             onAdd: (instance: ServerBullet, key: string) => {
                 return (client: Client, value: ServerBullet) => {
                     const hero = this.state.getHero(client.sessionId);
@@ -219,8 +219,8 @@ export class GameRoom extends MiddleRoom<GameRoomState> {
 
                     // 🔧 子彈範圍 = 視野範圍 + 500 緩衝區（避免突然出現）
                     const bulletRange = (hero.visionRange || 1500) + 500;
-                    const dx = value.startPosition.x - hero.position.x;
-                    const dy = value.startPosition.y - hero.position.y;
+                    const dx = value.startPositionX - hero.position.x;
+                    const dy = value.startPositionY - hero.position.y;
                     const distSq = dx * dx + dy * dy;
                     return distSq <= bulletRange * bulletRange;
                 };
@@ -259,7 +259,7 @@ export class GameRoom extends MiddleRoom<GameRoomState> {
 
         if (deathResult.anyPlayerDied) {
             // 發送死亡戰報
-            for (const [, hero] of this.state.gameCore.allUnits) {
+            for (const [, hero] of this.state.allUnits) {
                 if (hero.type == UnitType.hero && hero.hp <= 0 && hero.isDead) {
                     this.messageHandler.sendBattleLog(`${(hero as ServerHero).name} 被殭屍群殺死了！`, 'death');
                 }

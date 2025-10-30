@@ -35,12 +35,6 @@ export class GameCoreState extends Schema {
     @type("number") aliveHeroes: number = 0; // 存活英雄數量
     @type("number") roundTime: number = 0; // 遊戲
 
-    // 這裡只同步場上所有單位的存活
-    @type({ map: ServerGameUnit }) allUnits = new MapSchema<ServerGameUnit>();
-
-    // 子彈系統 - Vampire Survivors 風格
-    @type({ map: ServerBullet }) bullets = new MapSchema<ServerBullet>();
-
     // 遊戲狀態管理方法
     isGameActive(): boolean {
         return this.status === 'battle';
@@ -69,7 +63,6 @@ export class GameCoreState extends Schema {
         this.status = 'prepare';
         this.aliveHeroes = 0;
 
-        this.bullets.clear();
     }
 }
 
@@ -89,6 +82,13 @@ export class GameRoomState extends Schema {
     //@type({ map: Hero }) heroes = new MapSchema<Hero>(); // 玩家操作單位
     @type(GameCoreState) gameCore: GameCoreState = new GameCoreState();
 
+
+    // 這裡只同步場上所有單位的存活
+    @type({ map: ServerGameUnit }) allUnits = new MapSchema<ServerGameUnit>();
+
+    // 子彈系統 - Vampire Survivors 風格
+    @type({ map: ServerBullet }) bullets = new MapSchema<ServerBullet>();
+
     // === 重要實體（中頻同步）===
 
     // === 房間基本資訊 ===
@@ -103,11 +103,9 @@ export class GameRoomState extends Schema {
     // === 測試房模式相關 ===
     @type("boolean") isTestMode: boolean = true; // 測試模式標記
 
-    get allUnits() {
-        return this.gameCore.allUnits;
-    }
+
     addBullet(bullet: ServerBullet): void {
-        this.gameCore.bullets.set(bullet.id, bullet);
+        this.bullets.set(bullet.id, bullet);
     }
 
     // 添加完整單位的方法

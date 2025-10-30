@@ -12,8 +12,10 @@ export class ServerBullet extends Schema {
     // @type("number")
 
     // 發射時的初始資訊
-    @type(Vector2) startPosition: Vector2 = new Vector2(0, 0); // 發射起點
-    @type(Vector2) direction: Vector2 = new Vector2(1, 0); // 發射方向 (單位向量)
+    @type('number') startPositionX: number = 0; // 發射起點
+    @type('number') startPositionY: number = 0; // 發射起點
+    @type("number") directionX: number = 0; // 發射方向 (單位向量)
+    @type("number") directionY: number = 0 // 發射方向 (單位向量)
     @type("number") startTime: number = 0; // 發射時間戳
 
     // 子彈類型相關
@@ -52,10 +54,10 @@ export class ServerBullet extends Schema {
         this.id = id;
         this.ownerId = ownerId;
         this.weaponId = weaponId;
-        this.startPosition.x = startPos.x;
-        this.startPosition.y = startPos.y;
-        this.direction.x = targetDir.x;
-        this.direction.y = targetDir.y;
+        this.startPositionX = startPos.x;
+        this.startPositionY = startPos.y;
+        this.directionX = targetDir.x;
+        this.directionY = targetDir.y;
         this.damage = damage;
         this.speed = speed;
         this.bulletType = bulletType;
@@ -79,8 +81,8 @@ export class ServerBullet extends Schema {
     // 計算當前位置
     getCurrentPosition(): Vector2 {
         const traveledDistance = Math.min(this.getTraveledDistance(), this.maxDistance);
-        const currentX = this.startPosition.x + (this.direction.x * traveledDistance);
-        const currentY = this.startPosition.y + (this.direction.y * traveledDistance);
+        const currentX = this.startPositionX + (this.directionX * traveledDistance);
+        const currentY = this.startPositionY + (this.directionY * traveledDistance);
         return new Vector2(currentX, currentY);
     }
 

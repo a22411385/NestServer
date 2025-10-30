@@ -8,7 +8,7 @@ import { AttackResult, AttributeBonus, BuffEffect, StatType } from "@/Types";
 import { ConfigManager } from "@/Game/Managers/ConfigManager";
 import { WeaponSystemFacade } from "@/Game/Systems/Battle/WeaponSystemFacade";
 import { WeaponInstanceManager } from "@/Game/Managers/WeaponInstanceManager";
-import { WeaponQuality } from "@/Types/Equipment/WeaponPropertyTypes";
+import { WeaponConfigDefinition, WeaponQuality } from "@/Types/Equipment/WeaponPropertyTypes";
 
 const HERO_MAX_WEAPON_SLOTS = 8;
 // 玩家操控的主要單位
@@ -453,7 +453,7 @@ export class ServerHero extends ServerGameUnit {
      */
     public adddWeapon(weaponId: string): string {
         // 使用 Facade 創建完整武器數據
-        const config = ConfigManager.getWeaponConfigById(weaponId);
+        const config = ConfigManager.getById<WeaponConfigDefinition>('WeaponConfigs', weaponId);
         if (!config) {
             throw new Error(`無法找到武器配置: ${weaponId}`);
         }

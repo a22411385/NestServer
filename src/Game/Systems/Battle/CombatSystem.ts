@@ -404,7 +404,7 @@ export class CombatSystem {
      */
     private getValidTargets(targetIds: string[]): ServerGameUnit[] {
         return targetIds
-            .map((id) => this.gameRoom.state.gameCore.allUnits.get(id))
+            .map((id) => this.gameRoom.state.allUnits.get(id))
             .filter((unit) => unit && !unit.isDead) as ServerGameUnit[];
     }
 

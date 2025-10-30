@@ -39,7 +39,7 @@ export class PiercingProjectile extends ProjectileBasic {
         const hitEffect: VisualEffect = {
             type: 'hit',
             position: { x: currentPos.x, y: currentPos.y },
-            direction: { x: bullet.direction.x, y: bullet.direction.y },
+            direction: { x: bullet.directionX, y: bullet.directionY },
             data: {
                 damage: bullet.damage, // ← 從 bullet 獲取
                 isPierce: true,

@@ -314,7 +314,7 @@ export class DamageSystem {
                 this.room.dropSystem.handleEnemyDeath(enemy, hero);
             }
 
-            this.room.state.gameCore.allUnits.delete(enemy.id);
+            this.room.state.allUnits.delete(enemy.id);
 
         }
     }
@@ -325,7 +325,7 @@ export class DamageSystem {
     private findNearbyHeroes(position: { x: number, y: number }, range: number, excludeHeroId: string): ServerHero[] {
         const nearbyHeroes: ServerHero[] = [];
 
-        for (const [, unit] of this.room.state.gameCore.allUnits) {
+        for (const [, unit] of this.room.state.allUnits) {
             if (unit.type !== UnitType.hero || unit.isDead || unit.id === excludeHeroId) continue;
 
             const distance = BattleMathUtils.calculateDistanceVector(unit.position, position);
@@ -348,7 +348,7 @@ export class DamageSystem {
     ): ServerGameUnit[] {
         const targets: ServerGameUnit[] = [];
 
-        for (const [, unit] of this.room.state.gameCore.allUnits) {
+        for (const [, unit] of this.room.state.allUnits) {
             if (unit.type !== targetType || unit.isDead) continue;
 
             const distance = BattleMathUtils.calculateDistanceVector(unit.position, centerPosition);

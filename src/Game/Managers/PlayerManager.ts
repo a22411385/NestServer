@@ -3,6 +3,7 @@ import { GameRoomState, GamePlayer, UnitType } from "../../Colyseus/Schema/GameS
 import { IdGenerator } from "../../Util/IdGenerator";
 import { ServerHero } from "../../Colyseus/Schema/Unit/Hero";
 import { LobbyPlayer } from "../../Colyseus/Schema/LobbyState";
+import { Vector2 } from "@/Colyseus/Schema/Unit/GameUnit";
 
 /**
  * 玩家管理器 - 負責處理玩家的生命週期、狀態管理和 Hero 單位管理

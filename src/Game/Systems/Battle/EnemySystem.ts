@@ -8,8 +8,6 @@ import { GameRoom } from "../../../Colyseus/Rooms/GameRoom";
 import { WaveManager } from "../../Managers/WaveManager/WaveManager";
 import { EnemyCoordinationSystem } from "./EnemyCoordinationSystem";
 import { BattleMathUtils } from "../../../Util/BattleMathUtils";
-import { EnemyFactory } from "../../Factories/EnemyFactory";
-
 const mapSize = 1000;
 
 /**
@@ -46,43 +44,11 @@ export class EnemySystem {
         // 敵人生成事件
         this.waveManager.on('enemy_spawned', (event: any) => {
             const enemy = event.data as ServerEnemy;
-            this.addEnemyToGame(enemy);
-        });
-
-        // 波次開始事件
-        this.waveManager.on('wave_start', (event: any) => {
-            console.log(`🌊 Wave ${event.waveNumber} started!`);
-            // 通知所有客戶端波次開始
-            this.room.broadcast("wave_start", { waveNumber: event.waveNumber, config: event.data });
-        });
-
-        // 波次完成事件
-        this.waveManager.on('wave_complete', (event: any) => {
-            console.log(`🏆 Wave ${event.waveNumber} completed!`);
-            // 通知客戶端波次完成
-            this.room.broadcast("wave_complete", {
-                waveNumber: event.waveNumber,
-                duration: event.data.duration,
-                rewards: event.data.rewards
-            });
-        });
-
-        // 波次失敗事件
-        this.waveManager.on('wave_failed', (event: any) => {
-            console.log(`💀 Wave ${event.waveNumber} failed!`);
-            this.room.broadcast("wave_failed", { waveNumber: event.waveNumber });
+            enemy.id = IdGenerator.generateEnemyId(enemy.lv);
+            this.state.allUnits.set(enemy.id, enemy);
+            console.log(`➕ Added enemy ${enemy.name} (${enemy.id}) to game state`);
         });
     }
-
-    /**
-     * 添加敵人到遊戲狀態
-     */
-    private addEnemyToGame(enemy: ServerEnemy): void {
-        enemy.id = IdGenerator.generateEnemyId(enemy.lv);
-        this.state.allUnits.set(enemy.id, enemy);
-        console.log(`➕ Added enemy ${enemy.name} (${enemy.id}) to game state`);
-    }
-
     /**
      * 開始新波次（配合 GameManager 時序）
      */
@@ -111,27 +77,6 @@ export class EnemySystem {
         return this.enemyCoordination;
     }
 
-
-    /**
-     * 測試房專用：生成單隻敵人到指定位置
-     * 🔧 修改為使用 EnemyFactory 以保持屬性一致性
-     */
-    spawnSingleEnemy(x: number, y: number, type: number = 1): string {
-        // 使用 EnemyFactory 創建敵人(確保屬性與正式遊戲一致)
-        const position = new Vector2(
-            BattleMathUtils.clamp(x, 0, 1000),
-            BattleMathUtils.clamp(y, 0, 800)
-        );
-
-        const enemy = EnemyFactory.createEnemy(type, position, 1);
-        // 🔧 使用統一的測試ID生成系統
-        enemy.id = IdGenerator.generateTestEnemyId(type);
-
-        // 添加到遊戲狀態
-        this.state.addEnemy(enemy);
-
-        return enemy.id;
-    }
 
     /**
      * 🆕 測試模式：生成木樁殭屍（不會動、血量極高）
@@ -188,10 +133,10 @@ export class EnemySystem {
      * 更新所有敵人的 AI - 效能優化版本
      */
     public updateEnemyAI(deltaTime: number, currentTime: number): void {
-        if (!this.room?.state?.gameCore?.allUnits) return;
+        if (!this.room.state.allUnits) return;
 
         //const heroes = this.room.state.allUnits;
-        const allUnits = this.room.state.gameCore.allUnits;
+        const allUnits = this.room.state.allUnits;
         const enemies: ServerEnemy[] = [];
 
         // 收集所有活著的敵人

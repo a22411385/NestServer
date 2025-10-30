@@ -4,7 +4,6 @@ import { IMessageHandler } from "@/Types";
 import { GameControlHandler } from "./GameControlHandler";
 import { MovementHandler } from "./MovementHandler";
 import { WaveControlHandler } from "./WaveControlHandler";
-import { DebugHandler } from "./DebugHandler";
 import { EquipmentHandler } from "./EquipmentHandler"; // 🆕 引入裝備處理器
 import { CharacterHandler } from "./CharacterHandler"; // 🆕 引入角色處理器
 
@@ -27,7 +26,6 @@ export class MessageHandler {
             new MovementHandler(this.room),
             new WaveControlHandler(this.room),
 
-            new DebugHandler(this.room),
             new EquipmentHandler(this.room), // 🆕 添加裝備處理器
             new CharacterHandler(this.room), // 🆕 添加角色處理器
 

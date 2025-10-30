@@ -51,7 +51,7 @@ export class ExplosiveProjectile extends ProjectileBasic {
         const explosionEffect: VisualEffect = {
             type: 'explosion',
             position: { x: currentPos.x, y: currentPos.y },
-            direction: { x: bullet.direction.x, y: bullet.direction.y },
+            direction: { x: bullet.directionX, y: bullet.directionY },
             data: {
                 radius: bullet.areaOfEffect,
                 colors: [0xff4400, 0xffaa00, 0xffff88],

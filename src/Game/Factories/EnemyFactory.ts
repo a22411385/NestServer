@@ -1,79 +1,34 @@
 import { ServerEnemy } from "../../Colyseus/Schema/Unit/Enemy";
 import { UnitType } from "../../Colyseus/Schema/GameState";
 import { Vector2 } from "../../Colyseus/Schema/Unit/GameUnit";
-// 🆕 使用統一類型定義
-import { EnemyType, EnemyConfig } from "@/Types";
+import { ConfigManager } from "@/Game/Managers/ConfigManager";
+import { EnemyConfigDefinition } from "@/Types";
 
 /**
- * 敵人工廠類 - 負責創建不同類型的敵人
+ * 🔄 敵人工廠類 - 使用動態配置系統
+ * 
+ * - 從 Google Sheets EnemyConfigs 載入敵人數據
+ * - 支持波次相關的敵人生成和屬性縮放
+ * - 根據配置權重進行隨機選擇
+ * 
  */
 export class EnemyFactory {
-    private static enemyConfigs: Map<EnemyType, EnemyConfig> = new Map([
-        [EnemyType.NORMAL_ZOMBIE, {
-            type: EnemyType.NORMAL_ZOMBIE,
-            hp: 100,
-            maxHp: 100,
-            attackDamage: 15,
-            moveSpeed: 60,
-            scale: 1.0,
-            collisionWidth: 32,
-            collisionHeight: 64,
-            experienceReward: 10,
-            goldReward: 5
-        }],
-        [EnemyType.FAST_ZOMBIE, {
-            type: EnemyType.FAST_ZOMBIE,
-            hp: 80,
-            maxHp: 80,
-            attackDamage: 12,
-            moveSpeed: 100,
-            scale: 0.9,
-            collisionWidth: 28,
-            collisionHeight: 28,
-            experienceReward: 15,
-            goldReward: 8
-        }],
-        [EnemyType.STRONG_ZOMBIE, {
-            type: EnemyType.STRONG_ZOMBIE,
-            hp: 200,
-            maxHp: 200,
-            attackDamage: 25,
-            moveSpeed: 40,
-            scale: 1.3,
-            collisionWidth: 40,
-            collisionHeight: 40,
-            experienceReward: 30,
-            goldReward: 15
-        }],
-        [EnemyType.BOSS_ZOMBIE, {
-            type: EnemyType.BOSS_ZOMBIE,
-            hp: 500,
-            maxHp: 500,
-            attackDamage: 40,
-            moveSpeed: 80,
-            scale: 1.8,
-            collisionWidth: 60,
-            collisionHeight: 60,
-            experienceReward: 100,
-            goldReward: 50
-        }]
-    ]);
 
     /**
-     * 創建指定類型的敵人
-     * @param enemyType 敵人類型
+     * 🔄 創建指定ID的敵人（使用動態配置）
+     * @param enemyId 敵人配置ID (如 'zombie_normal', 'werewolf_hunter')
      * @param position 生成位置
-     * @param waveNumber 波次編號（影響屬性加成）
+     * @param waveNumber 波次編號（影響等級和屬性加成）
      * @returns 創建的敵人實例
      */
     public static createEnemy(
-        enemyType: EnemyType,
+        enemyId: string,
         position: Vector2,
         waveNumber: number = 1
     ): ServerEnemy {
-        const config = this.enemyConfigs.get(enemyType);
+        const config = ConfigManager.getById<EnemyConfigDefinition>('EnemyConfigs', enemyId);
         if (!config) {
-            throw new Error(`Unknown enemy type: ${enemyType}`);
+            throw new Error(`Unknown enemy id: ${enemyId}`);
         }
 
         // 根據波次計算屬性加成
@@ -81,18 +36,18 @@ export class EnemyFactory {
 
         const enemy = new ServerEnemy();
         enemy.type = UnitType.enemy;
-        enemy.lv = enemyType;
 
-        // 基礎屬性設置
-        enemy.hp = Math.floor(config.hp * waveMultiplier.hp);
-        enemy.maxHp = Math.floor(config.maxHp * waveMultiplier.hp);
-        enemy.attackDamage = Math.floor(config.attackDamage * waveMultiplier.damage);
-        enemy.moveSpeed = config.moveSpeed;
+        // ✅ 修復：設置正確的等級 = 波次（用於材料掉落解鎖）
+        enemy.lv = waveNumber;
 
-        // 🔧 設置獎勵屬性(之前漏掉了!)
-        enemy.expReward = Math.floor(config.experienceReward * waveMultiplier.exp);
-        // 注意: goldReward 需要在 DropSystem 中處理,因為 ServerEnemy 沒有 gold 屬性
-        // DropSystem 會從 config.goldReward 讀取
+        // 基礎屬性設置（基於配置和波次加成）
+        enemy.hp = Math.floor(config.baseHp * waveMultiplier.hp);
+        enemy.maxHp = Math.floor(config.baseHp * waveMultiplier.hp);
+        enemy.attackDamage = Math.floor(config.baseAttackDamage * waveMultiplier.damage);
+        enemy.moveSpeed = config.baseMoveSpeed;
+
+        // 🔧 設置獎勵屬性
+        enemy.expReward = Math.floor(config.baseExpReward * waveMultiplier.exp);
 
         // 視覺和碰撞屬性
         enemy.scale = config.scale * waveMultiplier.scale;
@@ -103,11 +58,31 @@ export class EnemyFactory {
         enemy.position = new Vector2(position.x, position.y);
         enemy.birthX = position.x;
         enemy.birthY = position.y;
-        // 敵人名稱
-        enemy.name = this.getEnemyName(enemyType, waveNumber);
 
-        console.log(`🧟 Created ${enemy.name} at (${position.x}, ${position.y}) - Wave ${waveNumber}`);
+        // 敵人名稱（使用配置的 displayName，支持 {wave} 模板替換）
+        enemy.name = config.displayName.replace('{wave}', waveNumber.toString());
+
+        console.log(`🧟 Created ${enemy.name} (${enemyId}) at (${position.x}, ${position.y}) - Wave ${waveNumber} Lv.${enemy.lv}`);
         return enemy;
+    }
+
+    /**
+     * 🆕 根據波次隨機生成敵人
+     * @param position 生成位置
+     * @param waveNumber 波次編號
+     * @returns 創建的敵人實例，如果該波次無可用敵人則返回 null
+     */
+    public static createRandomEnemyByWave(
+        position: Vector2,
+        waveNumber: number
+    ): ServerEnemy | null {
+        const enemyId = ConfigManager.getRandomEnemyIdByWave(waveNumber);
+        if (!enemyId) {
+            console.warn(`⚠️ No available enemies for wave ${waveNumber}`);
+            return null;
+        }
+
+        return this.createEnemy(enemyId, position, waveNumber);
     }
 
     /**
@@ -125,66 +100,53 @@ export class EnemyFactory {
     }
 
     /**
-     * 獲取敵人名稱
+     * 🆕 根據敵人ID和波次獲取金幣獎勵
+     * @param enemyId 敵人配置ID
+     * @param waveNumber 波次編號
+     * @returns 金幣獎勵數量
      */
-    private static getEnemyName(enemyType: EnemyType, waveNumber: number): string {
-        const baseNames: Record<EnemyType, string> = {
-            [EnemyType.NORMAL_ZOMBIE]: "普通殭屍",
-            [EnemyType.FAST_ZOMBIE]: "快速殭屍",
-            [EnemyType.STRONG_ZOMBIE]: "強壯殭屍",
-            [EnemyType.BOSS_ZOMBIE]: "殭屍王"
-        };
-
-        const baseName = baseNames[enemyType] || "未知敵人";
-        return waveNumber > 1 ? `${baseName} Lv.${waveNumber}` : baseName;
-    }
-
-    /**
-     * 獲取敵人配置
-     */
-    public static getEnemyConfig(enemyType: EnemyType): EnemyConfig | undefined {
-        return this.enemyConfigs.get(enemyType);
-    }
-
-    /**
-     * 🆕 根據敵人類型和波次獲取金幣獎勵
-     * (供 DropSystem 使用)
-     */
-    public static getGoldReward(enemyType: EnemyType, waveNumber: number = 1): number {
-        const config = this.enemyConfigs.get(enemyType);
+    public static getGoldReward(enemyId: string, waveNumber: number = 1): number {
+        const config = ConfigManager.getById<EnemyConfigDefinition>('EnemyConfigs', enemyId);
         if (!config) return 0;
 
         const waveMultiplier = this.getWaveMultiplier(waveNumber);
-        return Math.floor(config.goldReward * waveMultiplier.exp); // 金幣也隨波次增長
+        return Math.floor(config.baseGoldReward * waveMultiplier.exp);
     }
 
     /**
-     * 根據波次推薦敵人類型組合
+     * 🆕 根據波次獲取可生成的敵人ID列表
+     * @param waveNumber 波次編號
+     * @returns 可生成的敵人ID數組
      */
-    public static getRecommendedEnemyTypes(waveNumber: number): EnemyType[] {
-        if (waveNumber <= 3) {
-            return [EnemyType.NORMAL_ZOMBIE];
-        } else if (waveNumber <= 6) {
-            return [EnemyType.NORMAL_ZOMBIE, EnemyType.FAST_ZOMBIE];
-        } else if (waveNumber <= 10) {
-            return [EnemyType.NORMAL_ZOMBIE, EnemyType.FAST_ZOMBIE, EnemyType.STRONG_ZOMBIE];
-        } else if (waveNumber % 5 === 0) { // Boss 波次
-            return [EnemyType.BOSS_ZOMBIE];
-        } else {
-            return [EnemyType.FAST_ZOMBIE, EnemyType.STRONG_ZOMBIE];
-        }
+    public static getAvailableEnemyIds(waveNumber: number): string[] {
+        const enemies = ConfigManager.getEnemiesByWave(waveNumber);
+        return enemies.map(enemy => enemy.id);
+    }
+
+    /**
+     * 🆕 根據波次和AI類型篩選敵人
+     * @param waveNumber 波次編號
+     * @param aiType AI類型 (如 'boss', 'chase', 'aggressive')
+     * @returns 匹配的敵人ID數組
+     */
+    public static getEnemiesByAIType(waveNumber: number, aiType: string): string[] {
+        const enemies = ConfigManager.getEnemiesByWave(waveNumber);
+        return enemies
+            .filter(enemy => enemy.aiType === aiType)
+            .map(enemy => enemy.id);
     }
 
     /**
      * 計算波次敵人總數
      */
     public static calculateEnemyCount(waveNumber: number): number {
-        // Boss 波次只有一個 Boss
-        if (waveNumber % 5 === 0) {
-            return 1;
+        // 檢查是否為 Boss 波次（每5波）
+        const bossEnemies = this.getEnemiesByAIType(waveNumber, 'boss');
+        if (bossEnemies.length > 0 && waveNumber % 5 === 0) {
+            return 1; // Boss 波次只有一個 Boss
         }
 
-        // 普通波次：基礎10個，每波+1個，最多100個
+        // 普通波次：基礎10個，每波+5個，最多100個
         return Math.min(10 + waveNumber * 5, 100);
     }
 }

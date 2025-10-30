@@ -1,7 +1,7 @@
 import { ArraySchema, type } from "@colyseus/schema";
 import { ItemType, ServerItem } from "../Item/ServerItem";
 import { ServerGameUnit } from "./GameUnit";
-import { ConfigManager } from "../../../Game/Managers/ConfigManager";
+import { ConfigManager } from "../../../Game/Managers/Config/ConfigManager";
 
 export class ServerNPC extends ServerGameUnit {
 

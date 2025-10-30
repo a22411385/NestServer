@@ -59,7 +59,7 @@ export class FreezeProjectile extends ProjectileBasic {
         const freezeEffect: VisualEffect = {
             type: 'freeze',
             position: { x: currentPos.x, y: currentPos.y },
-            direction: { x: bullet.direction.x, y: bullet.direction.y },
+            direction: { x: bullet.directionX, y: bullet.directionY },
             data: {
                 radius: bullet.areaOfEffect,
                 duration: freezeDuration,
