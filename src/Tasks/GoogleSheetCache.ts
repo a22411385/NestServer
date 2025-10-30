@@ -3,7 +3,6 @@ import * as fs from 'fs';
 import * as path from 'path';
 import axios from 'axios';
 import { WeaponConfigDefinition, WeaponPropertyDefinition } from '@/Types/Equipment/WeaponPropertyTypes';
-import { ItemConfigDefinition } from '@/Types/Equipment/ItemTypes';
 import { MaterialConfigDefinition } from '@/Types/Equipment/MaterialTypes';
 import { EnemyConfigDefinition } from '@/Types/Game/EnemyTypes';
 import { GoogleCacheData } from '@/Types';
@@ -73,18 +72,17 @@ export class GoogleSheetCache {
 
             const weaponPropertiesSheet = workbook.Sheets['WeaponProperties'];
             const weaponConfigsSheet = workbook.Sheets['WeaponConfigs'];
-            const itemConfigsSheet = workbook.Sheets['ItemConfigs'];
+
             const materialConfigsSheet = workbook.Sheets['MaterialConfigs'];
             const enemyConfigsSheet = workbook.Sheets['EnemyConfigs'];  // 🆕 敵人配置表
             const talentConfigSheet = workbook.Sheets['Talents'];
             const talentEffectSheet = workbook.Sheets['TalentEffects'];
-            if (!weaponPropertiesSheet || !weaponConfigsSheet || !itemConfigsSheet || !materialConfigsSheet || !enemyConfigsSheet || !talentConfigSheet || !talentEffectSheet) {
+            if (!weaponPropertiesSheet || !weaponConfigsSheet || !materialConfigsSheet || !enemyConfigsSheet || !talentConfigSheet || !talentEffectSheet) {
                 throw new Error('Required sheets not found in the workbook');
             }
 
             const weaponProperties = XLSX.utils.sheet_to_json<WeaponPropertyDefinition>(weaponPropertiesSheet);
             const weaponConfigs = XLSX.utils.sheet_to_json<WeaponConfigDefinition>(weaponConfigsSheet);
-            const itemConfigs = XLSX.utils.sheet_to_json<ItemConfigDefinition>(itemConfigsSheet);
             const materialConfigs = XLSX.utils.sheet_to_json<MaterialConfigDefinition>(materialConfigsSheet);
             const enemyConfigs = XLSX.utils.sheet_to_json<EnemyConfigDefinition>(enemyConfigsSheet);  // 🆕 讀取敵人配置
             const talentConfigs = XLSX.utils.sheet_to_json<TalentConfig>(talentConfigSheet);
@@ -92,7 +90,6 @@ export class GoogleSheetCache {
             this.cacheData = {
                 WeaponProperties: weaponProperties,
                 WeaponConfigs: weaponConfigs,
-                ItemConfigs: itemConfigs,
                 MaterialConfigs: materialConfigs,
                 EnemyConfigs: enemyConfigs,  // 🆕 添加到快取數據
                 TalentConfigs: talentConfigs,

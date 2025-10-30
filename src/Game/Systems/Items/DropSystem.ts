@@ -2,10 +2,6 @@ import { GameRoom } from "../../../Colyseus/Rooms/GameRoom";
 import { ServerGameUnit } from "../../../Colyseus/Schema/Unit/GameUnit";
 import { ServerEnemy } from "../../../Colyseus/Schema/Unit/Enemy";
 import { BattleMathUtils } from "../../../Util/BattleMathUtils";
-import {
-    WEAPON_DROP_CONFIG,
-    BASIC_DROP_CONFIG
-} from "./DropRates";
 import { WeaponSystemFacade } from "../Battle/WeaponSystemFacade";
 import { ServerHero } from "@/Colyseus/Schema/Unit/Hero";
 import { ConfigManager } from "@/Game/Managers/ConfigManager";
@@ -110,29 +106,14 @@ export class DropSystem {
     }
 
     /**
-     * 🎯 武器掉落機率計算
-     */
-    private calculateWeaponDropRate(enemy: ServerEnemy): number {
-        // 基礎武器掉落率
-        let baseRate = WEAPON_DROP_CONFIG.baseDropRate;
-
-        // 等級調整
-        const enemyLevel = enemy.lv || 1;
-        baseRate += enemyLevel * WEAPON_DROP_CONFIG.levelMultiplier;
-
-        // 最大掉落率限制
-        return Math.min(WEAPON_DROP_CONFIG.maxDropRate, baseRate);
-    }
-
-    /**
      * 🎯 計算經驗值掉落
      *  可能依照英雄裝備或天賦變化
      */
     private calculateExpDrop(enemy: ServerEnemy, killer: ServerHero): number {
         const enemyLevel = enemy.lv || 1;
-        const baseAmount = BASIC_DROP_CONFIG.exp.baseAmount;
-        const levelMultiplier = BASIC_DROP_CONFIG.exp.levelMultiplier;
-        const randomRange = BASIC_DROP_CONFIG.exp.randomRange;
+        const baseAmount = enemy.expReward;
+        const levelMultiplier = 1;
+        const randomRange = 1;
 
         return Math.floor(enemyLevel * baseAmount * levelMultiplier + Math.random() * randomRange);
     }
@@ -142,9 +123,9 @@ export class DropSystem {
      */
     private calculateGoldDrop(enemy: ServerEnemy, killer: ServerHero): number {
         const enemyLevel = enemy.lv || 1;
-        const baseAmount = BASIC_DROP_CONFIG.gold.baseAmount;
-        const levelMultiplier = BASIC_DROP_CONFIG.gold.levelMultiplier;
-        const randomRange = BASIC_DROP_CONFIG.gold.randomRange;
+        const baseAmount = 25;
+        const levelMultiplier = 1;
+        const randomRange = 1;
 
         return Math.floor(enemyLevel * baseAmount * levelMultiplier + BattleMathUtils.randomFloatRange(0, randomRange));
     }

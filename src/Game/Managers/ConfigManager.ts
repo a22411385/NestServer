@@ -1,5 +1,4 @@
 import { GoogleCacheData } from '@/Types';
-import { ItemConfigDefinition } from '@/Types/Equipment/ItemTypes';
 import { WeaponConfigDefinition, WeaponPropertyDefinition } from '@/Types/Equipment/WeaponPropertyTypes';
 import { MaterialConfigDefinition } from '@/Types/Equipment/MaterialTypes';
 import { EnemyConfigDefinition } from '@/Types/Game/EnemyTypes';

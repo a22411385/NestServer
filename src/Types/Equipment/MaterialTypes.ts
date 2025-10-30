@@ -3,6 +3,8 @@
  * 用於定義遊戲中的製作材料配置
  */
 
+import { EquipmentQuality } from "./EquipmentTypes";
+
 /**
  * 素材類型枚舉
  */
@@ -25,15 +27,6 @@ export enum MaterialType {
 }
 
 /**
- * 素材稀有度
- */
-export enum MaterialRarity {
-    COMMON = 'common',       // 普通 (80%)
-    RARE = 'rare',          // 稀有 (15%)
-    EPIC = 'epic',          // 史詩 (5%)
-}
-
-/**
  * 素材分類
  */
 export enum MaterialCategory {
@@ -49,7 +42,7 @@ export interface MaterialConfigDefinition {
     id: string;                    // 素材ID (對應 MaterialType)
     name: string;                  // 素材名稱
     description: string;           // 素材描述
-    rarity: MaterialRarity;        // 稀有度
+    rarity: EquipmentQuality;        // 稀有度
     category: MaterialCategory;    // 分類
     stackSize: number;             // 最大堆疊數
     sellPrice: number;             // 出售價格
