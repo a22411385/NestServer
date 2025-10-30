@@ -123,16 +123,35 @@ export class GameRoomState extends Schema {
         this.allUnits.delete(enemyId);
     }
 
-    // 清除所有敵人類型的單位
+    // 🎯 系統清理單位（不觸發擊殺獎勵）
+    // 用於波次結束、遊戲重置等系統清理場景
+    removeUnitBySystem(unitId: string): void {
+        const unit = this.allUnits.get(unitId);
+        if (unit) {
+            // 不設置 killedBy，表示是系統移除
+            unit.killedBy = "";
+            unit.isDead = true;
+            this.allUnits.delete(unitId);
+            console.log(`🧹 系統清理單位: ${unit.name || unitId}`);
+        }
+    }
+
+    // 清除所有敵人類型的單位（系統清理，不觸發獎勵）
     removeAllEnemy(): void {
         const toRemove: string[] = [];
         for (const [unitId, unit] of this.allUnits) {
             if (unit.type === UnitType.enemy) {
+                // 標記為系統清理
+                unit.killedBy = "";
                 toRemove.push(unitId);
             }
         }
         for (const unitId of toRemove) {
             this.allUnits.delete(unitId);
+        }
+
+        if (toRemove.length > 0) {
+            console.log(`🧹 系統清理了 ${toRemove.length} 個敵人（不觸發獎勵）`);
         }
     }
 

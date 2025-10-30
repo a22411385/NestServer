@@ -60,13 +60,6 @@ export class GameRoom extends MiddleRoom<GameRoomState> {
     */
     public async initializeManagers(): Promise<void> {
 
-        // 🆕 初始化武器工廠（載入動態類別映射）
-        await WeaponFactory.initialize();
-        console.log("🏭 武器工廠已初始化");
-
-        // 🔧 然後初始化武器實例管理器
-        WeaponInstanceManager.initialize();
-        console.log("🔧 武器實例管理器已初始化");
 
         this.playerManager = new PlayerManager(this);
 

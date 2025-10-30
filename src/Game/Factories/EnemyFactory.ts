@@ -49,6 +49,11 @@ export class EnemyFactory {
         // 🔧 設置獎勵屬性
         enemy.expReward = Math.floor(config.baseExpReward * waveMultiplier.exp);
 
+        // 🆕 設置攻擊屬性（從配置讀取）
+        enemy.attackRange = config.attackRange || 60;           // 默認 60
+        enemy.attackSpeed = config.attackCooldown || 1000;      // 攻擊冷卻（默認 1000ms）
+        enemy.setWindupDuration(config.attackWindupTime || 2000); // 前搖時間（默認 300ms）
+
         // 視覺和碰撞屬性
         enemy.scale = config.scale * waveMultiplier.scale;
         enemy.collisionWidth = config.collisionWidth;

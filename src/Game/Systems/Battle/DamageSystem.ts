@@ -57,17 +57,10 @@ export class DamageSystem {
         const isCritical = this.rollCriticalHit(attacker, target);
         const actualDamage = isCritical ? Math.floor(finalDamage * 1.5) : finalDamage;
 
-        // 🔧 添加調試日誌
-        // console.log(`💥 [傷害計算] ${attacker.name} 攻擊 ${target.name}:`);
-        //console.log(`   基礎傷害: ${baseDamage}, 最終傷害: ${finalDamage}, 實際傷害: ${actualDamage}`);
-        // console.log(`   目標血量: ${target.hp}/${target.maxHp}`);
-
         // 應用傷害
         const previousHp = target.hp;
         target.hp = BattleMathUtils.atLeast(target.hp - actualDamage, 0);
         const realDamage = previousHp - target.hp;
-
-        // console.log(`   傷害後血量: ${target.hp}/${target.maxHp} (扣除 ${realDamage})`);
 
         // 檢查目標是否死亡
         const wasKilled = target.hp <= 0;
@@ -81,9 +74,6 @@ export class DamageSystem {
 
         // 應用額外效果
         const effects = this.applyDamageEffects(damageInfo, target);
-
-        //console.log(`💥 ${attacker.name} 對 ${target.name} 造成 ${realDamage} 點傷害${isCritical ? ' (暴擊!)' : ''}${wasKilled ? ' (擊殺!)' : ''}`);
-
         return {
             actualDamage: realDamage,
             wasCritical: isCritical,
@@ -245,10 +235,10 @@ export class DamageSystem {
         target.position.x += normalizedX * knockbackDistance;
         target.position.y += normalizedY * knockbackDistance;
 
-        // 確保不超出地圖邊界
-        const clampedPosition = BattleMathUtils.clampToMapBounds(target.position, this.room.mapWidth, this.room.mapHeight);
-        target.position.x = clampedPosition.x;
-        target.position.y = clampedPosition.y;
+        // 🆕 無邊界模式：不限制位置
+        // const clampedPosition = BattleMathUtils.clampToMapBounds(target.position, this.room.mapWidth, this.room.mapHeight);
+        // target.position.x = clampedPosition.x;
+        // target.position.y = clampedPosition.y;
 
         return {
             type: 'knockback',
@@ -261,6 +251,9 @@ export class DamageSystem {
      */
     private handleUnitDeath(deadUnit: ServerGameUnit, killer: ServerGameUnit): void {
         console.log(`💀 ${deadUnit.name || deadUnit.id} 被 ${killer.name || killer.id} 殺死`);
+
+        // 🎯 記錄擊殺者ID
+        deadUnit.killedBy = killer.id;
 
         if (deadUnit.type === UnitType.enemy && killer.type === UnitType.hero) {
             // 敵人被英雄殺死，給予經驗值和金幣

@@ -19,13 +19,6 @@ export class WeaponInstanceManager {
      */
     public static async initialize(): Promise<void> {
         if (!this.cleanupInterval) {
-            // 🆕 首先初始化武器工廠
-            try {
-                await WeaponFactory.initialize();
-                console.log('✅ WeaponFactory 初始化完成');
-            } catch (error) {
-                console.error('❌ WeaponFactory 初始化失敗:', error);
-            }
 
             // 初始化屬性系統
             try {

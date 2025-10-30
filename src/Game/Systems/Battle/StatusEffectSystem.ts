@@ -86,6 +86,7 @@ export class StatusEffectSystem {
         switch (effect.type) {
             case 'burn':
             case 'poison':
+            case 'bleed':
                 // 持續傷害效果
                 this.applyDamageOverTime(unit, effect, currentTime);
                 break;

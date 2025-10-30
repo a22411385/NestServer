@@ -163,42 +163,9 @@ export class PlayerManager {
             console.log(`🎮 正在為 ${hero.name} 添加測試武器...`);
 
             // 所有可用武器列表
-            const availableWeapons = [
-                'baseball_bat',      // 球棒 - 近戰
-                'fireball',          // 火球 - 投射物
-                'iceball',           // 冰球 - 投射物
-                'lightning_bolt',    // 閃電箭 - 投射物
-                'poison_dagger',     // 毒刃 - 近戰
-                'war_hammer',        // 戰錘 - 近戰
-                'magic_missile',     // 魔法飛彈 - 投射物
-                'healing_staff',     // 治療法杖 - 支援
-                'shadow_blade',      // 暗影刃 - 近戰
-                //'explosive_arrow'    // 爆裂箭 - 投射物
-            ];
-
-            // 添加所有武器到背包
-            const addedWeapons: string[] = [];
-            for (const weaponId of availableWeapons) {
-                try {
-
-                    const weaponUniqueId = hero.adddWeapon(weaponId);
-                    addedWeapons.push(weaponUniqueId);
-                    console.log(`  ✅ 添加武器: ${weaponId} (${weaponUniqueId})`);
-
-                } catch (error) {
-                    console.warn(`  ❌ 添加武器失敗: ${weaponId}`, error);
-                }
-            }
-
-            // 默認裝備前兩個武器（球棒和火球）
-            if (addedWeapons.length >= 2) {
-                hero.equip(addedWeapons[0]); // 球棒
-                hero.equip(addedWeapons[1]); // 火球
-                console.log(`  🔧 默認裝備: ${availableWeapons[0]} 和 ${availableWeapons[1]}`);
-            }
-
-            console.log(`🎒 ${hero.name} 背包武器數量: ${hero.weaponInventory.length}`);
-
+            const testWeapon = 'base_sword';
+            const weapon = hero.adddWeapon(testWeapon);
+            hero.equip(weapon);
             this.state.allUnits.set(hero.id, hero);
 
             console.log(`👤 Initialized hero with ID: ${hero.id} for player: ${playerId}`);

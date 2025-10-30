@@ -10,7 +10,7 @@ import { WeaponSystemFacade } from "@/Game/Systems/Battle/WeaponSystemFacade";
 import { WeaponInstanceManager } from "@/Game/Managers/WeaponInstanceManager";
 import { WeaponConfigDefinition, WeaponQuality } from "@/Types/Equipment/WeaponPropertyTypes";
 
-const HERO_MAX_WEAPON_SLOTS = 8;
+const HERO_MAX_WEAPON_SLOTS = 1; // 🎯 改為只能裝備 1 個武器
 // 玩家操控的主要單位
 export class ServerHero extends ServerGameUnit {
 
@@ -492,6 +492,7 @@ export class ServerHero extends ServerGameUnit {
 
     /**
      * 裝備武器
+     * 🎯 單武器模式：裝備新武器時自動卸下舊武器
      */
     public equip(weaponIdentifier: string): boolean {
 
@@ -507,11 +508,12 @@ export class ServerHero extends ServerGameUnit {
             return false;
         }
 
-        // 檢查裝備槽 - 計算當前已裝備的武器數量
-        const equippedCount = this.weaponInventory.filter((w: WeaponSchema) => w.isEquipped).length;
-        if (equippedCount >= HERO_MAX_WEAPON_SLOTS) {
-            console.warn("裝備槽已滿");
-            return false;
+        // 🎯 單武器模式：檢查是否已有裝備的武器，自動卸下
+        const currentEquipped = this.weaponInventory.find((w: WeaponSchema) => w.isEquipped);
+        if (currentEquipped) {
+            //  const oldWeaponName = WeaponSystemFacade.getWeaponDisplayName(currentEquipped);
+            // console.log(`[${this.name}] 自動卸下舊武器: ${oldWeaponName}`);
+            currentEquipped.isEquipped = false;
         }
 
         // 裝備武器 (只設置標記，不需要 push，因為武器已經在 inventory 裡)

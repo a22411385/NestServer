@@ -219,7 +219,7 @@ export class ProjectileWeapon extends WeaponBasic {
         };
 
         const dotProduct =
-            directionX * targetDirection.x + directionY * targetDirection.y;
+            direction.x * targetDirection.x + direction.y * targetDirection.y;
         const angle = Math.acos(Math.max(-1, Math.min(1, dotProduct)));
 
         // 允許誤差角度（約5度）

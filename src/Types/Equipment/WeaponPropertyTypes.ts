@@ -48,6 +48,7 @@ export const PropertyType = {
     BURN: 'burn',
     POISON: 'poison',
     SLOW: 'slow',
+    BLEED: 'bleed',
 
     // 天賦專用屬性
     MAX_HEALTH: 'max_health',

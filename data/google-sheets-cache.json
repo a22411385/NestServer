@@ -8,7 +8,8 @@
       "valueMin": 50,
       "valueMax": 50,
       "stacked": false,
-      "category": "combat"
+      "category": "combat",
+      "buffType": "physical"
     },
     {
       "propertyType": "stun",
@@ -19,7 +20,8 @@
       "valueMax": "25|3",
       "compositeFormat": "probability|duration",
       "stacked": false,
-      "category": "debuff"
+      "category": "debuff",
+      "buffType": "physical"
     },
     {
       "propertyType": "strength",
@@ -29,7 +31,8 @@
       "valueMin": 5,
       "valueMax": 25,
       "stacked": true,
-      "category": "attribute"
+      "category": "attribute",
+      "buffType": "physical"
     },
     {
       "propertyType": "vitality",
@@ -39,7 +42,8 @@
       "valueMin": 8,
       "valueMax": 30,
       "stacked": true,
-      "category": "attribute"
+      "category": "attribute",
+      "buffType": "physical"
     },
     {
       "propertyType": "intelligence",
@@ -49,7 +53,8 @@
       "valueMin": 6,
       "valueMax": 28,
       "stacked": true,
-      "category": "attribute"
+      "category": "attribute",
+      "buffType": "physical"
     },
     {
       "propertyType": "agility",
@@ -59,7 +64,8 @@
       "valueMin": 4,
       "valueMax": 22,
       "stacked": true,
-      "category": "attribute"
+      "category": "attribute",
+      "buffType": "physical"
     },
     {
       "propertyType": "attack_damage",
@@ -69,7 +75,8 @@
       "valueMin": 5,
       "valueMax": 20,
       "stacked": true,
-      "category": "attribute"
+      "category": "attribute",
+      "buffType": "physical"
     },
     {
       "propertyType": "attack_speed",
@@ -79,7 +86,8 @@
       "valueMin": 50,
       "valueMax": 200,
       "stacked": true,
-      "category": "attribute"
+      "category": "attribute",
+      "buffType": "physical"
     },
     {
       "propertyType": "attack_range",
@@ -89,7 +97,8 @@
       "valueMin": 20,
       "valueMax": 100,
       "stacked": true,
-      "category": "attribute"
+      "category": "attribute",
+      "buffType": "physical"
     },
     {
       "propertyType": "freeze",
@@ -99,7 +108,8 @@
       "valueMin": 2,
       "valueMax": 2,
       "stacked": false,
-      "category": "debuff"
+      "category": "debuff",
+      "buffType": "magical"
     },
     {
       "propertyType": "burn",
@@ -110,7 +120,8 @@
       "valueMax": "40|5|15",
       "compositeFormat": "probability|duration|damage",
       "stacked": false,
-      "category": "debuff"
+      "category": "debuff",
+      "buffType": "magical"
     },
     {
       "propertyType": "poison",
@@ -121,7 +132,8 @@
       "valueMax": "30|6|12",
       "compositeFormat": "probability|duration|damage",
       "stacked": false,
-      "category": "debuff"
+      "category": "debuff",
+      "buffType": "magical"
     },
     {
       "propertyType": "slow",
@@ -132,7 +144,8 @@
       "valueMax": "50|4|60",
       "compositeFormat": "probability|duration|intensity",
       "stacked": false,
-      "category": "debuff"
+      "category": "debuff",
+      "buffType": "magical"
     },
     {
       "propertyType": "critical_chance",
@@ -143,7 +156,8 @@
       "valueMax": 15,
       "compositeFormat": "probability",
       "stacked": true,
-      "category": "combat"
+      "category": "combat",
+      "buffType": "physical"
     },
     {
       "propertyType": "critical_damage",
@@ -154,7 +168,8 @@
       "valueMax": 80,
       "compositeFormat": "probability",
       "stacked": true,
-      "category": "combat"
+      "category": "combat",
+      "buffType": "physical"
     },
     {
       "propertyType": "life_steal",
@@ -165,7 +180,8 @@
       "valueMax": 10,
       "compositeFormat": "probability",
       "stacked": true,
-      "category": "combat"
+      "category": "combat",
+      "buffType": "physical"
     },
     {
       "propertyType": "piercing",
@@ -175,7 +191,8 @@
       "valueMin": 1,
       "valueMax": 4,
       "stacked": false,
-      "category": "combat"
+      "category": "combat",
+      "buffType": "physical"
     },
     {
       "propertyType": "chain_attack",
@@ -186,7 +203,8 @@
       "valueMax": "5|60",
       "compositeFormat": "count|damage",
       "stacked": false,
-      "category": "combat"
+      "category": "combat",
+      "buffType": "physical"
     },
     {
       "propertyType": "splash_damage",
@@ -196,7 +214,8 @@
       "valueMin": 50,
       "valueMax": 100,
       "stacked": false,
-      "category": "combat"
+      "category": "combat",
+      "buffType": "physical"
     },
     {
       "propertyType": "projectile_speed",
@@ -206,7 +225,8 @@
       "valueMin": 50,
       "valueMax": 200,
       "stacked": true,
-      "category": "attribute"
+      "category": "attribute",
+      "buffType": "physical"
     },
     {
       "propertyType": "area_of_effect",
@@ -216,7 +236,8 @@
       "valueMin": 120,
       "valueMax": 180,
       "stacked": true,
-      "category": "attribute"
+      "category": "attribute",
+      "buffType": "physical"
     },
     {
       "propertyType": "pierce_count",
@@ -226,7 +247,8 @@
       "valueMin": 1,
       "valueMax": 6,
       "stacked": false,
-      "category": "attribute"
+      "category": "attribute",
+      "buffType": "physical"
     },
     {
       "propertyType": "heal_amount",
@@ -236,7 +258,8 @@
       "valueMin": 10,
       "valueMax": 50,
       "stacked": true,
-      "category": "attribute"
+      "category": "attribute",
+      "buffType": "physical"
     },
     {
       "propertyType": "buff_duration",
@@ -246,7 +269,8 @@
       "valueMin": 1,
       "valueMax": 5,
       "stacked": true,
-      "category": "attribute"
+      "category": "attribute",
+      "buffType": "physical"
     },
     {
       "propertyType": "support_radius",
@@ -256,7 +280,8 @@
       "valueMin": 150,
       "valueMax": 300,
       "stacked": true,
-      "category": "attribute"
+      "category": "attribute",
+      "buffType": "physical"
     },
     {
       "propertyType": "sweep_angle",
@@ -266,138 +291,142 @@
       "valueMin": 15,
       "valueMax": 60,
       "stacked": true,
-      "category": "attribute"
+      "category": "attribute",
+      "buffType": "physical"
+    },
+    {
+      "propertyType": "bleed",
+      "displayName": "流血",
+      "description": "攻擊時有機率造成流血",
+      "valueType": "composite",
+      "valueMin": "25|10|5",
+      "valueMax": "25|10|5",
+      "compositeFormat": "probability|duration|damage",
+      "stacked": true,
+      "category": "debuff",
+      "buffType": "physical"
     }
   ],
   "WeaponConfigs": [
     {
-      "id": "baseball_bat",
-      "name": "球棒",
-      "type": "棍棒",
-      "description": "一把普通的球棒，適合近距離戰鬥",
-      "enabled": true,
-      "weaponClass": "BaseballBat",
+      "id": "base_sword",
+      "name": "長劍",
+      "type": "劍",
+      "description": "一把趁手長劍, 適合近距離戰鬥",
+      "weaponClass": "BaseSword",
       "classModule": "MeleeWeapon",
       "baseDamage": 25,
       "attackSpeed": 1200,
       "attackRange": 80,
-      "fixedProperties": "knockback,stun,sweep_angle",
-      "randomProperties": "strength,vitality,critical_chance,life_steal"
+      "fixedProperties": "sweep_angle, bleed",
+      "enabled": true
+    },
+    {
+      "id": "war_hammer",
+      "name": "戰錘",
+      "type": "錘子",
+      "description": "沉重的戰錘，一擊可以擊退多個敵人",
+      "weaponClass": "WarHammer",
+      "classModule": "MeleeWeapon",
+      "baseDamage": 45,
+      "attackSpeed": 2500,
+      "attackRange": 100,
+      "fixedProperties": "knockback,splash_damage",
+      "enabled": true
     },
     {
       "id": "fireball",
       "name": "火球術",
       "type": "法術書",
       "description": "燃燒的火焰球，擅長範圍攻擊",
-      "enabled": true,
       "weaponClass": "Fireball",
-      "projectileClass": "FireExplosiveProjectile",
       "classModule": "ProjectileWeapon",
       "baseDamage": 30,
       "attackSpeed": 2000,
       "attackRange": 400,
       "fixedProperties": "burn,area_of_effect",
-      "randomProperties": "intelligence,vitality,projectile_speed,critical_damage"
+      "projectileClass": "FireExplosiveProjectile",
+      "enabled": true
     },
     {
       "id": "iceball",
       "name": "冰球術",
       "type": "法術書",
       "description": "冰凍之球，能控制敵人行動",
-      "enabled": true,
       "weaponClass": "IceBall",
-      "projectileClass": "FreezeProjectile",
       "classModule": "ProjectileWeapon",
       "baseDamage": 28,
       "attackSpeed": 2200,
       "attackRange": 380,
       "fixedProperties": "freeze,slow",
-      "randomProperties": "intelligence,vitality,projectile_speed,area_of_effect"
+      "projectileClass": "FreezeProjectile",
+      "enabled": true
     },
     {
       "id": "lightning_bolt",
       "name": "閃電鏈",
       "type": "法術書",
       "description": "閃電般的攻擊，可以跳躍到多個敵人",
-      "enabled": true,
       "weaponClass": "LightningBolt",
-      "projectileClass": "BasicProjectile",
       "classModule": "ProjectileWeapon",
       "baseDamage": 35,
       "attackSpeed": 1800,
       "attackRange": 500,
       "fixedProperties": "chain_attack,stun",
-      "randomProperties": "intelligence,agility,critical_chance,piercing"
+      "projectileClass": "BasicProjectile",
+      "enabled": true
     },
     {
       "id": "poison_dagger",
       "name": "毒刃",
       "type": "匕首",
       "description": "塗有劇毒的短刃，攻速極快",
-      "enabled": true,
       "weaponClass": "PoisonDagger",
       "classModule": "MeleeWeapon",
       "baseDamage": 20,
       "attackSpeed": 800,
       "attackRange": 60,
       "fixedProperties": "poison,attack_speed",
-      "randomProperties": "agility,strength,critical_chance,life_steal"
-    },
-    {
-      "id": "war_hammer",
-      "name": "戰錘",
-      "type": "錘子",
-      "description": "沉重的戰錘，一擊可以震撼多個敵人",
-      "enabled": true,
-      "weaponClass": "WarHammer",
-      "classModule": "MeleeWeapon",
-      "baseDamage": 45,
-      "attackSpeed": 2500,
-      "attackRange": 100,
-      "fixedProperties": "knockback,splash_damage,stun",
-      "randomProperties": "strength,vitality,critical_damage,sweep_angle"
+      "enabled": true
     },
     {
       "id": "magic_missile",
       "name": "祕法權杖",
       "type": "法杖",
       "description": "精準的魔法攻擊，可以穿透多個目標",
-      "enabled": true,
       "weaponClass": "MagicMissile",
       "classModule": "ProjectileWeapon",
       "baseDamage": 22,
       "attackSpeed": 1500,
       "attackRange": 600,
       "fixedProperties": "pierce_count,projectile_speed",
-      "randomProperties": "intelligence,vitality,critical_chance,area_of_effect"
+      "enabled": true
     },
     {
       "id": "healing_staff",
       "name": "治療法杖",
       "type": "法杖",
       "description": "神聖的治療法杖，專注於支援隊友",
-      "enabled": true,
       "weaponClass": "HealingStaff",
       "classModule": "SupportWeapon",
       "baseDamage": 15,
       "attackSpeed": 3000,
       "attackRange": 300,
       "fixedProperties": "heal_amount,support_radius",
-      "randomProperties": "intelligence,vitality,buff_duration,area_of_effect"
+      "enabled": true
     },
     {
       "id": "shadow_blade",
       "name": "暗影刃",
       "type": "匕首",
       "description": "來自暗影的利刃，暴擊率極高",
-      "enabled": true,
       "weaponClass": "ShadowBlade",
       "classModule": "MeleeWeapon",
       "baseDamage": 32,
       "attackSpeed": 1000,
       "attackRange": 70,
       "fixedProperties": "critical_chance,life_steal",
-      "randomProperties": "agility,strength,critical_damage,piercing"
+      "enabled": true
     }
   ],
   "MaterialConfigs": [
@@ -1088,5 +1117,5 @@
       "stack_type": "ADDITIVE"
     }
   ],
-  "lastUpdated": "2025-10-30T05:08:47.680Z"
+  "lastUpdated": "2025-10-30T13:26:00.387Z"
 }

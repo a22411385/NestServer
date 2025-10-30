@@ -1,6 +1,5 @@
 import { initializeTalentSystem } from '../../Services/TalentService';
 import { initializeTalentManager } from '../../Managers/TalentManager';
-import { initializePropertyCalculationService } from '../../Services/PropertyCalculationService';
 import { GoogleSheetCache } from '../../../Tasks/GoogleSheetCache';
 
 /**
@@ -33,10 +32,6 @@ export class TalentSystemInitializer {
             // 3. 初始化天賦管理器
             console.log('👤 初始化天賦管理器...');
             await initializeTalentManager();
-
-            // 4. 初始化屬性計算服務
-            console.log('🧮 初始化屬性計算服務...');
-            await initializePropertyCalculationService();
 
             this.isInitialized = true;
             console.log('✅ 天賦系統初始化完成！');

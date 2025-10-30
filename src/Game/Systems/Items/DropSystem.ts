@@ -35,6 +35,12 @@ export class DropSystem {
      * 🎯 處理敵人死亡掉落 - 直接給擊殺者獎勵
      */
     public handleEnemyDeath(enemy: ServerEnemy, killer: ServerGameUnit): void {
+        // 🎯 檢查是否有擊殺者（區分正常擊殺和系統移除）
+        if (!enemy.killedBy) {
+            console.log(`⚠️ 敵人 ${enemy.name} 被系統移除，不觸發掉落獎勵`);
+            return;
+        }
+
         // 只有玩家角色才獲得獎勵
         if (!(killer instanceof ServerHero)) {
             return;
@@ -101,6 +107,7 @@ export class DropSystem {
                     hero.materials.set(materialConfig.id, materialConfig.stackSize);
                     console.log(`⚠️ ${hero.name} 獲得素材: ${materialConfig.name} x${quantity} (已達上限: ${materialConfig.stackSize})`);
                 }
+                break; // 一次只掉落一種素材
             }
         }
     }

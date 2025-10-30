@@ -24,24 +24,34 @@ export class WeaponConfigManager {
         if (this.isInitialized) return;
 
         try {
-            // 嘗試從本地快取載入
-            const cachedData = GoogleSheetCache.getInstance().getData();
+            // 🎯 確保 GoogleSheetCache 已初始化
+            const cache = GoogleSheetCache.getInstance();
 
-            if (cachedData) {
-                this.weaponConfigs = {
-                    ...cachedData.WeaponConfigs.reduce((map, obj) => {
-                        map[obj.id] = obj;
-                        return map;
-                    }, {} as Record<string, WeaponConfigDefinition>)
-                };
-                console.log(`🎮 載入武器配置: ${Object.keys(cachedData.WeaponConfigs).length} 個來自快取`);
+            // 嘗試從本地快取載入
+            const cachedData = cache.getData();
+
+            if (!cachedData) {
+                throw new Error('GoogleSheetCache 未初始化或資料為空');
             }
 
-            this.isInitialized = true;
-        } catch (error) {
-            console.error('❌ 初始化武器配置失敗，使用預設配置:', error);
+            if (!cachedData.WeaponConfigs || cachedData.WeaponConfigs.length === 0) {
+                throw new Error('武器配置資料為空');
+            }
 
+            this.weaponConfigs = {
+                ...cachedData.WeaponConfigs.reduce((map, obj) => {
+                    map[obj.id] = obj;
+                    return map;
+                }, {} as Record<string, WeaponConfigDefinition>)
+            };
+
+            console.log(`🎮 載入武器配置: ${Object.keys(this.weaponConfigs).length} 個來自快取`);
             this.isInitialized = true;
+
+        } catch (error) {
+            console.error('❌ 初始化武器配置失敗:', error);
+            console.error('   請確保 GoogleSheetCache.init() 已在 WeaponConfigManager.initialize() 之前調用');
+            throw error; // 🎯 拋出錯誤，不要靜默失敗
         }
     }
 

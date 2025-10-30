@@ -28,22 +28,25 @@ export class WeaponPropertyService {
 
         try {
             console.log('🔧 初始化武器屬性系統...');
-            // 從本地快取載入屬性數據
-            const cachedData = ConfigManager.getWeaponProperties();
-            if (cachedData && cachedData) {
-                // 建立屬性數據庫映射
-                for (const property of cachedData) {
-                    this.weaponProperties.set(property.propertyType, property);
-                }
 
-                console.log(`✅ 成功載入 ${this.weaponProperties.size} 個武器屬性`);
-                this.isInitialized = true;
-            } else {
-                throw new Error('無法載入武器屬性數據');
+            // 🎯 從本地快取載入屬性數據
+            const cachedData = ConfigManager.getWeaponProperties();
+
+            if (!cachedData || cachedData.length === 0) {
+                throw new Error('武器屬性數據為空或未載入。請確保 GoogleSheetCache 已初始化。');
             }
+
+            // 建立屬性數據庫映射
+            for (const property of cachedData) {
+                this.weaponProperties.set(property.propertyType, property);
+            }
+
+            console.log(`✅ 成功載入 ${this.weaponProperties.size} 個武器屬性`);
+            this.isInitialized = true;
 
         } catch (error) {
             console.error('❌ 武器屬性系統初始化失敗:', error);
+            console.error('   請確保 GoogleSheetCache.init() 已在此之前調用');
             throw error;
         }
     }

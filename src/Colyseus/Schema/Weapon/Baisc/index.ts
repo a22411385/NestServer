@@ -5,6 +5,6 @@ export * from './ProjectileWeapon';
 export * from './SupportWeapon';
 
 // 具體武器實現導出
-export * from '../MeleeWeapon/BaseballBat';
+export * from '../MeleeWeapon/BaseSword';
 export * from '../ProjectileWeapon/Fireball';
 export * from '../SupportWeapon/HealingPotion';

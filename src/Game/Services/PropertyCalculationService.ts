@@ -288,10 +288,3 @@ export class PropertyCalculationService {
         console.log(`🔄 重置角色 ${character.id} 的天賦`);
     }
 }
-
-/**
- * 便利函數 - 初始化屬性計算服務
- */
-export async function initializePropertyCalculationService(): Promise<void> {
-    await PropertyCalculationService.getInstance().initialize();
-}

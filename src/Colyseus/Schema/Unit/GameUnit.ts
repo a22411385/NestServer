@@ -48,6 +48,10 @@ export class ServerGameUnit extends Schema {
     @type("number") attackSpeed: number = 1000;
 
     @type("number") attackRange: number = 100; // 攻擊範圍
+
+    // 🎯 擊殺者ID - 用於區分正常擊殺和系統清理
+    // 如果有值，表示被某個單位擊殺；如果為空，表示被系統移除
+    public killedBy: string = ""; // 不同步到客戶端，僅伺服器使用
     // @type("number") radius: number = 20; // 體積/碰撞半徑 (保留向後兼容)
 
     // 回復屬性

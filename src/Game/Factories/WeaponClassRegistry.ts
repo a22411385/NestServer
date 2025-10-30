@@ -27,13 +27,6 @@ export class WeaponClassRegistry {
         return null;
     }
 
-    /**
-     * 手動註冊武器類別
-     */
-    public static registerWeaponClass(className: string, weaponClass: any): void {
-        this.dynamicClasses.set(className, weaponClass);
-        console.log(`🔧 註冊武器類別: ${className}`);
-    }
 
     /**
      * 🆕 根據模組和類別名稱動態導入武器類別
@@ -75,8 +68,7 @@ export class WeaponClassRegistry {
             }
 
             // 註冊到動態類別映射中
-            this.registerWeaponClass(className, weaponClass);
-
+            this.dynamicClasses.set(className, weaponClass);
             return weaponClass;
 
         } catch (error) {
@@ -90,34 +82,15 @@ export class WeaponClassRegistry {
      */
     public static async loadWeaponClasses(weaponConfigs: Record<string, any>): Promise<Map<string, any>> {
         const loadedClasses = new Map<string, any>();
-        const loadPromises: Promise<void>[] = [];
 
         for (const [weaponId, config] of Object.entries(weaponConfigs)) {
             if (!config.weaponClass) {
                 console.warn(`⚠️ 武器 ${weaponId} 沒有指定 weaponClass`);
                 continue;
             }
-
-            const loadPromise = this.loadWeaponClass(config.weaponClass, config.classModule)
-                .then(weaponClass => {
-                    if (weaponClass) {
-                        loadedClasses.set(weaponId, weaponClass);
-                        console.log(`✅ 武器 ${weaponId} -> 類別 ${config.weaponClass}`);
-                    } else {
-                        console.warn(`⚠️ 無法載入武器類別: ${weaponId} -> ${config.weaponClass}`);
-                    }
-                })
-                .catch(error => {
-                    console.error(`❌ 載入武器類別時發生錯誤: ${weaponId}`, error);
-                });
-
-            loadPromises.push(loadPromise);
+            const weaponClass = await this.loadWeaponClass(config.weaponClass, config.classModule)
+            loadedClasses.set(weaponId, weaponClass);
         }
-
-        // 等待所有載入完成
-        await Promise.all(loadPromises);
-
-        console.log(`🎯 成功載入 ${loadedClasses.size} 個武器類別`);
         return loadedClasses;
     }
 

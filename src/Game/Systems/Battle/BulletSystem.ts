@@ -273,6 +273,10 @@ export class BulletSystem {
 
         if (owner && owner.type === UnitType.hero) {
             const hero = owner as ServerHero;
+
+            // 🎯 記錄擊殺者（子彈的擁有者）
+            enemy.killedBy = hero.id;
+
             const leveledUp = hero.addExperience(enemy.expReward);
 
             if (leveledUp) {

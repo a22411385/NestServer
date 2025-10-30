@@ -51,9 +51,22 @@ export class GoogleSheetCache {
         if (!fs.existsSync(dataDir)) {
             fs.mkdirSync(dataDir, { recursive: true });
         }
-        //檢查本地檔案是否存在,不存在就更新快取
+
+        // 檢查本地檔案是否存在，不存在就更新快取
         if (!fs.existsSync(this.cacheFilePath)) {
+            console.log('📥 快取檔案不存在，從 Google Sheets 下載...');
             await this.updateCache();
+        } else {
+            // 🎯 重要：即使檔案存在，也要載入到記憶體
+            console.log('📂 載入本地快取檔案到記憶體...');
+            this.loadFromFile();
+
+            if (!this.cacheData) {
+                console.warn('⚠️ 快取檔案損壞，重新下載...');
+                await this.updateCache();
+            } else {
+                console.log('✅ Google Sheets 快取已載入');
+            }
         }
     }
 

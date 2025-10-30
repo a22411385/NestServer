@@ -9,6 +9,8 @@ import { SetMetadata } from '@nestjs/common';
 import { ColyseusServer } from './Colyseus/ColyseusServer';
 import { GoogleSheetCache } from './Tasks/GoogleSheetCache';
 import { TalentSystemInitializer } from './Game/Systems/Talent/TalentSystemInitializer';
+import { WeaponInstanceManager } from './Game/Managers/WeaponInstanceManager';
+import { WeaponFactory } from './Game/Factories/WeaponFactory';
 
 export const IS_PUBLIC_KEY = 'isPublic';
 export const IsPublic = () => SetMetadata(IS_PUBLIC_KEY, true);
@@ -51,16 +53,42 @@ async function bootstrap() {
   console.log(`NestJS server running on: http://localhost:${process.env.PORT ?? 8000}`);
   console.log(`Colyseus server running on: http://localhost:3001`);
 
-  // 初始化 Google Sheets 快取
-  const googlesheet = new GoogleSheetCache();
-  await googlesheet.init();
-
-  // 初始化天賦系統
+  // 🎯 初始化順序很重要，必須按照依賴關係依序初始化
   try {
+    console.log('🔧 開始初始化遊戲系統...');
+
+    // 1️⃣ 初始化 Google Sheets 快取（最底層依賴）
+    console.log('📥 步驟 1/4: 初始化 Google Sheets 快取...');
+    const googlesheet = new GoogleSheetCache();
+    await googlesheet.init();
+    console.log('✅ Google Sheets 快取已就緒');
+
+    // 2️⃣ 初始化武器工廠（依賴 GoogleSheetCache）
+    console.log('🏭 步驟 2/4: 初始化武器工廠...');
+    await WeaponFactory.initialize();
+    console.log('✅ 武器工廠已初始化');
+
+    // 3️⃣ 初始化武器實例管理器（依賴 WeaponFactory）
+    console.log('🔧 步驟 3/4: 初始化武器實例管理器...');
+    await WeaponInstanceManager.initialize();
+    console.log('✅ 武器實例管理器已初始化');
+
+    // 4️⃣ 初始化天賦系統（依賴 GoogleSheetCache）
+    console.log('⭐ 步驟 4/4: 初始化天賦系統...');
     await TalentSystemInitializer.initialize();
+    console.log('✅ 天賦系統已初始化');
+
+    console.log('🎉 所有遊戲系統初始化完成！');
+
   } catch (error) {
-    console.error('天賦系統初始化失敗，伺服器將繼續運行但天賦功能可能不可用:', error);
+    console.error('❌ 遊戲系統初始化失敗:', error);
+    console.error('   伺服器將繼續運行，但部分功能可能無法使用');
+    console.error('   請檢查：');
+    console.error('   1. Google Sheets 快取檔案是否存在: data/google-sheets-cache.json');
+    console.error('   2. 環境變數 GOOGLE_SHEET_URL 是否設置');
+    console.error('   3. 網路連接是否正常');
   }
+
 }
 bootstrap();
 

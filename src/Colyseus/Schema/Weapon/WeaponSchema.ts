@@ -217,7 +217,7 @@ export class WeaponSchema extends Schema {
             case PropertyType.BURN:
             case PropertyType.POISON:
             case PropertyType.SLOW:
-
+            case PropertyType.BLEED:
                 break;
 
             default:

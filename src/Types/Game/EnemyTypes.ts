@@ -47,6 +47,9 @@ export interface EnemyConfigDefinition {
 
     // AI 行為
     aiType: EnemyAIType;            // AI 類型
+    attackRange: number;             // 攻擊範圍
+    attackCooldown: number;          // 🆕 攻擊冷卻時間 (ms)
+    attackWindupTime: number;        // 🆕 攻擊前搖時間 (ms)
 
     // 生成控制
     spawnWeight: number;             // 生成權重（越高越常出現）

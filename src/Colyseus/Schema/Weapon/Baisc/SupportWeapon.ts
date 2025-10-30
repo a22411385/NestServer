@@ -1,7 +1,7 @@
 import { WeaponBasic } from './WeaponBasic';
 import { AttackFailReason, VisualEffect, AttackResult } from '@/Types';
 import { ServerGameUnit } from '../../Unit/GameUnit';
-import { WeaponType } from '@/Types';
+
 
 /**
  * 輔助武器抽象類

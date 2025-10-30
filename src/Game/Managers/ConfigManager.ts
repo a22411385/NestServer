@@ -50,16 +50,30 @@ export class ConfigManager {
             try {
                 if (!fs.existsSync(this.cachePath)) {
                     console.warn(`⚠️ 配置檔案不存在: ${this.cachePath}`);
-                    throw new Error("配置檔案不存在");
+                    throw new Error(`配置檔案不存在: ${this.cachePath}`);
                 }
 
                 const cacheData = fs.readFileSync(this.cachePath, 'utf8');
                 this.cache = JSON.parse(cacheData);
 
-                console.log('✅ Google Sheets 快取載入成功');
+                // 🎯 驗證快取資料完整性
+                const requiredKeys: ConfigKey[] = ['WeaponProperties', 'WeaponConfigs', 'MaterialConfigs', 'EnemyConfigs', 'TalentConfigs', 'TalentEffects'];
+                const missingKeys = requiredKeys.filter(key => !this.cache[key] || (Array.isArray(this.cache[key]) && this.cache[key].length === 0));
+
+                if (missingKeys.length > 0) {
+                    console.warn(`⚠️ 快取資料不完整，缺少: ${missingKeys.join(', ')}`);
+                    console.warn(`   請執行 GoogleSheetCache.updateCache() 更新快取`);
+                }
+
+                console.log('✅ ConfigManager 快取載入成功');
+                console.log(`   - WeaponProperties: ${this.cache.WeaponProperties?.length || 0} 個`);
+                console.log(`   - WeaponConfigs: ${this.cache.WeaponConfigs?.length || 0} 個`);
+                console.log(`   - MaterialConfigs: ${this.cache.MaterialConfigs?.length || 0} 個`);
+                console.log(`   - EnemyConfigs: ${this.cache.EnemyConfigs?.length || 0} 個`);
+
             } catch (error) {
                 console.error('❌ 載入 Google Sheets 快取失敗:', error);
-                throw new Error("載入 Google Sheets 快取失敗");
+                throw new Error(`載入 Google Sheets 快取失敗: ${error.message}`);
             }
         }
 

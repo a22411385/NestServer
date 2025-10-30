@@ -14,8 +14,28 @@ export class ServerEnemy extends ServerGameUnit {
     @type("boolean") public isAttacking: boolean = false; // 是否正在攻擊
 
     // AI 狀態 - 不同步，僅伺服器端使用
-    private aiState: string = "chase"; // AI 狀態: chase, attack, idle
+    private aiState: string = "chase"; // AI 狀態: chase, attack, windup, idle
     private lastAttackTime: number = 0; // 上次攻擊時間
+
+    // 🆕 攻擊前搖系統
+    private windupStartTime: number = 0; // 前搖開始時間
+    private windupDuration: number = 300; // 前搖時長 (ms) - 默認值，會被配置覆蓋
+    private windupTargetId: string = ""; // 前搖時鎖定的目標ID
+    private windupTargetPosition: { x: number, y: number } | null = null; // 前搖時鎖定的目標位置
+
+    /**
+     * 🆕 設置攻擊前搖時長（從配置讀取）
+     */
+    public setWindupDuration(duration: number): void {
+        this.windupDuration = duration;
+    }
+
+    /**
+     * 🆕 獲取攻擊前搖時長
+     */
+    public getWindupDuration(): number {
+        return this.windupDuration;
+    }
 
     // 效能優化屬性 (不需要同步)
     private lastAIUpdateTime: number = 0; // 上次AI更新時間
@@ -115,6 +135,12 @@ export class ServerEnemy extends ServerGameUnit {
 
         const distanceToTarget = this.getDistanceTo(target);
 
+        // 🆕 處理攻擊前搖狀態
+        if (this.aiState === "windup") {
+            this.handleWindup(currentTime);
+            return;
+        }
+
         // 🆕 使用標準攻擊距離檢查，不再基於碰撞半徑
         if (distanceToTarget <= this.attackRange) {
             this.aiState = "attack";
@@ -175,26 +201,83 @@ export class ServerEnemy extends ServerGameUnit {
         return distance <= (myCollisionRadius + targetCollisionRadius + additionalRange);
     }
 
-    // 嘗試攻擊
-    private attemptAttack(target: ServerHero, currentTime: number): boolean {
-        if (currentTime - this.lastAttackTime >= this.attackSpeed) {
-            this.lastAttackTime = currentTime;
-            this.attackStartTime = currentTime; // 🆕 記錄攻擊開始時間
-            this.isAttacking = true; // 🆕 設置攻擊狀態
+    /**
+     * 🆕 處理攻擊前搖階段
+     */
+    private handleWindup(currentTime: number): void {
+        const windupElapsed = currentTime - this.windupStartTime;
 
-            console.log(`Enemy ${this.id} attacking hero ${target.id} at ${currentTime}`);
+        // 前搖期間保持靜止
+        this.vx = 0;
+        this.vy = 0;
 
-            // 攻擊並重置狀態（假設攻擊是瞬間的，實際可能需要延遲）
-            const success = this.attackTarget(target);
-
-            // 🆕 設置攻擊結束延遲（可用於前端動畫）
-            setTimeout(() => {
-                this.isAttacking = false;
-            }, 300); // 300ms 後結束攻擊狀態
-
-            return success;
+        // 前搖完成，執行實際攻擊
+        if (windupElapsed >= this.windupDuration) {
+            this.executeAttack(currentTime);
         }
-        return false;
+    }
+
+    /**
+     * 🆕 執行實際攻擊（前搖完成後）
+     */
+    private executeAttack(currentTime: number): void {
+        // 找到前搖時鎖定的目標
+        const target = this.targetCache;
+
+        if (!target || target.isDead) {
+            // 目標已死亡或消失，攻擊失敗
+            console.log(`❌ Enemy ${this.id} attack failed - target lost`);
+            this.aiState = "chase";
+            this.isAttacking = false;
+            this.windupTargetId = "";
+            this.windupTargetPosition = null;
+            return;
+        }
+
+        // 檢查目標是否還在攻擊範圍內
+        const distanceToTarget = this.getDistanceTo(target);
+        if (distanceToTarget > this.attackRange) {
+            // 目標已離開範圍，攻擊失敗
+            console.log(`❌ Enemy ${this.id} attack failed - target out of range (${distanceToTarget.toFixed(0)} > ${this.attackRange})`);
+            this.aiState = "chase";
+            this.isAttacking = false;
+            this.windupTargetId = "";
+            this.windupTargetPosition = null;
+            return;
+        }
+
+        // 執行攻擊
+        console.log(`✅ Enemy ${this.id} successfully hit hero ${target.id}`);
+        this.attackTarget(target);
+
+        // 重置狀態
+        this.aiState = "chase";
+        this.isAttacking = false;
+        this.windupTargetId = "";
+        this.windupTargetPosition = null;
+    }
+
+    // 嘗試攻擊 - 🆕 改為啟動前搖
+    private attemptAttack(target: ServerHero, currentTime: number): boolean {
+        // 檢查攻擊冷卻
+        if (currentTime - this.lastAttackTime < this.attackSpeed) {
+            return false;
+        }
+
+        // 🆕 開始前搖
+        this.windupStartTime = currentTime;
+        this.windupTargetId = target.id;
+        this.windupTargetPosition = { x: target.position.x, y: target.position.y };
+        this.aiState = "windup";
+        this.isAttacking = true;
+        this.attackStartTime = currentTime; // 用於前端動畫同步
+
+        // 更新最後攻擊時間（包含前搖時間）
+        this.lastAttackTime = currentTime;
+
+        console.log(`⚔️ Enemy ${this.id} starts windup against hero ${target.id} (${this.windupDuration}ms)`);
+
+        return true;
     }
 
     // 攻擊目標 - 🆕 使用距離檢查而不是碰撞檢查
@@ -208,33 +291,38 @@ export class ServerEnemy extends ServerGameUnit {
         return false;
     }
 
-    // 根據類型初始化屬性
+    // 🔧 已廢棄：根據類型初始化屬性（現在使用 EnemyFactory 從配置讀取）
+    // 保留此方法以防向後兼容需求
     initializeByType(lv: number): void {
+        console.warn(`⚠️ initializeByType() is deprecated. Use EnemyFactory.createEnemy() instead.`);
         this.lv = lv;
         switch (lv) {
-            case 1: // 普通殭屍
+            case 1: // 普通殭屍（默認值）
                 this.hp = this.maxHp = 20;
                 this.moveSpeed = 50;
                 this.damage = 10;
                 this.expReward = 1;
-                this.attackSpeed = 1000; // 攻擊間隔
+                this.attackSpeed = 1000; // 攻擊冷卻
                 this.attackRange = 60; // 攻擊距離
+                this.windupDuration = 300; // 前搖時間
                 break;
             case 2: // 快速殭屍
                 this.hp = this.maxHp = 15;
                 this.moveSpeed = 80;
                 this.damage = 8;
                 this.expReward = 2;
-                this.attackSpeed = 800; // 更快的攻擊速度
-                this.attackRange = 55; // 稍短的攻擊距離
+                this.attackSpeed = 800;
+                this.attackRange = 55;
+                this.windupDuration = 200;
                 break;
             case 3: // 強壯殭屍
                 this.hp = this.maxHp = 40;
                 this.moveSpeed = 30;
                 this.damage = 15;
                 this.expReward = 3;
-                this.attackSpeed = 1500; // 較慢的攻擊速度
-                this.attackRange = 70; // 較長的攻擊距離
+                this.attackSpeed = 1500;
+                this.attackRange = 70;
+                this.windupDuration = 400;
                 break;
         }
     }
