@@ -56,7 +56,7 @@ export class SpawnManager {
         const playerUnits = existingUnits.filter(unit => unit.type === 0); // hero type
 
         if (playerUnits.length === 0) {
-            console.warn('⚠️ No players found, spawning at origin');
+            //console.warn('⚠️ No players found, spawning at origin');
             // 如果沒有玩家，在原點周圍生成
             for (let i = 0; i < config.count; i++) {
                 const angle = Math.random() * Math.PI * 2;
@@ -101,14 +101,14 @@ export class SpawnManager {
 
             if (position) {
                 positions.push(position);
-                console.log(`🎯 Found spawn position ${i + 1}/${config.count} around players: (${position.x.toFixed(0)}, ${position.y.toFixed(0)})`);
+                //  console.log(`🎯 Found spawn position ${i + 1}/${config.count} around players: (${position.x.toFixed(0)}, ${position.y.toFixed(0)})`);
             } else {
                 // 如果找不到有效位置，強制在圓周上生成
                 const angle = (i / config.count) * Math.PI * 2;
                 const x = centerX + Math.cos(angle) * spawnRadius;
                 const y = centerY + Math.sin(angle) * spawnRadius;
                 positions.push(new Vector2(x, y));
-                console.warn(`⚠️ Forced spawn position at (${x.toFixed(0)}, ${y.toFixed(0)})`);
+
             }
         }
 

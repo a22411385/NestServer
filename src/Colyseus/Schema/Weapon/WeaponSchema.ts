@@ -62,6 +62,7 @@ export class WeaponSchema extends Schema {
     @type("string") description: string = "";           // 武器描述
     @type("string") rarity: WeaponQuality = "normal";          // 稀有度
     @type("string") craftingBranch: string = "none";    // 製作分支 (poison/frost/flame/lightning/explosive/none)
+    @type("string") elementType: string = "physical";   // 🆕 武器元素類型 (physical/fire/ice/lightning/poison/holy/shadow/arcane)
 
     // === 玩家培養數據 ===
     @type("number") level: number = 1;                  // 武器等級
@@ -112,6 +113,7 @@ export class WeaponSchema extends Schema {
         this.enabled = config.enabled;
         this.attackRange = config.attackRange;
         this.projectileClass = config.projectileClass;
+        this.elementType = config.elementType || 'physical'; // 🆕 設置元素類型，預設為物理
     }
 
     /**

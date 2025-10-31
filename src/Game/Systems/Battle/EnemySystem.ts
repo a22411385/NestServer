@@ -46,7 +46,6 @@ export class EnemySystem {
             const enemy = event.data as ServerEnemy;
             enemy.id = IdGenerator.generateEnemyId(enemy.lv);
             this.state.allUnits.set(enemy.id, enemy);
-            console.log(`➕ Added enemy ${enemy.name} (${enemy.id}) to game state`);
         });
     }
     /**

@@ -1,5 +1,8 @@
 import { GameRoom } from '../../../Colyseus/Rooms/GameRoom';
 import { ServerGameUnit } from '../../../Colyseus/Schema/Unit/GameUnit';
+import { ServerHero } from '../../../Colyseus/Schema/Unit/Hero';
+import { UnitType } from '../../../Colyseus/Schema/GameState';
+import { DEBUFF_TO_ELEMENT_MAP } from '@/Types/Equipment/WeaponPropertyTypes';
 
 /**
  * 狀態效果系統
@@ -114,6 +117,7 @@ export class StatusEffectSystem {
     /**
      * 應用持續傷害效果
      * 使用最後傷害時間來避免重複計算
+     * 🆕 支援元素傷害加成（從施加者讀取）
      */
     private applyDamageOverTime(unit: ServerGameUnit, effect: any, currentTime: number): void {
         // 在 effect 上存儲最後傷害時間（不需要同步到客戶端）
@@ -125,12 +129,24 @@ export class StatusEffectSystem {
 
         // 每秒造成一次傷害
         if (timeSinceLastTick >= 1000) {
-            const damagePerSecond = effect.value || 0;
+            const baseDamagePerSecond = effect.value || 0;
             const stacks = effect.stacks || 1;
+
+            // 🆕 套用元素傷害加成（如果施加者是英雄）
+            let damagePerSecond = baseDamagePerSecond;
+            const attacker = this.getEffectSource(effect);
+            if (attacker && attacker.type === UnitType.hero) {
+                const hero = attacker as ServerHero;
+                const elementBonus = this.getElementDamageBonusForDebuff(hero, effect.type);
+                if (elementBonus > 0) {
+                    damagePerSecond = baseDamagePerSecond * (1 + elementBonus / 100);
+                    //console.log(`🔥 持續傷害元素加成: ${effect.type} +${elementBonus}% → ${damagePerSecond.toFixed(1)}/s`);
+                }
+            }
 
             // 計算實際傷害（考慮可能超過1秒的情況和疊加層數）
             const ticks = Math.floor(timeSinceLastTick / 1000);
-            const totalDamage = damagePerSecond * stacks * ticks;
+            const totalDamage = Math.floor(damagePerSecond * stacks * ticks);
 
             // 應用傷害
             if (totalDamage > 0) {
@@ -146,7 +162,7 @@ export class StatusEffectSystem {
                     timestamp: currentTime,
                 });
 
-                //console.log(`🔥 持續傷害: ${effect.type} x${stacks} 對 ${unit.id} 造成 ${totalDamage} 傷害 (${damagePerSecond}/s × ${stacks} × ${ticks}秒)`);
+                //console.log(`🔥 持續傷害: ${effect.type} x${stacks} 對 ${unit.id} 造成 ${totalDamage} 傷害 (${damagePerSecond.toFixed(1)}/s × ${stacks} × ${ticks}秒)`);
 
                 // 🔧 檢查單位是否死亡並觸發死亡事件
                 if (unit.hp <= 0) {
@@ -161,6 +177,51 @@ export class StatusEffectSystem {
             // 更新最後傷害時間
             effect._lastDamageTick = currentTime;
         }
+    }
+
+    /**
+     * 🆕 獲取效果來源（施加狀態效果的單位）
+     * @param effect 狀態效果
+     * @returns 施加者單位，如果找不到則返回 null
+     */
+    private getEffectSource(effect: any): ServerGameUnit | null {
+        if (!effect.sourceId) return null;
+
+        // 嘗試從英雄中查找
+        const heroes = this.gameRoom.unitManager.getAllAliveHeroes();
+        for (const hero of heroes) {
+            if (hero.id === effect.sourceId) {
+                return hero;
+            }
+        }
+
+        // 嘗試從敵人中查找（雖然目前敵人沒有元素加成，但預留接口）
+        const enemies = this.gameRoom.unitManager.getAllAliveEnemies();
+        for (const enemy of enemies) {
+            if (enemy.id === effect.sourceId) {
+                return enemy;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * 🆕 根據Debuff類型獲取對應的元素傷害加成
+     * 使用映射表而非硬編碼
+     * @param hero 英雄實例
+     * @param debuffType Debuff類型
+     * @returns 傷害加成百分比 (0-100)
+     */
+    private getElementDamageBonusForDebuff(hero: ServerHero, debuffType: string): number {
+        // 從Debuff類型映射到元素類型
+        const elementType = DEBUFF_TO_ELEMENT_MAP[debuffType];
+        if (!elementType) {
+            return 0; // 沒有對應的元素類型
+        }
+
+        // 獲取該元素的傷害加成
+        return hero.getElementDamageBonus(elementType);
     }
 
     /**

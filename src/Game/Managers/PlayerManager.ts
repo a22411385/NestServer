@@ -163,7 +163,7 @@ export class PlayerManager {
             console.log(`🎮 正在為 ${hero.name} 添加測試武器...`);
 
             // 所有可用武器列表
-            const testWeapon = 'base_sword';
+            const testWeapon = 'fire_sword';
             const weapon = hero.adddWeapon(testWeapon);
             hero.equip(weapon);
             this.state.allUnits.set(hero.id, hero);

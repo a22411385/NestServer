@@ -226,7 +226,7 @@ export class ServerEnemy extends ServerGameUnit {
 
         if (!target || target.isDead) {
             // 目標已死亡或消失，攻擊失敗
-            console.log(`❌ Enemy ${this.id} attack failed - target lost`);
+            //console.log(`❌ Enemy ${this.id} attack failed - target lost`);
             this.aiState = "chase";
             this.isAttacking = false;
             this.windupTargetId = "";
@@ -238,7 +238,7 @@ export class ServerEnemy extends ServerGameUnit {
         const distanceToTarget = this.getDistanceTo(target);
         if (distanceToTarget > this.attackRange) {
             // 目標已離開範圍，攻擊失敗
-            console.log(`❌ Enemy ${this.id} attack failed - target out of range (${distanceToTarget.toFixed(0)} > ${this.attackRange})`);
+            // console.log(`❌ Enemy ${this.id} attack failed - target out of range (${distanceToTarget.toFixed(0)} > ${this.attackRange})`);
             this.aiState = "chase";
             this.isAttacking = false;
             this.windupTargetId = "";
@@ -247,7 +247,7 @@ export class ServerEnemy extends ServerGameUnit {
         }
 
         // 執行攻擊
-        console.log(`✅ Enemy ${this.id} successfully hit hero ${target.id}`);
+        //console.log(`✅ Enemy ${this.id} successfully hit hero ${target.id}`);
         this.attackTarget(target);
 
         // 重置狀態
@@ -275,7 +275,7 @@ export class ServerEnemy extends ServerGameUnit {
         // 更新最後攻擊時間（包含前搖時間）
         this.lastAttackTime = currentTime;
 
-        console.log(`⚔️ Enemy ${this.id} starts windup against hero ${target.id} (${this.windupDuration}ms)`);
+        //console.log(`⚔️ Enemy ${this.id} starts windup against hero ${target.id} (${this.windupDuration}ms)`);
 
         return true;
     }

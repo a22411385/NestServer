@@ -5,6 +5,25 @@
  */
 
 /**
+ * 元素類型常數 - 武器元素屬性
+ */
+export const ElementType = {
+    PHYSICAL: 'physical',    // 物理
+    FIRE: 'fire',           // 火
+    ICE: 'ice',             // 冰
+    LIGHTNING: 'lightning',  // 電
+    POISON: 'poison',       // 毒
+    HOLY: 'holy',           // 神聖
+    SHADOW: 'shadow',       // 暗影
+    ARCANE: 'arcane'        // 秘法
+} as const;
+
+/**
+ * 元素類型的值類型
+ */
+export type ElementTypeValue = typeof ElementType[keyof typeof ElementType];
+
+/**
  * 通用屬性類型常數 - 裝備與武器共用
  * 使用 const object 提供更好的開發體驗和類型安全
  */
@@ -68,6 +87,34 @@ export const PropertyType = {
 export type PropertyTypeValue = typeof PropertyType[keyof typeof PropertyType];
 export type CategoryKey = 'debuff' | 'buff' | 'attribute' | 'combat';
 export type PropertyValueType = 'single' | 'range' | 'composite';
+
+/**
+ * 元素到 Debuff 的映射關係
+ * 用於判斷元素傷害應該施加的狀態效果
+ */
+export const ELEMENT_DEBUFF_MAP: Record<ElementTypeValue, PropertyTypeValue | null> = {
+    [ElementType.PHYSICAL]: PropertyType.BLEED,      // 物理 → 流血
+    [ElementType.FIRE]: PropertyType.BURN,           // 火 → 燃燒
+    [ElementType.ICE]: PropertyType.FREEZE,          // 冰 → 冰凍
+    [ElementType.LIGHTNING]: PropertyType.STUN,      // 電 → 眩暈
+    [ElementType.POISON]: PropertyType.POISON,       // 毒 → 中毒
+    [ElementType.HOLY]: null,                        // 神聖 → 無負面效果 (可能有治療/淨化)
+    [ElementType.SHADOW]: PropertyType.SLOW,         // 暗影 → 緩速
+    [ElementType.ARCANE]: null                       // 秘法 → 無固定效果 (可能有特殊機制)
+};
+
+/**
+ * Debuff 到元素的反向映射
+ * 用於從 Debuff 推導其元素屬性
+ */
+export const DEBUFF_TO_ELEMENT_MAP: Record<string, ElementTypeValue> = {
+    [PropertyType.BLEED]: ElementType.PHYSICAL,
+    [PropertyType.BURN]: ElementType.FIRE,
+    [PropertyType.FREEZE]: ElementType.ICE,
+    [PropertyType.STUN]: ElementType.LIGHTNING,
+    [PropertyType.POISON]: ElementType.POISON,
+    [PropertyType.SLOW]: ElementType.SHADOW
+};
 /**
  * 武器品質等級
  */
@@ -98,6 +145,7 @@ export interface WeaponConfigDefinition {
     id: string;
     name: string;
     type: string; //武器分類 ,鈍器/劍/弓/匕首  之類的
+    elementType: ElementTypeValue; // 🆕 武器元素類型
     baseDamage: number;
     attackSpeed: number;
     attackRange: number;

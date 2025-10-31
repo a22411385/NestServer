@@ -10,7 +10,6 @@ import { WeaponSystemFacade } from "@/Game/Systems/Battle/WeaponSystemFacade";
 import { WeaponInstanceManager } from "@/Game/Managers/WeaponInstanceManager";
 import { WeaponConfigDefinition, WeaponQuality } from "@/Types/Equipment/WeaponPropertyTypes";
 
-const HERO_MAX_WEAPON_SLOTS = 1; // 🎯 改為只能裝備 1 個武器
 // 玩家操控的主要單位
 export class ServerHero extends ServerGameUnit {
 
@@ -72,6 +71,16 @@ export class ServerHero extends ServerGameUnit {
     // === 🆕 副屬性 (同步到客戶端) ===
     @type("number") public critRate: number = 0;     // 暴擊率 (百分比)
     @type("number") public dodgeRate: number = 0;    // 閃避率 (百分比)
+
+    // === 🆕 元素傷害加成 (同步到客戶端) - 用於天賦系統 ===
+    @type("number") public physicalDamageBonus: number = 0;   // 物理傷害加成 (百分比, 0-100)
+    @type("number") public fireDamageBonus: number = 0;       // 火元素傷害加成
+    @type("number") public iceDamageBonus: number = 0;        // 冰元素傷害加成
+    @type("number") public lightningDamageBonus: number = 0;  // 電元素傷害加成
+    @type("number") public poisonDamageBonus: number = 0;     // 毒元素傷害加成
+    @type("number") public holyDamageBonus: number = 0;       // 神聖傷害加成
+    @type("number") public shadowDamageBonus: number = 0;     // 暗影傷害加成
+    @type("number") public arcaneDamageBonus: number = 0;     // 秘法傷害加成
 
     // === 副屬性 (不同步) ===
     public baseExpMultiplier: number = 30;
@@ -192,6 +201,62 @@ export class ServerHero extends ServerGameUnit {
             agility: this.agi,
             intelligence: this.int
         };
+    }
+
+    /**
+     * 🆕 獲取特定元素的傷害加成 (百分比)
+     * @param elementType 元素類型
+     * @returns 傷害加成百分比 (0-100)
+     * 
+     * @example
+     * const bonus = hero.getElementDamageBonus('fire'); // 返回 20 表示 +20% 火傷
+     */
+    public getElementDamageBonus(elementType: string): number {
+        switch (elementType) {
+            case 'physical': return this.physicalDamageBonus;
+            case 'fire': return this.fireDamageBonus;
+            case 'ice': return this.iceDamageBonus;
+            case 'lightning': return this.lightningDamageBonus;
+            case 'poison': return this.poisonDamageBonus;
+            case 'holy': return this.holyDamageBonus;
+            case 'shadow': return this.shadowDamageBonus;
+            case 'arcane': return this.arcaneDamageBonus;
+            default: return 0;
+        }
+    }
+
+    /**
+     * 🆕 設置特定元素的傷害加成 (用於天賦系統)
+     * @param elementType 元素類型
+     * @param bonus 加成百分比 (0-100)
+     * 
+     * @example
+     * hero.setElementDamageBonus('fire', 30); // 設置 +30% 火傷
+     */
+    public setElementDamageBonus(elementType: string, bonus: number): void {
+        switch (elementType) {
+            case 'physical': this.physicalDamageBonus = bonus; break;
+            case 'fire': this.fireDamageBonus = bonus; break;
+            case 'ice': this.iceDamageBonus = bonus; break;
+            case 'lightning': this.lightningDamageBonus = bonus; break;
+            case 'poison': this.poisonDamageBonus = bonus; break;
+            case 'holy': this.holyDamageBonus = bonus; break;
+            case 'shadow': this.shadowDamageBonus = bonus; break;
+            case 'arcane': this.arcaneDamageBonus = bonus; break;
+        }
+    }
+
+    /**
+     * 🆕 增加特定元素的傷害加成 (用於天賦系統的累加效果)
+     * @param elementType 元素類型
+     * @param bonus 增加的加成百分比
+     * 
+     * @example
+     * hero.addElementDamageBonus('fire', 10); // 在現有基礎上增加 +10% 火傷
+     */
+    public addElementDamageBonus(elementType: string, bonus: number): void {
+        const currentBonus = this.getElementDamageBonus(elementType);
+        this.setElementDamageBonus(elementType, currentBonus + bonus);
     }
     // 重新計算屬性時也要考慮總屬性加成
     public recalculateAllStats(): void {

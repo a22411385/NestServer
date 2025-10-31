@@ -4,6 +4,7 @@ import { ServerEnemy } from '../../../Colyseus/Schema/Unit/Enemy';
 import { ServerGameUnit } from '../../../Colyseus/Schema/Unit/GameUnit';
 import { UnitType } from '../../../Colyseus/Schema/GameState';
 import { BattleMathUtils } from '../../../Util/BattleMathUtils';
+import { ElementTypeValue, DEBUFF_TO_ELEMENT_MAP } from '@/Types/Equipment/WeaponPropertyTypes';
 
 export interface DamageInfo {
     attacker: ServerGameUnit;
@@ -12,6 +13,8 @@ export interface DamageInfo {
     damageType?: 'physical' | 'magic' | 'true';
     isCritical?: boolean;
     source?: string; // 武器ID或技能ID
+    elementType?: ElementTypeValue; // 🆕 元素類型
+    debuffType?: string; // 🆕 Debuff類型（用於StatusEffectSystem的持續傷害）
     position?: { x: number, y: number };
 }
 
@@ -144,13 +147,20 @@ export class DamageSystem {
      * 計算最終傷害
      */
     private calculateFinalDamage(damageInfo: DamageInfo): number {
-        const { attacker, target, baseDamage, damageType } = damageInfo;
+        const { attacker, target, baseDamage, damageType, elementType, debuffType } = damageInfo;
         let finalDamage = baseDamage;
 
         // 根據攻擊者屬性調整傷害
         if (attacker.type === UnitType.hero) {
             const hero = attacker as ServerHero;
             finalDamage += hero.attackDamage; // 添加英雄攻擊力
+
+            // 🆕 套用元素傷害加成
+            const elementDamageBonus = this.getElementDamageBonus(hero, elementType, debuffType);
+            if (elementDamageBonus > 0) {
+                finalDamage *= (1 + elementDamageBonus / 100);
+                //console.log(`🔥 元素加成: ${elementType || debuffType} +${elementDamageBonus}% → ${finalDamage.toFixed(1)}`);
+            }
         }
 
         // 根據傷害類型計算防禦減免
@@ -161,6 +171,34 @@ export class DamageSystem {
         }
 
         return Math.floor(finalDamage);
+    }
+
+    /**
+     * 🆕 獲取元素傷害加成
+     * 使用映射表而非硬編碼，支援武器元素和Debuff類型
+     * @param hero 英雄實例
+     * @param elementType 武器元素類型（優先）
+     * @param debuffType Debuff類型（用於持續傷害）
+     * @returns 傷害加成百分比 (0-100)
+     */
+    private getElementDamageBonus(
+        hero: ServerHero,
+        elementType?: ElementTypeValue,
+        debuffType?: string
+    ): number {
+        // 優先使用武器元素類型
+        if (elementType) {
+            return hero.getElementDamageBonus(elementType);
+        }
+
+        // 如果是持續傷害（burn, poison, bleed），從Debuff反推元素
+        if (debuffType && DEBUFF_TO_ELEMENT_MAP[debuffType]) {
+            const mappedElement = DEBUFF_TO_ELEMENT_MAP[debuffType];
+            return hero.getElementDamageBonus(mappedElement);
+        }
+
+        // 沒有元素類型，返回0
+        return 0;
     }
 
     /**
@@ -271,8 +309,6 @@ export class DamageSystem {
             const leveledUp = hero.addExperience(expGained);
             hero.gold += goldGained;
 
-            console.log(`✨ ${hero.name} 獲得 ${expGained} 經驗值 和 ${goldGained} 金幣`);
-
             if (leveledUp) {
                 console.log(`🆙 ${hero.name} 升級到 ${hero.level} 級！`);
                 this.room.messageHandler.sendBattleLog(
@@ -289,9 +325,6 @@ export class DamageSystem {
                 for (const nearbyHero of nearbyHeroes) {
                     const nearbyLeveledUp = nearbyHero.addExperience(sharedExp);
                     nearbyHero.gold += sharedGold;
-
-                    console.log(`✨ ${nearbyHero.name} (附近) 獲得 ${sharedExp} 經驗值 和 ${sharedGold} 金幣`);
-
                     if (nearbyLeveledUp) {
                         console.log(`🆙 ${nearbyHero.name} 升級到 ${nearbyHero.level} 級！`);
                         this.room.messageHandler.sendBattleLog(

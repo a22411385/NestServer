@@ -463,9 +463,6 @@ export class WaveManager {
             if (enemy) {
                 this.enemiesSpawned++;
                 this.enemiesAlive++;
-
-                console.log(`🧟 Spawned enemy ${this.enemiesSpawned}/${this.activeWaveConfig.enemyCount}: ${enemy.name}`);
-
                 this.emitEvent({
                     type: 'enemy_spawned',
                     waveNumber: this.currentWave,
