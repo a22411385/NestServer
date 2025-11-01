@@ -3,7 +3,7 @@
  */
 
 import { Vector2 } from '../BaseTypes';
-import { CategoryKey, PropertyTypeValue, PropertyValue } from '../Equipment/WeaponPropertyTypes';
+import { CategoryKey, PropertyValue } from '../Equipment/WeaponPropertyTypes';
 import { BulletCreateConfig } from './BulletTypes';
 
 /**
@@ -61,6 +61,8 @@ export enum AttackFailReason {
  * - 近戰: CombatSystem 立即轉換為 StatusEffect Schema 並應用
  * - 遠程: 存在 ProjectileConfig 中,命中時應用
  * - 客戶端: 透過 ServerGameUnit.statusEffects (Schema) 自動同步
+/**
+ * 🆕 狀態效果配置（POE風格）
  * 
  * 📝 與 StatusEffectData 的差異:
  * - StatusEffectData: 武器屬性系統內部使用 (from properties)
@@ -68,12 +70,12 @@ export enum AttackFailReason {
  * - StatusEffect: Colyseus Schema,同步到客戶端
  */
 export interface StatusEffectConfig {
-    type: PropertyTypeValue;
+    type: string;               // 🆕 使用屬性ID（如 'burn', 'freeze'）
     duration: number;           // 持續時間 (毫秒)
     value?: number;             // 效果數值 (減速百分比、每秒傷害)
     chance?: number;            // 觸發機率 (0-100)
     direction?: Vector2;        // 方向 (擊退效果用)
-    category: CategoryKey; // 效果類別
+    category: CategoryKey;      // 效果類別
 }
 
 /**

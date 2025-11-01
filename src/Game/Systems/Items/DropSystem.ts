@@ -79,7 +79,9 @@ export class DropSystem {
         const enemyLevel = enemy.lv || 1;
 
         // 獲取該等級可掉落的素材列表
-        const availableMaterials = ConfigManager.getMaterialsByEnemyLevel(enemyLevel);
+        const availableMaterials = ConfigManager.getAll<MaterialConfigDefinition>('MaterialConfigs').filter(mat => {
+            return mat.dropFromEnemyLevel <= enemyLevel && mat.dropFromEnemyLevel >= enemyLevel;
+        });
 
         if (availableMaterials.length === 0) {
             return;

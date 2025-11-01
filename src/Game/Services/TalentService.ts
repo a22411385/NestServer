@@ -169,8 +169,8 @@ export class TalentService {
         const values = new Map<TalentPropertyType, number>();
 
         for (const effect of effects) {
-            const totalValue = effect.base_value + (effect.per_point_value * points);
-            values.set(effect.property_name, totalValue);
+            const totalValue = (effect.base_value || 0) + (effect.per_point_value || 0) * points;
+            values.set(effect.talent_id, totalValue);
         }
 
         return values;

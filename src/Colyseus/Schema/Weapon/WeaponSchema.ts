@@ -2,7 +2,7 @@ import { Schema, type } from "@colyseus/schema";
 import { WeaponType } from "../../../Types";
 import { UniqueIdGenerator } from "../../../Util/UniqueIdGenerator";
 import { WeaponConfigManager } from "@/Game/Factories/WeaponConfig";
-import { PropertyType, PropertyValue, WeaponConfigDefinition, WeaponQuality } from "@/Types/Equipment/WeaponPropertyTypes";
+import { PropertyValue, WeaponConfigDefinition, WeaponQuality } from "@/Types/Equipment/WeaponPropertyTypes";
 import { WeaponBasic } from "./Baisc/WeaponBasic";
 import { WeaponInstanceManager } from "@/Game/Managers/WeaponInstanceManager";
 
@@ -72,6 +72,10 @@ export class WeaponSchema extends Schema {
 
     fixedProperties: PropertyValue[] = [];    // 固定屬性列表 (同步到客戶端)
 
+    // === 🆕 武器詞綴和屬性加成 (JSON 序列化) ===
+    @type("string") modifiersJson: string = "[]";       // 武器詞綴列表（JSON）
+    @type("string") bonusesJson: string = "[]";         // 屬性加成列表（JSON）
+
     // === 🆕 邏輯實例緩存 (不同步到客戶端) ===
     private _logicInstance: WeaponBasic;
 
@@ -104,7 +108,7 @@ export class WeaponSchema extends Schema {
     }
 
     /**
-     * 武器設定上也有基本的數值
+     * 🆕 武器設定上也有基本的數值（POE風格）
      * @param config 
      */
     public weaponBasicDataSetting(config: WeaponConfigDefinition) {
@@ -112,14 +116,42 @@ export class WeaponSchema extends Schema {
         this.attackSpeed = config.attackSpeed;
         this.enabled = config.enabled;
         this.attackRange = config.attackRange;
-        this.projectileClass = config.projectileClass;
-        this.elementType = config.elementType || 'physical'; // 🆕 設置元素類型，預設為物理
+        this.projectileClass = config.projectileClass || '';
+        // 🆕 elementType 已移除，改用 tags
+        // 元素資訊現在存儲在 properties 的 tags 中
     }
 
     /**
-     * ✅ 應用屬性到武器實例 - 同步到 WeaponSchema
+     * 🆕 應用所有屬性（三種資料）
      */
+    public applyAllProperties(data: {
+        statusEffects: PropertyValue[],
+        modifiers: any[],
+        bonuses: any[]
+    }): void {
+        // 1. 狀態效果（保留現有邏輯）
+        this.fixedProperties = [];
+        for (const effect of data.statusEffects) {
+            this.updateBaseStats(effect);
+            this.fixedProperties.push(effect);
+        }
 
+        // 2. 🆕 武器詞綴（JSON 序列化）
+        this.modifiersJson = JSON.stringify(data.modifiers);
+
+        // 3. 🆕 屬性加成（JSON 序列化）
+        this.bonusesJson = JSON.stringify(data.bonuses);
+
+        console.log(`✅ 武器屬性已應用:`);
+        console.log(`   - 狀態效果: ${this.fixedProperties.length} 個`);
+        console.log(`   - 武器詞綴: ${data.modifiers.length} 個`);
+        console.log(`   - 屬性加成: ${data.bonuses.length} 個`);
+    }
+
+    /**
+     * ✅ 應用屬性到武器實例 - 舊版相容方法（已棄用）
+     * @deprecated 使用 applyAllProperties 代替
+     */
     public applyProperties(properties: WeaponPropertiesType): void {
         // 更新基礎屬性（影響戰鬥邏輯）
         this.fixedProperties = [];
@@ -129,9 +161,41 @@ export class WeaponSchema extends Schema {
         }
     }
 
-    public getPropertyValue(type: string): PropertyValue[] {
-        const property = this.fixedProperties.filter(prop => prop.type === type);
+    /**
+     * 🆕 獲取屬性值列表（使用屬性ID）
+     * @deprecated 建議使用 getProperty() 獲取單個屬性
+     */
+    public getPropertyValue(propertyId: string): PropertyValue[] {
+        const property = this.fixedProperties.filter(prop => prop.id === propertyId);
         return property.length > 0 ? property : [];
+    }
+
+    /**
+     * 🆕 獲取單個屬性（POE風格）
+     */
+    public getProperty(propertyId: string): PropertyValue | null {
+        const properties = this.fixedProperties.filter(prop => prop.id === propertyId);
+        if (properties.length === 0) {
+            return null;
+        }
+
+        // 如果有多個相同屬性（堆疊），合併數值
+        if (properties.length === 1 || !properties[0].stackable) {
+            return properties[0];
+        }
+
+        // 堆疊屬性（合併數值）
+        let merged = properties[0];
+        for (let i = 1; i < properties.length; i++) {
+            merged = {
+                ...merged,
+                value: merged.value + properties[i].value,
+                duration: Math.max(merged.duration, properties[i].duration),
+                probability: Math.max(merged.probability, properties[i].probability),
+                baseDamage: merged.baseDamage + properties[i].baseDamage,
+            };
+        }
+        return merged;
     }
     public getProperties(): WeaponPropertiesType {
         return {
@@ -140,92 +204,69 @@ export class WeaponSchema extends Schema {
         };
     }
 
-    public hasProperty(type: string): boolean {
-        return this.fixedProperties.some(prop => prop.type === type);
+    public hasProperty(propertyId: string): boolean {
+        return this.fixedProperties.some(prop => prop.id === propertyId);
+    }
+
+    /**
+     * 🆕 獲取武器詞綴
+     */
+    public getModifiers(): any[] {
+        try {
+            return JSON.parse(this.modifiersJson || "[]");
+        } catch (error) {
+            console.error('❌ 解析武器詞綴失敗:', error);
+            return [];
+        }
+    }
+
+    /**
+     * 🆕 獲取屬性加成
+     */
+    public getBonuses(): any[] {
+        try {
+            return JSON.parse(this.bonusesJson || "[]");
+        } catch (error) {
+            console.error('❌ 解析屬性加成失敗:', error);
+            return [];
+        }
+    }
+
+    /**
+     * 🆕 檢查是否有特定詞綴
+     */
+    public hasModifier(modifierId: string): boolean {
+        const modifiers = this.getModifiers();
+        return modifiers.some((mod: any) => mod.id === modifierId);
     }
     /**
-     * 更新基礎屬性
+     * 🆕 更新基礎屬性（使用字符串匹配）
      */
     private updateBaseStats(property: PropertyValue): void {
-        switch (property.type) {
-            // 基礎武器屬性
-            case PropertyType.ATTACK_DAMAGE:
-                this.baseDamage +=
-                    typeof property.value === 'number'
-                        ? property.value
-                        : property.value[0];
-                break;
-            case PropertyType.ATTACK_SPEED:
-                // 攻擊速度是減少間隔時間，所以是減法
-                const speedBonus =
-                    typeof property.value === 'number'
-                        ? property.value
-                        : property.value[0];
-                this.attackSpeed = Math.max(100, this.attackSpeed - speedBonus); // 最小間隔100ms
-                break;
-            case PropertyType.ATTACK_RANGE:
-                this.attackRange +=
-                    typeof property.value === 'number'
-                        ? property.value
-                        : property.value[0];
-                break;
+        const propId = property.id;
+        const value = property.value;
 
-            // 角色屬性加成 (保持向下兼容)
-            case PropertyType.STRENGTH:
-                this.str +=
-                    typeof property.value === 'number'
-                        ? property.value
-                        : property.value[0];
-                break;
-            case PropertyType.INTELLIGENCE:
-                this.int +=
-                    typeof property.value === 'number'
-                        ? property.value
-                        : property.value[0];
-                break;
-            case PropertyType.VITALITY:
-                this.vit +=
-                    typeof property.value === 'number'
-                        ? property.value
-                        : property.value[0];
-                break;
-            case PropertyType.AGILITY:
-                this.agi +=
-                    typeof property.value === 'number'
-                        ? property.value
-                        : property.value[0];
-                break;
-
-
-            case PropertyType.PROJECTILE_SPEED:
-            case PropertyType.AREA_OF_EFFECT:
-            case PropertyType.PIERCE_COUNT:
-            case PropertyType.SWEEP_ANGLE:
-
-            case PropertyType.HEAL_AMOUNT:
-            case PropertyType.BUFF_DURATION:
-            case PropertyType.SUPPORT_RADIUS:
-
-            case PropertyType.KNOCKBACK:
-            case PropertyType.CRITICAL_CHANCE:
-            case PropertyType.CRITICAL_DAMAGE:
-            case PropertyType.LIFE_STEAL:
-            case PropertyType.PIERCING:
-            case PropertyType.CHAIN_ATTACK:
-            case PropertyType.SPLASH_DAMAGE:
-
-            case PropertyType.STUN:
-            case PropertyType.FREEZE:
-            case PropertyType.BURN:
-            case PropertyType.POISON:
-            case PropertyType.SLOW:
-            case PropertyType.BLEED:
-                break;
-
-            default:
-                console.log(`🔧 未處理的屬性類型: ${property.type}`);
-                break;
+        // 基礎武器屬性
+        if (propId === 'attack_damage') {
+            this.baseDamage += value;
+        } else if (propId === 'attack_speed') {
+            // 攻擊速度是減少間隔時間
+            this.attackSpeed = Math.max(100, this.attackSpeed - value);
+        } else if (propId === 'attack_range') {
+            this.attackRange += value;
         }
+        // 角色屬性加成
+        else if (propId === 'strength') {
+            this.str += value;
+        } else if (propId === 'intelligence') {
+            this.int += value;
+        } else if (propId === 'vitality') {
+            this.vit += value;
+        } else if (propId === 'agility') {
+            this.agi += value;
+        }
+        // 其他屬性（戰鬥效果、狀態效果等）不影響基礎屬性
+        // 這些會在戰鬥計算時通過屬性系統處理
     }
 
     // === 🆕 邏輯實例管理 ===

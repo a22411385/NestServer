@@ -6,7 +6,6 @@ import { WeaponBasic } from "@/Colyseus/Schema/Weapon/Baisc";
 import { Vector2 } from "../BaseTypes";
 import { StatusEffectConfig } from "./AttackTypes";
 import { PropertyValue } from "../Equipment/EquipmentTypes";
-import { PropertyTypeValue } from "../Equipment/WeaponPropertyTypes";
 
 /**
  * 子彈創建配置
@@ -29,7 +28,8 @@ export interface BulletCreateConfig {
 
     scale?: number;
 
-    properties: Record<PropertyTypeValue, PropertyValue>;
+    // 🆕 使用屬性ID作為鍵（POE風格）
+    properties: Record<string, PropertyValue>;
     statusEffects?: StatusEffectConfig[]; // 命中時應用的狀態效果
 
     // 🔮 未來可擴展的屬性 (暫時保留註釋作為範例)

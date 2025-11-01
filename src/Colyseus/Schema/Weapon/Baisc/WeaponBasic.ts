@@ -2,11 +2,9 @@ import { ServerGameUnit } from '../../Unit/GameUnit';
 import { UnitType } from '../../GameState';
 import { WeaponType, AttackResult, StatusEffectConfig } from '../../../../Types';
 import {
-  PropertyTypeValue,
   PropertyValue,
   WeaponConfigDefinition,
 } from '@/Types/Equipment/WeaponPropertyTypes';
-import { createEffectFromProperty } from '../EffectsParser';
 import { WeaponSchema } from '../WeaponSchema';
 import { WeaponConfigManager } from '@/Game/Factories/WeaponConfig';
 
@@ -107,24 +105,24 @@ export abstract class WeaponBasic {
   }
 
   /**
-   * ✅ 獲取特定屬性值 - 從 WeaponSchema 讀取
+   * 🆕 獲取特定屬性值 - 從 WeaponSchema 讀取（使用屬性ID）
    */
-  public getProperty(type: PropertyTypeValue): PropertyValue | null {
+  public getProperty(propertyId: string): PropertyValue | null {
     if (!this.weaponSchema) return null;
 
     const properties = this.weaponSchema.getProperties();
     const all = properties.fixed.concat(properties.random);
 
-    const filtered = all.filter(p => p.type === type);
+    const filtered = all.filter(p => p.id === propertyId);
     if (filtered.length === 0) {
       return null;
-
     }
 
-    if (filtered.length === 1 || !filtered[0].stacked) {
+    if (filtered.length === 1 || !filtered[0].stackable) {
       return filtered[0];
     }
 
+    // 堆疊屬性（合併數值）
     let statsValue = filtered[0];
     for (let i = 1; i < filtered.length; i++) {
       statsValue = {
@@ -132,18 +130,18 @@ export abstract class WeaponBasic {
         value: statsValue.value + filtered[i].value,
         duration: Math.max(statsValue.duration, filtered[i].duration),
         probability: Math.max(statsValue.probability, filtered[i].probability),
+        baseDamage: statsValue.baseDamage + filtered[i].baseDamage,
       };
     }
     return statsValue;
-
   }
 
   /**
-   * ✅ 檢查是否有特定屬性 - 從 WeaponSchema 讀取
+   * 🆕 檢查是否有特定屬性 - 從 WeaponSchema 讀取
    */
-  public hasProperty(type: string): boolean {
+  public hasProperty(propertyId: string): boolean {
     if (!this.weaponSchema) return false;
-    return this.weaponSchema.hasProperty(type);
+    return this.weaponSchema.hasProperty(propertyId);
   }
 
   /**
@@ -155,23 +153,6 @@ export abstract class WeaponBasic {
 
     return [...props.fixed, ...props.random];
   }
-
-  /**
-   * 🆕 從武器屬性生成狀態效果配置
-   * 供 tryAttack 使用,將屬性轉換為可應用的狀態效果
-   * 
-   * @returns StatusEffectConfig[] - 狀態效果配置數組
-   */
-  protected generateStatusEffects(): StatusEffectConfig[] {
-    const effects: StatusEffectConfig[] = [];
-    for (const prop of this.getAllProperties()) {
-      const eff = createEffectFromProperty(prop);
-      if (eff)
-        effects.push(eff);
-    }
-    return effects;
-  }
-
 
   /**
    * 嘗試攻擊 - 只負責攻擊邏輯和目標選擇，不處理傷害
@@ -293,6 +274,42 @@ export abstract class WeaponBasic {
     attacker: ServerGameUnit,
     potentialTargets: ServerGameUnit[],
   ): ServerGameUnit[];
+
+  /**
+   * 🆕 從屬性系統生成狀態效果配置
+   * 將 PropertyValue[] 轉換為 StatusEffectConfig[]
+   * 
+   * 📝 轉換規則：
+   * - 只處理 category 為 'debuff' 或 'buff' 的屬性
+   * - 只包含有觸發機率的效果（probability > 0）
+   * - duration 從秒轉換為毫秒
+   * 
+   * @returns StatusEffectConfig[] - 狀態效果配置列表
+   */
+  protected generateStatusEffects(): StatusEffectConfig[] {
+    const allProperties = this.getAllProperties();
+    const statusEffects: StatusEffectConfig[] = [];
+
+    for (const prop of allProperties) {
+      // 只處理 debuff/buff 類別的屬性
+      if (prop.category !== 'debuff' && prop.category !== 'buff') {
+        continue;
+      }
+
+      // 只包含有機率觸發的效果
+      if (prop.probability > 0) {
+        statusEffects.push({
+          type: prop.id,                    // 使用屬性ID (如 'burn', 'stun', 'freeze')
+          duration: prop.duration * 1000,   // 秒 → 毫秒
+          value: prop.value,                // 效果數值
+          chance: prop.probability,         // 觸發機率 (0-100)
+          category: prop.category,          // 類別
+        });
+      }
+    }
+
+    return statusEffects;
+  }
 
   // Getter 方法
   public get range(): number {

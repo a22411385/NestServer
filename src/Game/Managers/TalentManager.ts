@@ -1,6 +1,6 @@
 import { CharacterTalentData, TalentConfig, TalentEffect, TalentPropertyType, ModifierType, AppliedTalentEffect } from "../../Types/Game/TalentTypes";
 import { TalentService } from "../Services/TalentService";
-import { PropertyValue, PropertyTypeValue } from "../../Types/Equipment/WeaponPropertyTypes";
+import { PropertyValue } from "../../Types/Equipment/WeaponPropertyTypes";
 
 /**
  * 天賦管理器 - 管理角色天賦實例和效果應用
@@ -177,10 +177,11 @@ export class TalentManager {
 
                 appliedEffects.push({
                     talentId,
-                    propertyName: effect.property_name,
+                    stat: effect.stat, // 🆕 使用新的 stat 欄位
                     modifierType: effect.modifier_type,
                     value: calculatedValue,
-                    condition: effect.condition,
+                    condition: effect.conditions?.[0] as any, // 🆕 取第一個條件（暫時簡化，需要類型轉換）
+                    tags: effect.affect_tags ? effect.affect_tags.split(',').map(t => t.trim()) : [],
                     isActive: true // 默認激活，後續可加入條件判斷
                 });
             }
@@ -190,10 +191,12 @@ export class TalentManager {
     }
 
     /**
-     * 計算天賦效果的實際數值
+     * 🆕 計算天賦效果的實際數值（POE風格）
      */
     private calculateEffectValue(effect: TalentEffect, talentLevel: number): number {
-        return effect.base_value + (effect.per_point_value * talentLevel);
+        const baseValue = effect.base_value ?? 0;
+        const perPointValue = effect.per_point_value ?? 0;
+        return baseValue + (perPointValue * talentLevel);
     }
 
     /**
@@ -212,10 +215,10 @@ export class TalentManager {
         // 複製基礎屬性，避免修改原始資料
         const modifiedProperties = [...baseProperties];
 
-        // 建立屬性索引以便快速查找
-        const propertyMap = new Map<PropertyTypeValue, number>();
+        // 🆕 建立屬性索引以便快速查找（使用屬性ID）
+        const propertyMap = new Map<string, number>();
         modifiedProperties.forEach((prop, index) => {
-            propertyMap.set(prop.type, index);
+            propertyMap.set(prop.id, index);
         });
 
         console.log(`🌟 應用 ${talentEffects.length} 個天賦效果到角色 ${characterId}`);
@@ -232,32 +235,35 @@ export class TalentManager {
     }
 
     /**
-     * 應用單個天賦效果到屬性
+     * 🆕 應用單個天賦效果到屬性（POE風格）
      */
     private applyTalentEffectToProperty(
         appliedEffect: AppliedTalentEffect,
         properties: PropertyValue[],
-        propertyMap: Map<PropertyTypeValue, number>
+        propertyMap: Map<string, number>
     ): void {
-        // 直接使用天賦屬性類型，不再需要轉換！
-        const propertyType = appliedEffect.propertyName;
+        // 🆕 使用天賦的 stat 作為屬性ID
+        const propertyId = appliedEffect.stat;
 
         // 檢查屬性是否存在
-        const propertyIndex = propertyMap.get(propertyType);
+        const propertyIndex = propertyMap.get(propertyId);
         if (propertyIndex === undefined) {
             // 如果屬性不存在，創建新的屬性
             const newProperty: PropertyValue = {
-                type: propertyType,
+                id: propertyId,
+                displayName: propertyId, // 暫時使用ID作為顯示名稱
                 value: 0,
-                valueType: 'single',
                 probability: 100,
                 duration: 0,
-                stacked: false,
-                category: 'attribute',
-                description: `天賦效果: ${appliedEffect.talentId}`
+                stackable: false,
+                tags: appliedEffect.tags,
+                modifierType: appliedEffect.modifierType,
+                baseDamage: 0,
+                damageScaling: 0,
+                category: 'attribute' // 天賦效果預設為屬性類別
             };
             properties.push(newProperty);
-            propertyMap.set(propertyType, properties.length - 1);
+            propertyMap.set(propertyId, properties.length - 1);
 
             this.modifyPropertyValue(newProperty, appliedEffect.value, appliedEffect.modifierType);
         } else {
@@ -266,7 +272,7 @@ export class TalentManager {
             this.modifyPropertyValue(existingProperty, appliedEffect.value, appliedEffect.modifierType);
         }
 
-        console.log(`  ✨ ${appliedEffect.talentId}: ${propertyType} ${appliedEffect.modifierType} ${appliedEffect.value}`);
+        console.log(`  ✨ ${appliedEffect.talentId}: ${propertyId} ${appliedEffect.modifierType} ${appliedEffect.value}`);
     }
 
     /**
@@ -280,15 +286,16 @@ export class TalentManager {
         // 確保 value 是數字類型
         let currentValue = Array.isArray(property.value) ? property.value[0] : property.value;
 
+        // 🆕 使用 POE 風格的 ModifierType 枚舉值
         switch (modifierType) {
-            case ModifierType.FLAT_ADD:
+            case ModifierType.FLAT:
                 currentValue += modifierValue;
                 break;
-            case ModifierType.PERCENTAGE_ADD:
+            case ModifierType.INCREASED:
                 currentValue = currentValue * (1 + modifierValue / 100);
                 break;
-            case ModifierType.PERCENTAGE_MULTIPLY:
-                currentValue = currentValue * (modifierValue / 100);
+            case ModifierType.MORE:
+                currentValue = currentValue * (1 + modifierValue / 100);
                 break;
             default:
                 console.warn(`不支援的修改器類型: ${modifierType}`);

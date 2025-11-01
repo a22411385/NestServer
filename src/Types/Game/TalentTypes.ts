@@ -1,52 +1,8 @@
-import { PropertyType, PropertyTypeValue } from "../Equipment/WeaponPropertyTypes";
-
 /**
- * 天賦屬性類型 - 直接使用統一的屬性定義
- * 這樣可以避免重複定義和不必要的轉換
+ * 🆕 天賦屬性類型 - 使用字符串（配置驅動）
+ * 不再使用枚舉，完全由配置文件決定
  */
-export type TalentPropertyType = PropertyTypeValue;
-
-/**
- * 天賦可影響的屬性白名單（如果需要限制天賦只能影響某些屬性）
- * 目前允許所有屬性，未來可以根據需求調整
- */
-export const TALENT_SUPPORTED_PROPERTIES = [
-    PropertyType.ATTACK_DAMAGE,
-    PropertyType.ATTACK_SPEED,
-    PropertyType.ATTACK_RANGE,
-    PropertyType.CRITICAL_CHANCE,
-    PropertyType.CRITICAL_DAMAGE,
-    PropertyType.LIFE_STEAL,
-    PropertyType.STRENGTH,
-    PropertyType.INTELLIGENCE,
-    PropertyType.VITALITY,
-    PropertyType.AGILITY,
-    PropertyType.PHYSICAL_RESISTANCE,
-    PropertyType.MAGICAL_RESISTANCE,
-    PropertyType.PROJECTILE_SPEED,
-    PropertyType.AREA_OF_EFFECT,
-    PropertyType.PIERCE_COUNT,
-    PropertyType.HEAL_AMOUNT,
-    PropertyType.BUFF_DURATION,
-    PropertyType.SUPPORT_RADIUS,
-    PropertyType.SWEEP_ANGLE,
-    PropertyType.KNOCKBACK,
-    PropertyType.PIERCING,
-    PropertyType.CHAIN_ATTACK,
-    PropertyType.SPLASH_DAMAGE,
-    PropertyType.STUN,
-    PropertyType.FREEZE,
-    PropertyType.BURN,
-    PropertyType.POISON,
-    PropertyType.SLOW,
-    PropertyType.MAX_HEALTH,
-    PropertyType.MAX_MANA,
-    PropertyType.MANA_REGEN,
-    PropertyType.MOVEMENT_SPEED,
-    PropertyType.EXPERIENCE_GAIN,
-    PropertyType.GOLD_FIND,
-    PropertyType.MAGIC_FIND
-] as const;
+export type TalentPropertyType = string;
 
 export interface TalentConfig {
     id: string;
@@ -64,22 +20,21 @@ export interface TalentConfig {
 export interface TalentEffect {
     talent_id: string;
     effect_type: TalentEffectType;
-    property_name: TalentPropertyType;  // 🆕 使用強類型定義
-    modifier_type: ModifierType;
-    base_value: number;
-    per_point_value: number;
-    condition?: TriggerCondition;
-    stack_type: StackType;
-    //條件細節範例 threshold:25|cooldown:5|max_stacks:5
+
+    // 🆕 屬性和修改器（POE 風格）
+    stat: string;                   // 影響的屬性 (damage, attack_speed, burn_chance)
+    value: number;                  // 數值
+    modifier_type: ModifierType;    // 修改器類型 (flat, increased, more)
+
+    // 🆕 標籤系統
+    affect_tags?: string;           // 影響的標籤 (sword,melee)
+    conditions?: string;            // 條件字符串 (wielding:sword)
+
+    // 舊系統兼容（逐步移除）
+    base_value?: number;
+    per_point_value?: number;
+    stack_type?: StackType;
     condition_params?: string;
-    /* {
- 
-         threshold?: number;      // 觸發閾值（如低血量的百分比）
-         cooldown?: number;       // 冷卻時間
-         max_stacks?: number;     // 最大疊加次數
-         probability?: number;    // 觸發機率 (0-1)
-     };
-     */
 }
 
 export enum TalentCategory {
@@ -97,12 +52,10 @@ export enum TalentEffectType {
     AURA_EFFECT = 'AURA_EFFECT'
 }
 
-export enum ModifierType {
-    FLAT_ADD = 'FLAT_ADD',
-    PERCENTAGE_ADD = 'PERCENTAGE_ADD',
-    PERCENTAGE_MULTIPLY = 'PERCENTAGE_MULTIPLY',
-    NONE = 'NONE'
-}
+// 🆕 使用 POE 風格的 ModifierType
+import { ModifierType } from '../Equipment/WeaponPropertyTypes';
+export { ModifierType }; // 重新導出供其他模組使用
+
 export enum StackType {
     SINGLE = 'SINGLE',
     ADDITIVE = 'ADDITIVE'
@@ -152,13 +105,14 @@ export interface CharacterTalentData {
 }
 
 /**
- * 天賦效果應用結果
+ * 🆕 天賦效果應用結果
  */
 export interface AppliedTalentEffect {
     talentId: string;
-    propertyName: TalentPropertyType;
+    stat: string;                   // 影響的屬性
     modifierType: ModifierType;
     value: number;
+    tags: string[];                 // 標籤列表
     condition?: TriggerCondition;
     isActive: boolean;
 }

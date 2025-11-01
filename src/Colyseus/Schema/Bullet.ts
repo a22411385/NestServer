@@ -1,7 +1,7 @@
 import { Schema, type } from "@colyseus/schema";
 import { Vector2 } from "./Unit/GameUnit";
 import { BulletCreateConfig, StatusEffectConfig } from "@/Types";
-import { PropertyType, PropertyValue } from "@/Types/Equipment/WeaponPropertyTypes";
+import { PropertyValue } from "@/Types/Equipment/WeaponPropertyTypes";
 
 // 子彈 Schema - Vampire Survivors 風格
 export class ServerBullet extends Schema {
@@ -30,12 +30,12 @@ export class ServerBullet extends Schema {
     properties: Record<string, PropertyValue> = {};
     pierceCount: number;
 
+    /**
+     * 🆕 獲取範圍傷害半徑（使用屬性ID）
+     */
     public get areaOfEffect(): number {
-        let aoe = this.properties[PropertyType.AREA_OF_EFFECT]?.value;
-        if (Array.isArray(aoe)) {
-            return (aoe[0] || 0);
-        }
-        return (aoe || 0);
+        const aoeProp = this.properties['area_of_effect'];
+        return aoeProp ? aoeProp.value : 0;
     }
 
 
@@ -87,7 +87,7 @@ export class ServerBullet extends Schema {
     }
 
     /**
-     * 應用擴展配置
+     * 🆕 應用擴展配置（POE風格）
      * 
      * @param config 子彈創建配置
      */
@@ -95,9 +95,9 @@ export class ServerBullet extends Schema {
         // 應用屬性配置
         this.properties = config.properties;
 
-        // 處理穿透次數
-        let pCount = config.properties[PropertyType.PIERCE_COUNT]?.value;
-        this.pierceCount = Array.isArray(pCount) ? pCount[0] || 1 : pCount || 1;
+        // 🆕 處理穿透次數（使用屬性ID）
+        const pierceProp = config.properties['pierce_count'];
+        this.pierceCount = pierceProp ? pierceProp.value : 1;
 
         // ✅ 處理狀態效果配置（燃燒、中毒等）
         if (config.statusEffects) {

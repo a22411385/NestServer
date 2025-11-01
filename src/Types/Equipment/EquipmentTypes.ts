@@ -5,12 +5,12 @@
 
 // 重新導入統一的屬性加成接口和屬性系統
 import { AttributeBonus } from "../Game/GameTypes";
-import { PropertyType, PropertyValue } from "./WeaponPropertyTypes";
+import { PropertyValue } from "./WeaponPropertyTypes";
 
 /**
- * 重新導出統一的屬性系統供裝備使用
+ * 🆕 重新導出統一的屬性系統供裝備使用（PropertyType enum 已移除）
  */
-export { AttributeBonus, PropertyType, PropertyValue };
+export { AttributeBonus, PropertyValue };
 
 /**
  * 裝備槽位類型枚舉

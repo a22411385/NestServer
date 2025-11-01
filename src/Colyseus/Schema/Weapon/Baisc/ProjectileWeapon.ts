@@ -239,11 +239,12 @@ export class ProjectileWeapon extends WeaponBasic {
      */
     protected getProjectileConfig(ownerId: string, startPosition: Vector2, direction: Vector2): BulletCreateConfig {
 
+        // 🆕 使用屬性ID作為鍵（POE風格）
         let propertiesMap: Record<string, PropertyValue> = {};
 
         let allProperties = this.getAllProperties();
         for (const prop of allProperties) {
-            propertiesMap[prop.type] = prop;
+            propertiesMap[prop.id] = prop;
         }
 
         return {

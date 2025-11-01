@@ -3,7 +3,6 @@ import {
     AttackFailReason,
     VisualEffect,
     AttackResult,
-    PropertyType,
 } from '@/Types';
 import { ServerGameUnit } from '../../Unit/GameUnit';
 
@@ -20,43 +19,27 @@ export abstract class MeleeWeapon extends WeaponBasic {
     }
 
     /**
-     * 獲取擊退力度（從屬性系統）
+     * 🆕 獲取擊退力度（從屬性系統，使用屬性ID）
      */
     public get knockbackForce(): number {
-        const prop = this.getProperty(PropertyType.KNOCKBACK);
+        const prop = this.getProperty('knockback');
         if (prop) {
             return prop.value;
         } else {
             return 0;
         }
-
     }
+
     /**
-     * 獲取掃射角度（從屬性系統）
+     * 🆕 獲取掃射角度（從屬性系統，使用屬性ID）
      */
     public get sweepAngle(): number {
-
-        const prop = this.getProperty(PropertyType.SWEEP_ANGLE);
+        const prop = this.getProperty('sweep_angle');
         if (prop) {
             return (prop.value * Math.PI) / 180;
         } else {
             return 0;
         }
-
-    }
-
-    /**
-     * 獲取暈眩效果 [機率, 持續時間]
-     */
-    public get stunEffect(): [number, number] | null {
-
-        const prop = this.getProperty(PropertyType.STUN);
-        if (prop) {
-            return [prop.probability, prop.duration];
-        } else {
-            return [0, 0];
-        }
-
     }
 
     public override tryAttack(

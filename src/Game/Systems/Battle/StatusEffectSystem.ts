@@ -2,7 +2,6 @@ import { GameRoom } from '../../../Colyseus/Rooms/GameRoom';
 import { ServerGameUnit } from '../../../Colyseus/Schema/Unit/GameUnit';
 import { ServerHero } from '../../../Colyseus/Schema/Unit/Hero';
 import { UnitType } from '../../../Colyseus/Schema/GameState';
-import { DEBUFF_TO_ELEMENT_MAP } from '@/Types/Equipment/WeaponPropertyTypes';
 
 /**
  * 狀態效果系統
@@ -207,21 +206,17 @@ export class StatusEffectSystem {
     }
 
     /**
-     * 🆕 根據Debuff類型獲取對應的元素傷害加成
-     * 使用映射表而非硬編碼
+     * 🆕 根據Debuff類型獲取對應的元素傷害加成（POE風格標籤系統）
+     * 使用標籤匹配而非enum映射
      * @param hero 英雄實例
-     * @param debuffType Debuff類型
+     * @param debuffType Debuff類型（如 'burn', 'poison'）
      * @returns 傷害加成百分比 (0-100)
      */
     private getElementDamageBonusForDebuff(hero: ServerHero, debuffType: string): number {
-        // 從Debuff類型映射到元素類型
-        const elementType = DEBUFF_TO_ELEMENT_MAP[debuffType];
-        if (!elementType) {
-            return 0; // 沒有對應的元素類型
-        }
-
-        // 獲取該元素的傷害加成
-        return hero.getElementDamageBonus(elementType);
+        // TODO: 實作 hero.getElementDamageBonusByTags([debuffType, 'ailment'])
+        // 暫時返回 0，待 ModifierManager 整合後實作
+        // debuffType 本身就是標籤（如 'burn' → 'fire,ailment'）
+        return 0;
     }
 
     /**

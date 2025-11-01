@@ -2,7 +2,7 @@ import * as XLSX from 'xlsx';
 import * as fs from 'fs';
 import * as path from 'path';
 import axios from 'axios';
-import { WeaponConfigDefinition, WeaponPropertyDefinition } from '@/Types/Equipment/WeaponPropertyTypes';
+import { TagDefinition, WeaponConfigDefinition, StatusEffectDefinition, WeaponModifier, AttributeBonus } from '@/Types/Equipment/WeaponPropertyTypes';
 import { MaterialConfigDefinition } from '@/Types/Equipment/MaterialTypes';
 import { EnemyConfigDefinition } from '@/Types/Game/EnemyTypes';
 import { GoogleCacheData } from '@/Types';
@@ -23,7 +23,7 @@ import { TalentConfig, TalentEffect } from '@/Types/Game/TalentTypes';
  * 
  * @remarks
  * - 數據來源: Google Sheets (URL 從環境變數 GOOGLE_SHEET_URL 獲取)
- * - 有兩個Table: [WeaponProperties, WeaponConfigs]
+ * - 主要Tables: [StatusEffectDefinitions, WeaponModifiers, AttributeBonus, WeaponConfigs, TagDefinitions]
  * - 下載格式: XLSX
  * - 輸出格式: JSON
  * - 快取檔案位置: /data/google-sheets-cache.json
@@ -83,25 +83,36 @@ export class GoogleSheetCache {
 
             const workbook = XLSX.read(response.data, { type: 'buffer' });
 
-            const weaponPropertiesSheet = workbook.Sheets['WeaponProperties'];
+            const statusEffectSheet = workbook.Sheets['StatusEffectDefinitions'];
+            const weaponModifiersSheet = workbook.Sheets['WeaponModifiers'];        // 🆕 武器詞綴表
+            const attributeBonusSheet = workbook.Sheets['AttributeBonus'];          // 🆕 屬性加成表
             const weaponConfigsSheet = workbook.Sheets['WeaponConfigs'];
 
             const materialConfigsSheet = workbook.Sheets['MaterialConfigs'];
-            const enemyConfigsSheet = workbook.Sheets['EnemyConfigs'];  // 🆕 敵人配置表
+            const enemyConfigsSheet = workbook.Sheets['EnemyConfigs'];
             const talentConfigSheet = workbook.Sheets['Talents'];
             const talentEffectSheet = workbook.Sheets['TalentEffects'];
-            if (!weaponPropertiesSheet || !weaponConfigsSheet || !materialConfigsSheet || !enemyConfigsSheet || !talentConfigSheet || !talentEffectSheet) {
+            const tagDefinitionsSheet = workbook.Sheets['TagDefinitions'];
+
+            if (!statusEffectSheet || !weaponConfigsSheet || !materialConfigsSheet || !enemyConfigsSheet || !talentConfigSheet || !talentEffectSheet) {
                 throw new Error('Required sheets not found in the workbook');
             }
 
-            const weaponProperties = XLSX.utils.sheet_to_json<WeaponPropertyDefinition>(weaponPropertiesSheet);
+            const statusEffects = XLSX.utils.sheet_to_json<StatusEffectDefinition>(statusEffectSheet);
+            const weaponModifiers = weaponModifiersSheet ? XLSX.utils.sheet_to_json<WeaponModifier>(weaponModifiersSheet) : [];
+            const attributeBonus = attributeBonusSheet ? XLSX.utils.sheet_to_json<AttributeBonus>(attributeBonusSheet) : [];
             const weaponConfigs = XLSX.utils.sheet_to_json<WeaponConfigDefinition>(weaponConfigsSheet);
             const materialConfigs = XLSX.utils.sheet_to_json<MaterialConfigDefinition>(materialConfigsSheet);
             const enemyConfigs = XLSX.utils.sheet_to_json<EnemyConfigDefinition>(enemyConfigsSheet);  // 🆕 讀取敵人配置
             const talentConfigs = XLSX.utils.sheet_to_json<TalentConfig>(talentConfigSheet);
             const talentEffects = XLSX.utils.sheet_to_json<TalentEffect>(talentEffectSheet);
+            const tagDefinitions = tagDefinitionsSheet ? XLSX.utils.sheet_to_json<TagDefinition>(tagDefinitionsSheet) : [];
+
             this.cacheData = {
-                WeaponProperties: weaponProperties,
+                TagDefinitions: tagDefinitions,
+                StatusEffectDefinitions: statusEffects,
+                WeaponModifiers: weaponModifiers,        // 🆕 武器詞綴
+                AttributeBonus: attributeBonus,          // 🆕 屬性加成
                 WeaponConfigs: weaponConfigs,
                 MaterialConfigs: materialConfigs,
                 EnemyConfigs: enemyConfigs,  // 🆕 添加到快取數據

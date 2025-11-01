@@ -4,7 +4,6 @@ import { ServerEnemy } from '../../../Colyseus/Schema/Unit/Enemy';
 import { ServerGameUnit } from '../../../Colyseus/Schema/Unit/GameUnit';
 import { UnitType } from '../../../Colyseus/Schema/GameState';
 import { BattleMathUtils } from '../../../Util/BattleMathUtils';
-import { ElementTypeValue, DEBUFF_TO_ELEMENT_MAP } from '@/Types/Equipment/WeaponPropertyTypes';
 
 export interface DamageInfo {
     attacker: ServerGameUnit;
@@ -13,7 +12,7 @@ export interface DamageInfo {
     damageType?: 'physical' | 'magic' | 'true';
     isCritical?: boolean;
     source?: string; // 武器ID或技能ID
-    elementType?: ElementTypeValue; // 🆕 元素類型
+    elementTags?: string[]; // 🆕 元素標籤（如 ['fire', 'elemental']）
     debuffType?: string; // 🆕 Debuff類型（用於StatusEffectSystem的持續傷害）
     position?: { x: number, y: number };
 }
@@ -144,10 +143,10 @@ export class DamageSystem {
     }
 
     /**
-     * 計算最終傷害
+     * 🆕 計算最終傷害（POE風格標籤系統）
      */
     private calculateFinalDamage(damageInfo: DamageInfo): number {
-        const { attacker, target, baseDamage, damageType, elementType, debuffType } = damageInfo;
+        const { attacker, target, baseDamage, damageType, elementTags, debuffType } = damageInfo;
         let finalDamage = baseDamage;
 
         // 根據攻擊者屬性調整傷害
@@ -155,11 +154,11 @@ export class DamageSystem {
             const hero = attacker as ServerHero;
             finalDamage += hero.attackDamage; // 添加英雄攻擊力
 
-            // 🆕 套用元素傷害加成
-            const elementDamageBonus = this.getElementDamageBonus(hero, elementType, debuffType);
+            // 🆕 套用元素傷害加成（使用標籤系統）
+            const elementDamageBonus = this.getElementDamageBonus(hero, elementTags, debuffType);
             if (elementDamageBonus > 0) {
                 finalDamage *= (1 + elementDamageBonus / 100);
-                //console.log(`🔥 元素加成: ${elementType || debuffType} +${elementDamageBonus}% → ${finalDamage.toFixed(1)}`);
+                //console.log(`🔥 元素加成: ${elementTags?.join(',') || debuffType} +${elementDamageBonus}% → ${finalDamage.toFixed(1)}`);
             }
         }
 
@@ -174,30 +173,32 @@ export class DamageSystem {
     }
 
     /**
-     * 🆕 獲取元素傷害加成
-     * 使用映射表而非硬編碼，支援武器元素和Debuff類型
+     * 🆕 獲取元素傷害加成（POE風格標籤系統）
+     * 使用標籤匹配而非enum映射
      * @param hero 英雄實例
-     * @param elementType 武器元素類型（優先）
+     * @param elementTags 武器元素標籤（如 ['fire', 'elemental']）
      * @param debuffType Debuff類型（用於持續傷害）
      * @returns 傷害加成百分比 (0-100)
      */
     private getElementDamageBonus(
         hero: ServerHero,
-        elementType?: ElementTypeValue,
+        elementTags?: string[],
         debuffType?: string
     ): number {
-        // 優先使用武器元素類型
-        if (elementType) {
-            return hero.getElementDamageBonus(elementType);
+        // 優先使用武器元素標籤
+        if (elementTags && elementTags.length > 0) {
+            // TODO: 實作 hero.getElementDamageBonusByTags(elementTags)
+            // 暫時返回 0，待 ModifierManager 整合後實作
+            return 0;
         }
 
-        // 如果是持續傷害（burn, poison, bleed），從Debuff反推元素
-        if (debuffType && DEBUFF_TO_ELEMENT_MAP[debuffType]) {
-            const mappedElement = DEBUFF_TO_ELEMENT_MAP[debuffType];
-            return hero.getElementDamageBonus(mappedElement);
+        // 如果是持續傷害（burn, poison, bleed），使用debuffType作為標籤
+        if (debuffType) {
+            // TODO: 實作 hero.getElementDamageBonusByTags([debuffType, 'ailment'])
+            return 0;
         }
 
-        // 沒有元素類型，返回0
+        // 沒有元素標籤，返回0
         return 0;
     }
 

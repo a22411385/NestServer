@@ -143,14 +143,14 @@ export class PropertyCalculationService {
         const combined = [...baseProperties];
         const propertyMap = new Map<string, number>();
 
-        // 建立索引
+        // 🆕 建立索引（使用屬性ID）
         combined.forEach((prop, index) => {
-            propertyMap.set(prop.type.toString(), index);
+            propertyMap.set(prop.id, index);
         });
 
         // 合併額外屬性
         for (const additionalProp of additionalProperties) {
-            const propertyKey = additionalProp.type.toString();
+            const propertyKey = additionalProp.id;
             const existingIndex = propertyMap.get(propertyKey);
 
             if (existingIndex !== undefined) {
@@ -178,10 +178,10 @@ export class PropertyCalculationService {
     ): any {
         const finalProperties = this.calculateFinalProperties(character, weaponProperties);
 
-        // 建立屬性查找映射
+        // 🆕 建立屬性查找映射（使用屬性ID）
         const propertyMap = new Map<string, PropertyValue>();
         finalProperties.forEach(prop => {
-            propertyMap.set(prop.type.toString(), prop);
+            propertyMap.set(prop.id, prop);
         });
 
         // 提取關鍵屬性

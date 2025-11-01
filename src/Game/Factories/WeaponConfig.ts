@@ -85,40 +85,4 @@ export class WeaponConfigManager {
         return this.weaponConfigs[weaponId] || null;
     }
 
-    /**
-     * 獲取指定類型的所有武器
-     */
-    public static getConfigsByType(type: WeaponType): WeaponConfigDefinition[] {
-        const configs = this.getAllConfigs();
-        return Object.values(configs).filter(config => config.classModule === type.toString());
-    }
-
-    /**
-     * 獲取指定稀有度的所有武器
-     */
-    public static getConfigsByRarity(rarity: EquipmentQuality): WeaponConfigDefinition[] {
-        const configs = this.getAllConfigs();
-        return Object.values(configs).filter(config => config.enabled && this.getConfigRarity(config.id) === rarity);
-    }
-
-    /**
-     * 根據武器ID獲取稀有度
-     */
-    private static getConfigRarity(weaponId: string): EquipmentQuality {
-        // 根據武器ID或其他邏輯確定稀有度
-        // 這裡可以根據實際需求調整邏輯
-        const config = this.getConfig(weaponId);
-        if (!config) return EquipmentQuality.NORMAL;
-
-        // 示例：根據屬性數量判斷稀有度
-        const fixedCount = config.fixedProperties ? config.fixedProperties.split(',').length : 0;
-        const randomCount = config.randomProperties ? config.randomProperties.split(',').length : 0;
-        const totalComplexity = fixedCount + randomCount;
-
-        if (totalComplexity >= 8) return EquipmentQuality.LEGENDARY;
-        if (totalComplexity >= 6) return EquipmentQuality.EPIC;
-        if (totalComplexity >= 4) return EquipmentQuality.RARE;
-        if (totalComplexity >= 2) return EquipmentQuality.NORMAL;
-        return EquipmentQuality.NORMAL;
-    }
 }

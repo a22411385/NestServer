@@ -1,19 +1,34 @@
 import { WeaponSchema } from "@/Colyseus/Schema/Weapon/WeaponSchema";
-import { PropertyType } from "@/Types";
 import { WeaponConfigManager } from "../Factories/WeaponConfig";
 
 /**
  * 最終武器屬性接口
+ * 🆕 支援動態擴展（詞綴可添加任意屬性）
  */
 export interface FinalWeaponStats {
+    // 基礎屬性
     finalDamage: number;
     finalRange: number;
     finalSpeed: number;
     finalCritRate?: number;
     finalCritDamage?: number;
     finalLifeSteal?: number;
+
+    // 詞綴相關屬性（動態擴展）
+    pierceCount?: number;           // 穿透次數
+    chainCount?: number;            // 連鎖攻擊次數
+    bounceCount?: number;           // 彈跳次數
+    projectileSpeed?: number;       // 投射物速度加成（百分比）
+    areaRadius?: number;            // 範圍效果加成（百分比）
+    sweepAngle?: number;            // 掃擊角度（度數）
+    homingStrength?: number;        // 追蹤強度（百分比）
+
+    // 其他屬性
     displayName: string;
     rarity?: string;
+
+    // 🆕 允許任意擴展（詞綴系統可添加新屬性）
+    [key: string]: any;
 }
 
 /**
@@ -24,6 +39,7 @@ export class WeaponDataService {
 
     /**
      * 計算武器的最終屬性
+     * 🆕 包含武器詞綴和屬性加成的計算
      */
     static calculateFinalStats(weaponData: WeaponSchema): FinalWeaponStats {
         const config = WeaponConfigManager.getConfig(weaponData.weaponId);
@@ -35,7 +51,7 @@ export class WeaponDataService {
         // 計算各種加成乘數
         const multipliers = this.calculateMultipliers(weaponData);
 
-        // 計算最終屬性
+        // 計算基礎屬性
         const finalDamage = Math.floor(config.baseDamage * multipliers.damage);
         const finalRange = Math.floor(config.attackRange + multipliers.range);
         const finalSpeed = Math.max(100, Math.floor(config.attackSpeed * multipliers.speed));
@@ -48,7 +64,8 @@ export class WeaponDataService {
         // 生成顯示名稱
         const displayName = this.generateDisplayName(weaponData, config);
 
-        return {
+        // 建立基礎屬性對象
+        const finalStats: FinalWeaponStats = {
             finalDamage,
             finalRange,
             finalSpeed,
@@ -58,10 +75,15 @@ export class WeaponDataService {
             displayName,
             rarity: weaponData.rarity
         };
+
+        // 🆕 應用武器詞綴（動態讀取配置）
+        this.applyWeaponModifiers(weaponData, finalStats);
+
+        return finalStats;
     }
 
     /**
-     * 計算各種加成乘數
+     * 🆕 計算各種加成乘數（POE風格）
      */
     private static calculateMultipliers(weaponData: WeaponSchema): {
         damage: number;
@@ -73,13 +95,15 @@ export class WeaponDataService {
         const levelMultiplier = 1 + (weaponData.level - 1) * 0.1
 
         const damageMultiplier = levelMultiplier;
-        const rangeMultiplier = weaponData.getPropertyValue(PropertyType.ATTACK_RANGE) || 0; // 強化微幅增加射程
+        // 🆕 使用屬性ID而非enum
+        const rangeProperty = weaponData.getProperty('attack_range');
+        const rangeMultiplier = rangeProperty ? rangeProperty.value : 0;
         const speedMultiplier = Math.max(0.5, 1 - (weaponData.level - 1) * 0.02); // 等級降低攻擊間隔
         const statsMultiplier = levelMultiplier;
 
         return {
             damage: damageMultiplier,
-            range: Array.isArray(rangeMultiplier) ? 0 : rangeMultiplier,
+            range: rangeMultiplier,
             speed: speedMultiplier,
             stats: statsMultiplier
         };
@@ -136,17 +160,20 @@ export class WeaponDataService {
     }
 
     /**
-     * 計算基礎暴擊傷害
+     * 🆕 計算基礎暴擊傷害（使用屬性ID）
      */
     private static calculateBaseCritDamage(weaponData: WeaponSchema): number {
-        return 150 + weaponData.getPropertyValue(PropertyType.CRITICAL_DAMAGE)[0]?.value || 0; // 基礎150% + 武器屬性 + 天賦
+        const critDamageProp = weaponData.getProperty('critical_damage');
+        const critDamageValue = critDamageProp ? critDamageProp.value : 0;
+        return 150 + critDamageValue; // 基礎150% + 武器屬性
     }
 
     /**
-     * 計算基礎生命偷取
+     * 🆕 計算基礎生命偷取（使用屬性ID）
      */
     private static calculateBaseLifeSteal(weaponData: WeaponSchema): number {
-        return weaponData.getPropertyValue(PropertyType.LIFE_STEAL)[0]?.value || 0; // 武器屬性 + 天賦
+        const lifeStealProp = weaponData.getProperty('life_steal');
+        return lifeStealProp ? lifeStealProp.value : 0; // 武器屬性
     }
 
     /**
@@ -221,5 +248,119 @@ export class WeaponDataService {
 
         // 轉換為正數並轉為36進制縮短長度
         return Math.abs(hash).toString(36);
+    }
+
+    /**
+     * 🆕 應用武器詞綴到最終屬性
+     * 配置驅動，支援動態擴展
+     * 
+     * POE 規則計算順序：
+     * 1. FLAT（固定值）- 直接相加
+     * 2. INCREASED（提升）- 百分比相加後統一計算
+     * 3. MORE（額外）- 百分比相乘
+     */
+    private static applyWeaponModifiers(weaponData: WeaponSchema, finalStats: FinalWeaponStats): void {
+        try {
+            // 獲取武器的所有詞綴
+            const modifiers = weaponData.getModifiers();
+            if (!modifiers || modifiers.length === 0) {
+                return;
+            }
+
+            // 按 affectedStat 分組詞綴
+            const modifiersByAffectedStat = new Map<string, any[]>();
+
+            for (const modifier of modifiers) {
+                if (!modifier.enabled) continue; // 跳過未啟用的詞綴
+
+                const affectedStat = modifier.affectedStat;
+                if (!affectedStat) continue;
+
+                if (!modifiersByAffectedStat.has(affectedStat)) {
+                    modifiersByAffectedStat.set(affectedStat, []);
+                }
+                modifiersByAffectedStat.get(affectedStat)!.push(modifier);
+            }
+
+            // 對每個受影響的屬性進行計算
+            for (const [affectedStat, mods] of modifiersByAffectedStat) {
+                this.applyModifiersToStat(affectedStat, mods, finalStats);
+            }
+
+        } catch (error) {
+            console.error('[WeaponDataService] 應用武器詞綴失敗:', error);
+        }
+    }
+
+    /**
+     * 🆕 對單個屬性應用詞綴計算（POE 規則）
+     */
+    private static applyModifiersToStat(
+        affectedStat: string,
+        modifiers: any[],
+        finalStats: FinalWeaponStats
+    ): void {
+        // 將 snake_case 轉為 camelCase 作為屬性名
+        const statKey = this.convertToCamelCase(affectedStat);
+
+        // 獲取基礎值（如果存在）
+        const baseValue = (finalStats as any)[statKey] || 0;
+
+        // 分類詞綴
+        let flatSum = 0;           // FLAT 總和
+        let increasedSum = 0;      // INCREASED 總和
+        let moreProduct = 1;       // MORE 乘積
+
+        for (const modifier of modifiers) {
+            const value = modifier.value || modifier.baseValue || 0;
+            const modifierType = (modifier.modifierType || 'flat').toLowerCase();
+            const count = modifier.count || 1; // 疊加次數
+
+            switch (modifierType) {
+                case 'flat':
+                    flatSum += value * count;
+                    break;
+                case 'increased':
+                    // INCREASED 類型以百分比相加
+                    increasedSum += value * count;
+                    break;
+                case 'more':
+                    // MORE 類型以百分比相乘
+                    moreProduct *= (1 + (value * count / 100));
+                    break;
+            }
+        }
+
+        // POE 規則計算：基礎值 → FLAT → INCREASED → MORE
+        let finalValue = baseValue;
+
+        // 步驟 1：加上 FLAT
+        finalValue += flatSum;
+
+        // 步驟 2：應用 INCREASED（百分比加成）
+        if (increasedSum !== 0) {
+            finalValue *= (1 + increasedSum / 100);
+        }
+
+        // 步驟 3：應用 MORE（乘法加成）
+        if (moreProduct !== 1) {
+            finalValue *= moreProduct;
+        }
+
+        // 特殊處理：傷害屬性需要取整
+        if (affectedStat.includes('damage')) {
+            finalValue = Math.floor(finalValue);
+        }
+
+        // 設定最終值
+        (finalStats as any)[statKey] = finalValue;
+    }
+
+    /**
+     * 🆕 將 snake_case 轉換為 camelCase
+     * 例如：pierce_count → pierceCount
+     */
+    private static convertToCamelCase(str: string): string {
+        return str.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
     }
 }

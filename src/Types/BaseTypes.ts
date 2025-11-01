@@ -2,7 +2,7 @@
  * 基礎通用類型定義
  * 整合自 struct.ts 和其他分散的基礎類型
  */
-import { WeaponConfigDefinition, WeaponPropertyDefinition } from "./Equipment/WeaponPropertyTypes";
+import { TagDefinition, WeaponConfigDefinition, StatusEffectDefinition, WeaponModifier, AttributeBonus } from "./Equipment/WeaponPropertyTypes";
 import { MaterialConfigDefinition } from "./Equipment/MaterialTypes";
 import { TalentConfig, TalentEffect } from "./Game/TalentTypes";
 import { EnemyConfigDefinition } from "./Game/EnemyTypes";
@@ -63,11 +63,13 @@ export interface Durability {
 }
 
 export interface GoogleCacheData {
-    WeaponProperties: WeaponPropertyDefinition[];
+    StatusEffectDefinitions: StatusEffectDefinition[];  // 🔄 狀態效果定義 (臨時效果)
+    WeaponModifiers: WeaponModifier[];                  // 🆕 武器詞綴定義
+    AttributeBonus: AttributeBonus[];                   // 🆕 屬性加成定義
     WeaponConfigs: WeaponConfigDefinition[];
-
+    TagDefinitions: TagDefinition[];
     MaterialConfigs: MaterialConfigDefinition[];
-    EnemyConfigs: EnemyConfigDefinition[];  // 🆕 敵人配置
+    EnemyConfigs: EnemyConfigDefinition[];
     TalentConfigs: TalentConfig[];
     TalentEffects: TalentEffect[];
     lastUpdated: string;

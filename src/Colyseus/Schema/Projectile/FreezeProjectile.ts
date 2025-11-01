@@ -1,6 +1,6 @@
 import { ProjectileBasic } from './ProjectileBasic';
 import { ServerGameUnit } from '../Unit/GameUnit';
-import { AttackResult, VisualEffect, FreezeVisualEffect, PropertyType } from '../../../Types';
+import { AttackResult, VisualEffect, FreezeVisualEffect } from '../../../Types';
 import { ServerBullet } from '../Bullet';
 import { GameRoom } from '../../Rooms/GameRoom';
 
@@ -78,15 +78,15 @@ export class FreezeProjectile extends ProjectileBasic {
         // 冰凍投射物只影響直接命中的目標
         return [hitTarget];
     }
+    /**
+     * 🆕 獲取冰凍持續時間（使用屬性ID）
+     */
     private getFreezeDuration(bullet: ServerBullet): number {
         let duration = 2000; // 預設 2000 毫秒
-        const freezeProp = bullet.properties[PropertyType.FREEZE]?.value;
-        if (freezeProp !== undefined) {
-            if (Array.isArray(freezeProp)) {
-                duration = Number(freezeProp[0]) * 1000; // 秒轉毫秒
-            } else {
-                duration = Number(freezeProp) * 1000; // 秒轉毫秒
-            }
+        const freezeProp = bullet.properties['freeze'];
+        if (freezeProp) {
+            // PropertyValue.duration 已經是毫秒
+            duration = freezeProp.duration || 2000;
         }
         return duration;
     }

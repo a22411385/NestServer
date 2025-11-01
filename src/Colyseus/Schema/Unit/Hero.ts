@@ -313,6 +313,8 @@ export class ServerHero extends ServerGameUnit {
     /**
      * 🆕 更新武器屬性加成
      * 遍歷所有裝備的武器，累加它們的基本屬性
+     * 🔧 支援武器詞綴和屬性加成系統
+     * 🚨 注意：這個方法會被 recalculateAllStats() 調用，不能再調用會觸發 recalculateAllStats() 的方法
      */
     private updateWeaponAttributeBonuses(): void {
         // 重置武器屬性加成
@@ -321,14 +323,80 @@ export class ServerHero extends ServerGameUnit {
         this.weaponAgi = 0;
         this.weaponVit = 0;
 
-        // 遍歷所有裝備的武器
-        for (const weapon of this.weaponInventory) {
-            const weaponSchema = this.findWeaponSchemaById(weapon.uniqueId);
-            if (weaponSchema) {
-                this.weaponStr += weaponSchema.str || 0;
-                this.weaponInt += weaponSchema.int || 0;
-                this.weaponAgi += weaponSchema.agi || 0;
-                this.weaponVit += weaponSchema.vit || 0;
+        // 重置裝備加成（避免累積）
+        this.equipmentHpBonus = 0;
+        this.equipmentAttackBonus = 0;
+        this.equipmentMpBonus = 0;
+        this.hpMultiplier = 1.0;
+        this.attackMultiplier = 1.0;
+        this.speedMultiplier = 1.0;
+        this.mpMultiplier = 1.0;
+
+        // 🔧 修復：直接遍歷 weaponInventory，weapon 本身就是 WeaponSchema
+        for (const weaponSchema of this.weaponInventory) {
+            // 只處理已裝備的武器
+            if (!weaponSchema.isEquipped) {
+                continue;
+            }
+
+            // 舊版屬性（向下相容）
+            this.weaponStr += weaponSchema.str || 0;
+            this.weaponInt += weaponSchema.int || 0;
+            this.weaponAgi += weaponSchema.agi || 0;
+            this.weaponVit += weaponSchema.vit || 0;
+
+            // 🆕 新版屬性加成系統 - 直接計算，不調用 applyEquipmentBonus（避免循環）
+            try {
+                const bonuses = weaponSchema.getBonuses();
+                if (bonuses && bonuses.length > 0) {
+                    // 直接應用屬性加成，不觸發 recalculateAllStats
+                    this.applyBonusesDirectly(bonuses);
+                }
+            } catch (error) {
+                // 靜默處理，不影響舊武器
+            }
+        }
+    }
+
+    /**
+     * 🆕 直接應用屬性加成（不觸發重算）
+     * 用於 updateWeaponAttributeBonuses 中避免循環調用
+     */
+    private applyBonusesDirectly(bonuses: any[]): void {
+        // 檢查是否為新版屬性加成（有 affectedStat 欄位）
+        const isNewSystem = bonuses.some(b => b.affectedStat);
+
+        if (isNewSystem) {
+            // 🆕 新版：配置驅動的屬性加成系統
+            // 按 affectedStat 分組
+            const bonusesByAffectedStat = new Map<string, any[]>();
+
+            for (const bonus of bonuses) {
+                if (!bonus.enabled) continue;
+
+                const affectedStat = bonus.affectedStat;
+                if (!affectedStat) continue;
+
+                if (!bonusesByAffectedStat.has(affectedStat)) {
+                    bonusesByAffectedStat.set(affectedStat, []);
+                }
+                bonusesByAffectedStat.get(affectedStat)!.push(bonus);
+            }
+
+            // 對每個屬性應用 POE 規則計算
+            for (const [affectedStat, statBonuses] of bonusesByAffectedStat) {
+                this.applyBonusToStat(affectedStat, statBonuses);
+            }
+        } else {
+            // 舊版：hardcode 的屬性加成
+            for (const bonus of bonuses) {
+                this.equipmentHpBonus += (bonus as any).hpBonus || 0;
+                this.equipmentAttackBonus += (bonus as any).attackBonus || 0;
+                this.equipmentMpBonus += (bonus as any).mpBonus || 0;
+                this.hpMultiplier *= (1 + ((bonus as any).hpMultiplier || 0));
+                this.attackMultiplier *= (1 + ((bonus as any).attackMultiplier || 0));
+                this.speedMultiplier *= (1 + ((bonus as any).speedMultiplier || 0));
+                this.mpMultiplier *= (1 + ((bonus as any).mpMultiplier || 0));
             }
         }
     }
@@ -390,33 +458,158 @@ export class ServerHero extends ServerGameUnit {
 
     /**
      * 裝備屬性加成管理
+     * 🆕 支援 POE 風格修改器系統 (FLAT → INCREASED → MORE)
      */
     public applyEquipmentBonus(bonuses: AttributeBonus[]): void {
         // 重置裝備加成
         this.equipmentHpBonus = 0;
         this.equipmentAttackBonus = 0;
-
         this.equipmentMpBonus = 0;
         this.hpMultiplier = 1.0;
         this.attackMultiplier = 1.0;
         this.speedMultiplier = 1.0;
         this.mpMultiplier = 1.0;
 
-        // 累加所有裝備的加成
-        for (const bonus of bonuses) {
-            this.equipmentHpBonus += bonus.hpBonus || 0;
-            this.equipmentAttackBonus += bonus.attackBonus || 0;
+        // 🆕 如果沒有 bonuses，使用舊版邏輯（向下相容）
+        if (!bonuses || bonuses.length === 0) {
+            this.recalculateAllStats();
+            return;
+        }
 
-            this.equipmentMpBonus += bonus.mpBonus || 0;
+        // 🆕 檢查是否為新版屬性加成（有 affectedStat 欄位）
+        const isNewSystem = bonuses.some(b => (b as any).affectedStat);
 
-            this.hpMultiplier *= (1 + (bonus.hpMultiplier || 0));
-            this.attackMultiplier *= (1 + (bonus.attackMultiplier || 0));
-            this.speedMultiplier *= (1 + (bonus.speedMultiplier || 0));
-            this.mpMultiplier *= (1 + (bonus.mpMultiplier || 0));
+        if (isNewSystem) {
+            // 🆕 新版：配置驅動的屬性加成系統
+            this.applyConfigDrivenBonuses(bonuses);
+        } else {
+            // 舊版：hardcode 的屬性加成
+            for (const bonus of bonuses) {
+                this.equipmentHpBonus += (bonus as any).hpBonus || 0;
+                this.equipmentAttackBonus += (bonus as any).attackBonus || 0;
+                this.equipmentMpBonus += (bonus as any).mpBonus || 0;
+                this.hpMultiplier *= (1 + ((bonus as any).hpMultiplier || 0));
+                this.attackMultiplier *= (1 + ((bonus as any).attackMultiplier || 0));
+                this.speedMultiplier *= (1 + ((bonus as any).speedMultiplier || 0));
+                this.mpMultiplier *= (1 + ((bonus as any).mpMultiplier || 0));
+            }
         }
 
         // 重新計算最終屬性
         this.recalculateAllStats();
+    }
+
+    /**
+     * 🆕 應用配置驅動的屬性加成（POE 規則）
+     * 支援 FLAT, INCREASED, MORE 三種修改器
+     */
+    private applyConfigDrivenBonuses(bonuses: any[]): void {
+        // 按 affectedStat 分組
+        const bonusesByAffectedStat = new Map<string, any[]>();
+
+        for (const bonus of bonuses) {
+            if (!bonus.enabled) continue;
+
+            const affectedStat = bonus.affectedStat;
+            if (!affectedStat) continue;
+
+            if (!bonusesByAffectedStat.has(affectedStat)) {
+                bonusesByAffectedStat.set(affectedStat, []);
+            }
+            bonusesByAffectedStat.get(affectedStat)!.push(bonus);
+        }
+
+        // 對每個屬性應用 POE 規則計算
+        for (const [affectedStat, statBonuses] of bonusesByAffectedStat) {
+            this.applyBonusToStat(affectedStat, statBonuses);
+        }
+    }
+
+    /**
+     * 🆕 對單個屬性應用加成（POE 規則）
+     */
+    private applyBonusToStat(affectedStat: string, bonuses: any[]): void {
+        // 分類加成
+        let flatSum = 0;
+        let increasedSum = 0;
+        let moreProduct = 1;
+
+        for (const bonus of bonuses) {
+            const value = bonus.value || bonus.baseValue || 0;
+            const modifierType = (bonus.modifierType || 'flat').toLowerCase();
+            const count = bonus.count || 1;
+
+            switch (modifierType) {
+                case 'flat':
+                    flatSum += value * count;
+                    break;
+                case 'increased':
+                    increasedSum += value * count;
+                    break;
+                case 'more':
+                    moreProduct *= (1 + (value * count / 100));
+                    break;
+            }
+        }
+
+        // 映射到 Hero 屬性（使用配置驅動的映射）
+        this.applyStatBonus(affectedStat, flatSum, increasedSum, moreProduct);
+    }
+
+    /**
+     * 🆕 將計算結果應用到實際屬性
+     */
+    private applyStatBonus(
+        affectedStat: string,
+        flatSum: number,
+        increasedSum: number,
+        moreProduct: number
+    ): void {
+        // 屬性映射表（可配置化）
+        const statMapping: Record<string, { base: keyof ServerHero, multiplier: keyof ServerHero }> = {
+            'max_health': { base: 'equipmentHpBonus' as keyof ServerHero, multiplier: 'hpMultiplier' as keyof ServerHero },
+            'max_hp': { base: 'equipmentHpBonus' as keyof ServerHero, multiplier: 'hpMultiplier' as keyof ServerHero },
+            'attack_damage': { base: 'equipmentAttackBonus' as keyof ServerHero, multiplier: 'attackMultiplier' as keyof ServerHero },
+            'max_mana': { base: 'equipmentMpBonus' as keyof ServerHero, multiplier: 'mpMultiplier' as keyof ServerHero },
+            'max_mp': { base: 'equipmentMpBonus' as keyof ServerHero, multiplier: 'mpMultiplier' as keyof ServerHero },
+            'move_speed': { base: 'equipmentMpBonus' as keyof ServerHero, multiplier: 'speedMultiplier' as keyof ServerHero }, // 暫用
+
+            // 🆕 主屬性直接映射（strength, agility, intelligence, vitality）
+            'strength': { base: 'weaponStr' as keyof ServerHero, multiplier: 'attackMultiplier' as keyof ServerHero },
+            'agility': { base: 'weaponAgi' as keyof ServerHero, multiplier: 'speedMultiplier' as keyof ServerHero },
+            'intelligence': { base: 'weaponInt' as keyof ServerHero, multiplier: 'mpMultiplier' as keyof ServerHero },
+            'vitality': { base: 'weaponVit' as keyof ServerHero, multiplier: 'hpMultiplier' as keyof ServerHero },
+        };
+
+        const mapping = statMapping[affectedStat.toLowerCase()];
+        if (!mapping) {
+            // 未知屬性，跳過（不影響系統運作）
+            return;
+        }
+
+        // 應用 FLAT 加成
+        if (flatSum !== 0) {
+            const currentValue = (this as any)[mapping.base] || 0;
+            (this as any)[mapping.base] = currentValue + flatSum;
+        }
+
+        // 應用 INCREASED 和 MORE 加成到乘數
+        if (increasedSum !== 0 || moreProduct !== 1) {
+            const currentMultiplier = (this as any)[mapping.multiplier] || 1.0;
+            let newMultiplier = currentMultiplier;
+
+            // INCREASED（加法）
+            if (increasedSum !== 0) {
+                newMultiplier *= (1 + increasedSum / 100);
+            }
+
+            // MORE（乘法）
+            if (moreProduct !== 1) {
+                newMultiplier *= moreProduct;
+            }
+
+            (this as any)[mapping.multiplier] = newMultiplier;
+        }
     }
 
     /**

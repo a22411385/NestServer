@@ -1,5 +1,5 @@
 import { GoogleCacheData } from '@/Types';
-import { WeaponConfigDefinition, WeaponPropertyDefinition } from '@/Types/Equipment/WeaponPropertyTypes';
+import { WeaponConfigDefinition, StatusEffectDefinition } from '@/Types/Equipment/WeaponPropertyTypes';
 import { MaterialConfigDefinition } from '@/Types/Equipment/MaterialTypes';
 import { EnemyConfigDefinition } from '@/Types/Game/EnemyTypes';
 import * as fs from 'fs';
@@ -57,7 +57,7 @@ export class ConfigManager {
                 this.cache = JSON.parse(cacheData);
 
                 // 🎯 驗證快取資料完整性
-                const requiredKeys: ConfigKey[] = ['WeaponProperties', 'WeaponConfigs', 'MaterialConfigs', 'EnemyConfigs', 'TalentConfigs', 'TalentEffects'];
+                const requiredKeys: ConfigKey[] = ['StatusEffectDefinitions', 'WeaponConfigs', 'MaterialConfigs', 'EnemyConfigs', 'TalentConfigs', 'TalentEffects'];
                 const missingKeys = requiredKeys.filter(key => !this.cache[key] || (Array.isArray(this.cache[key]) && this.cache[key].length === 0));
 
                 if (missingKeys.length > 0) {
@@ -66,7 +66,7 @@ export class ConfigManager {
                 }
 
                 console.log('✅ ConfigManager 快取載入成功');
-                console.log(`   - WeaponProperties: ${this.cache.WeaponProperties?.length || 0} 個`);
+                console.log(`   - WeaponProperties: ${this.cache.StatusEffectDefinitions?.length || 0} 個`);
                 console.log(`   - WeaponConfigs: ${this.cache.WeaponConfigs?.length || 0} 個`);
                 console.log(`   - MaterialConfigs: ${this.cache.MaterialConfigs?.length || 0} 個`);
                 console.log(`   - EnemyConfigs: ${this.cache.EnemyConfigs?.length || 0} 個`);
@@ -216,59 +216,4 @@ export class ConfigManager {
         return availableEnemies[0].id;
     }
 
-    /**
-     * 根據波次和AI類型篩選敵人
-     */
-    public static getEnemiesByWaveAndAIType(waveNumber: number, aiType: string): EnemyConfigDefinition[] {
-        const enemies = this.getEnemiesByWave(waveNumber);
-        return enemies.filter(enemy => enemy.aiType === aiType);
-    }
-
-    // ==================== 材料特殊查詢 ====================
-
-    /**
-     * 根據敵人等級獲取可掉落的材料列表
-     */
-    public static getMaterialsByEnemyLevel(enemyLevel: number): MaterialConfigDefinition[] {
-        const materials = this.getAll<MaterialConfigDefinition>('MaterialConfigs');
-        return materials.filter(material => {
-            if (!material.enabled) return false;
-            return enemyLevel >= material.dropFromEnemyLevel;
-        });
-    }
-
-    /**
-     * 根據敵人等級和稀有度獲取材料
-     */
-    public static getMaterialsByEnemyLevelAndRarity(
-        enemyLevel: number,
-        rarity: string
-    ): MaterialConfigDefinition[] {
-        return this.getMaterialsByEnemyLevel(enemyLevel)
-            .filter(material => material.rarity === rarity);
-    }
-
-    // ==================== 武器特殊查詢 ====================
-
-    /**
-     * 獲取所有武器配置
-     */
-    public static getWeaponConfigs(): WeaponConfigDefinition[] {
-        return this.getAll<WeaponConfigDefinition>('WeaponConfigs');
-    }
-
-    /**
-     * 獲取所有武器屬性
-     */
-    public static getWeaponProperties(): WeaponPropertyDefinition[] {
-        return this.getAll<WeaponPropertyDefinition>('WeaponProperties');
-    }
-
-    /**
-     * 根據屬性類型獲取武器屬性
-     */
-    public static getWeaponPropertyByType(propertyType: string): WeaponPropertyDefinition | null {
-        const properties = this.getWeaponProperties();
-        return properties.find(prop => prop.propertyType === propertyType) || null;
-    }
 }
