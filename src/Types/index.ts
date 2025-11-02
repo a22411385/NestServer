@@ -10,7 +10,6 @@ export * from './BaseTypes';
 // ========================= 遊戲核心類型 =========================
 export * from './Game/GameTypes';      // 包含 StatType, AttributeBonus 等統一接口
 export * from './Game/AttackTypes';    // 包含統一的 AttackResult 接口
-export * from './Game/CombatTypes';    // 重新導出 AttackTypes，避免重複
 
 // ========================= 武器系統類型 =========================
 export * from './Equipment/WeaponTypes';         // 武器分類枚舉
