@@ -339,12 +339,6 @@ export class ServerHero extends ServerGameUnit {
                 continue;
             }
 
-            // 舊版屬性（向下相容）
-            this.weaponStr += weaponSchema.str || 0;
-            this.weaponInt += weaponSchema.int || 0;
-            this.weaponAgi += weaponSchema.agi || 0;
-            this.weaponVit += weaponSchema.vit || 0;
-
             // 🆕 新版屬性加成系統 - 直接計算，不調用 applyEquipmentBonus（避免循環）
             try {
                 const bonuses = weaponSchema.getBonuses();

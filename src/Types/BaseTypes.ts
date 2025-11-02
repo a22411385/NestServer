@@ -6,6 +6,7 @@ import { TagDefinition, WeaponConfigDefinition, StatusEffectDefinition, WeaponMo
 import { MaterialConfigDefinition } from "./Equipment/MaterialTypes";
 import { TalentConfig, TalentEffect } from "./Game/TalentTypes";
 import { EnemyConfigDefinition } from "./Game/EnemyTypes";
+import { WeaponStatConfig } from "./Equipment/WeaponTypes";
 
 /**
  * JWT 載荷接口
@@ -72,5 +73,6 @@ export interface GoogleCacheData {
     EnemyConfigs: EnemyConfigDefinition[];
     TalentConfigs: TalentConfig[];
     TalentEffects: TalentEffect[];
+    WeaponStatConfigs: WeaponStatConfig[];
     lastUpdated: string;
 }

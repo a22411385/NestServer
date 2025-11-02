@@ -5,9 +5,8 @@ import axios from 'axios';
 import { TagDefinition, WeaponConfigDefinition, StatusEffectDefinition, WeaponModifier, AttributeBonus } from '@/Types/Equipment/WeaponPropertyTypes';
 import { MaterialConfigDefinition } from '@/Types/Equipment/MaterialTypes';
 import { EnemyConfigDefinition } from '@/Types/Game/EnemyTypes';
-import { GoogleCacheData } from '@/Types';
+import { GoogleCacheData, WeaponStatConfig } from '@/Types';
 import { TalentConfig, TalentEffect } from '@/Types/Game/TalentTypes';
-
 /**
  * Google Sheets 數據快取模組
  * 
@@ -93,7 +92,7 @@ export class GoogleSheetCache {
             const talentConfigSheet = workbook.Sheets['Talents'];
             const talentEffectSheet = workbook.Sheets['TalentEffects'];
             const tagDefinitionsSheet = workbook.Sheets['TagDefinitions'];
-
+            const weaponStatConfigSheet = workbook.Sheets['WeaponStatConfigs'];
             if (!statusEffectSheet || !weaponConfigsSheet || !materialConfigsSheet || !enemyConfigsSheet || !talentConfigSheet || !talentEffectSheet) {
                 throw new Error('Required sheets not found in the workbook');
             }
@@ -106,6 +105,9 @@ export class GoogleSheetCache {
             const enemyConfigs = XLSX.utils.sheet_to_json<EnemyConfigDefinition>(enemyConfigsSheet);  // 🆕 讀取敵人配置
             const talentConfigs = XLSX.utils.sheet_to_json<TalentConfig>(talentConfigSheet);
             const talentEffects = XLSX.utils.sheet_to_json<TalentEffect>(talentEffectSheet);
+            const weaponStatConfigs = XLSX.utils.sheet_to_json<WeaponStatConfig>(weaponStatConfigSheet);
+
+
             const tagDefinitions = tagDefinitionsSheet ? XLSX.utils.sheet_to_json<TagDefinition>(tagDefinitionsSheet) : [];
 
             this.cacheData = {
@@ -118,6 +120,7 @@ export class GoogleSheetCache {
                 EnemyConfigs: enemyConfigs,  // 🆕 添加到快取數據
                 TalentConfigs: talentConfigs,
                 TalentEffects: talentEffects,
+                WeaponStatConfigs: weaponStatConfigs,
                 lastUpdated: new Date().toISOString()
             };
 

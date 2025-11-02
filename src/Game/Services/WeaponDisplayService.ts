@@ -33,23 +33,14 @@ export class WeaponDisplayService {
             expToNext: 100, // TODO: 從配置或計算獲取
             isEquipped: weaponSchema.isEquipped,
 
-            // 基礎屬性（使用計算後的最終值）
+            // 基礎屬性（✅ 使用配置表標準名稱）
             baseStats: {
-                damage: finalStats.finalDamage,
-                attackSpeed: finalStats.finalSpeed,
-                attackRange: finalStats.finalRange,
-                critRate: finalStats.finalCritRate || 0,
-                critDamage: finalStats.finalCritDamage || 0,
+                damage: finalStats.weaponDamage,       // ✅ 配置表標準名稱
+                attackSpeed: finalStats.attackSpeed,   // ✅ 配置表標準名稱
+                attackRange: finalStats.attackRange,   // ✅ 配置表標準名稱
+                critRate: finalStats.critRate || 0,    // ✅ 配置表標準名稱
+                critDamage: finalStats.critDamage || 0,// ✅ 配置表標準名稱
             },
-
-            // 四維屬性
-            attributes: {
-                strength: weaponSchema.str,
-                intelligence: weaponSchema.int,
-                agility: weaponSchema.agi,
-                vitality: weaponSchema.vit,
-            },
-
             // 🆕 狀態效果列表
             statusEffects: this.formatStatusEffects(weaponSchema.fixedProperties),
 

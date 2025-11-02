@@ -1,0 +1,8 @@
+{
+  "json.schemas": [
+    {
+      "fileMatch": ["data/google-sheets-cache.json"],
+      "url": "./src/Types/Equipment/WeaponModifierSchema.json"
+    }
+  ]
+}

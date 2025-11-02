@@ -1,6 +1,5 @@
 import { ProjectileBasic } from './ProjectileBasic';
 import { ServerGameUnit } from '../Unit/GameUnit';
-import { ExplosionVisualEffect, HitVisualEffect, VisualEffect } from '../../../Types';
 import { ServerBullet } from '../Bullet';
 import { GameRoom } from '../../Rooms/GameRoom';
 
@@ -23,31 +22,6 @@ export class PiercingProjectile extends ProjectileBasic {
             PiercingProjectile.instance = new PiercingProjectile();
         }
         return PiercingProjectile.instance;
-    }
-
-    /**
-     * 覆寫視覺效果 - 穿透命中效果
-     *
-     * 📡 廣播事件：hit_effect
-     */
-    protected createVisualEffects(
-        bullet: ServerBullet,
-        affectedTargets: ServerGameUnit[],
-    ): VisualEffect[] {
-        const currentPos = bullet.getCurrentPosition();
-
-        const hitEffect: VisualEffect = {
-            type: 'hit',
-            position: { x: currentPos.x, y: currentPos.y },
-            direction: { x: bullet.directionX, y: bullet.directionY },
-            data: {
-                damage: bullet.damage, // ← 從 bullet 獲取
-                isPierce: true,
-                isCritical: false,
-            },
-        } as HitVisualEffect;
-
-        return [hitEffect];
     }
 
     protected findAffectedTargets(

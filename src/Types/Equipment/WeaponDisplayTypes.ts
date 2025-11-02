@@ -30,14 +30,6 @@ export interface WeaponDisplayData {
         critDamage: number;
     };
 
-    // === 四維屬性 ===
-    attributes: {
-        strength: number;
-        intelligence: number;
-        agility: number;
-        vitality: number;
-    };
-
     // === 🆕 狀態效果列表（fixedProperties） ===
     statusEffects: StatusEffectDisplay[];
 

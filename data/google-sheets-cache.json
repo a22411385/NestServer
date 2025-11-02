@@ -503,6 +503,20 @@
       "color": "#FF69B4",
       "icon": "heart",
       "enabled": true
+    },
+    {
+      "id": "attack",
+      "displayName": "攻擊",
+      "description": "普通攻擊",
+      "category": "function",
+      "enabled": true
+    },
+    {
+      "id": "mechanic",
+      "displayName": "機械",
+      "description": "機械相關",
+      "category": "function",
+      "enabled": true
     }
   ],
   "StatusEffectDefinitions": [
@@ -582,19 +596,6 @@
       "damageScaling": 0,
       "defaultModifierType": "flat",
       "category": "debuff",
-      "stackable": false
-    },
-    {
-      "id": "knockback",
-      "displayName": "擊退",
-      "description": "攻擊時將敵人向後推",
-      "tags": "physical,combat,control",
-      "baseProbability": 100,
-      "duration": 0,
-      "baseDamage": 0,
-      "damageScaling": 0,
-      "defaultModifierType": "flat",
-      "category": "combat",
       "stackable": false
     }
   ],
@@ -782,7 +783,12 @@
       "enabled": true
     },
     {
-      "id": "homing"
+      "id": "knockback",
+      "displayName": "擊退",
+      "description": "擁有擊退能力",
+      "tags": "attack, knockback",
+      "baseValue": 50,
+      "modifierType": "flat"
     }
   ],
   "AttributeBonus": [
@@ -790,7 +796,7 @@
       "id": "strength",
       "displayName": "力量",
       "description": "增加角色的力量屬性",
-      "tags": "attribute,character,physical",
+      "tags": "attribute",
       "baseValue": 10,
       "modifierType": "flat",
       "affectedStat": "strength",
@@ -802,7 +808,7 @@
       "id": "vitality",
       "displayName": "體力",
       "description": "增加角色的體力屬性",
-      "tags": "attribute,character,physical",
+      "tags": "attribute",
       "baseValue": 10,
       "modifierType": "flat",
       "affectedStat": "vitality",
@@ -814,7 +820,7 @@
       "id": "intelligence",
       "displayName": "智力",
       "description": "增加角色的智力屬性",
-      "tags": "attribute,character,magic",
+      "tags": "attribute",
       "baseValue": 10,
       "modifierType": "flat",
       "affectedStat": "intelligence",
@@ -826,7 +832,7 @@
       "id": "agility",
       "displayName": "敏捷",
       "description": "增加角色的敏捷屬性",
-      "tags": "attribute,character,physical",
+      "tags": "attribute",
       "baseValue": 10,
       "modifierType": "flat",
       "affectedStat": "agility",
@@ -850,7 +856,7 @@
       "id": "attack_range",
       "displayName": "攻擊距離",
       "description": "增加武器攻擊範圍",
-      "tags": "attack,range,combat",
+      "tags": "attack,combat",
       "baseValue": 20,
       "modifierType": "flat",
       "affectedStat": "attack_range",
@@ -922,7 +928,7 @@
       "classModule": "ProjectileWeapon",
       "projectileClass": "LightningProjectile",
       "effectProperties": "stun",
-      "modifiers": "homing",
+      "modifiers": "chain_attack",
       "bonuses": "intelligence",
       "enabled": true
     }
@@ -1574,124 +1580,214 @@
   "TalentEffects": [
     {
       "talent_id": "combat_dmg_boost_1",
-      "effect_type": "PROPERTY_MODIFIER",
-      "property_name": "attack_damage",
-      "modifier_type": "PERCENTAGE_ADD",
+      "description": "物理傷害提高",
+      "modifier_type": "increased",
       "base_value": 0,
       "per_point_value": 25,
-      "condition": "passive",
-      "stack_type": "ADDITIVE"
+      "conditions": "passive",
+      "stack_type": "ADDITIVE",
+      "affect_tags": "physical"
     },
     {
       "talent_id": "combat_maxhp_boost_1",
-      "effect_type": "PROPERTY_MODIFIER",
-      "property_name": "max_health",
-      "modifier_type": "PERCENTAGE_MULTIPLY",
+      "description": "最大生命值提升",
+      "stat": "health",
+      "modifier_type": "more",
       "base_value": 0,
       "per_point_value": 25,
-      "condition": "passive",
+      "conditions": "passive",
       "stack_type": "ADDITIVE"
     },
     {
       "talent_id": "combat_crit_boost_1",
-      "effect_type": "PROPERTY_MODIFIER",
-      "property_name": "critical_chance",
-      "modifier_type": "PERCENTAGE_ADD",
+      "description": "提升爆擊率",
+      "modifier_type": "increased",
       "base_value": 2,
       "per_point_value": 2,
-      "condition": "passive",
+      "conditions": "passive",
       "stack_type": "ADDITIVE"
     },
     {
       "talent_id": "combat_speed_boost_1",
-      "effect_type": "PROPERTY_MODIFIER",
-      "property_name": "attack_speed",
-      "modifier_type": "PERCENTAGE_ADD",
+      "description": "提升移動速度",
+      "modifier_type": "increased",
       "base_value": 3,
       "per_point_value": 3,
-      "condition": "passive",
+      "conditions": "passive",
       "stack_type": "ADDITIVE"
     },
     {
       "talent_id": "combat_fire_mastery",
-      "effect_type": "PROPERTY_MODIFIER",
-      "property_name": "fire_damage",
-      "modifier_type": "PERCENTAGE_ADD",
-      "base_value": 5,
+      "description": "提高火焰傷害",
+      "stat": "fire",
+      "modifier_type": "flat",
+      "base_value": 15,
       "per_point_value": 5,
-      "condition": "passive",
-      "stack_type": "ADDITIVE"
+      "conditions": "passive",
+      "stack_type": "ADDITIVE",
+      "affect_tags": "fire"
     },
     {
       "talent_id": "combat_pierce_boost",
-      "effect_type": "PROPERTY_MODIFIER",
-      "property_name": "armor_penetration",
-      "modifier_type": "PERCENTAGE_ADD",
+      "description": "提高彈跳次數",
+      "modifier_type": "increased",
       "base_value": 4,
       "per_point_value": 4,
-      "condition": "passive",
-      "stack_type": "ADDITIVE"
+      "conditions": "passive",
+      "stack_type": "ADDITIVE",
+      "affect_tags": "physical"
     },
     {
       "talent_id": "defense_armor_boost_1",
-      "effect_type": "PROPERTY_MODIFIER",
-      "property_name": "armor",
-      "modifier_type": "FLAT_ADD",
+      "modifier_type": "flat",
       "base_value": 20,
       "per_point_value": 20,
-      "condition": "passive",
+      "conditions": "passive",
       "stack_type": "ADDITIVE"
     },
     {
       "talent_id": "defense_resist_magic",
-      "effect_type": "PROPERTY_MODIFIER",
-      "property_name": "magic_resist",
-      "modifier_type": "PERCENTAGE_ADD",
+      "modifier_type": "increased",
       "base_value": 3,
       "per_point_value": 3,
-      "condition": "passive",
+      "conditions": "passive",
       "stack_type": "ADDITIVE"
     },
     {
       "talent_id": "defense_block_mastery",
-      "effect_type": "PROPERTY_MODIFIER",
-      "property_name": "block_chance",
-      "modifier_type": "PERCENTAGE_ADD",
+      "modifier_type": "increased",
       "base_value": 2,
       "per_point_value": 2,
-      "condition": "passive",
+      "conditions": "passive",
       "stack_type": "ADDITIVE"
     },
     {
       "talent_id": "support_heal_boost",
-      "effect_type": "PROPERTY_MODIFIER",
-      "property_name": "healing_power",
-      "modifier_type": "PERCENTAGE_ADD",
+      "modifier_type": "increased",
       "base_value": 5,
       "per_point_value": 5,
-      "condition": "on_heal",
-      "stack_type": "ADDITIVE"
+      "conditions": "on_heal",
+      "stack_type": "ADDITIVE",
+      "affect_tags": "healing"
     },
     {
       "talent_id": "support_mana_regen",
-      "effect_type": "PROPERTY_MODIFIER",
-      "property_name": "mana_regen",
-      "modifier_type": "FLAT_ADD",
+      "modifier_type": "flat",
       "base_value": 1,
       "per_point_value": 1,
-      "condition": "passive",
+      "conditions": "passive",
       "stack_type": "ADDITIVE"
     },
     {
       "talent_id": "support_team_aura",
-      "effect_type": "AURA_EFFECT",
-      "property_name": "attack_damage",
-      "modifier_type": "PERCENTAGE_ADD",
+      "modifier_type": "increased",
       "base_value": 2,
       "per_point_value": 2,
-      "condition": "passive",
+      "conditions": "passive",
       "stack_type": "ADDITIVE"
     }
   ],
-  "lastUpdated": "2025-11-01T03:29:42.564Z"
+  "WeaponStatConfigs": [
+    {
+      "statName": "weaponDamage",
+      "type": "number",
+      "description": "武器傷害"
+    },
+    {
+      "statName": "attackRange",
+      "type": "number",
+      "description": "攻擊距離"
+    },
+    {
+      "statName": "moveSpeed",
+      "type": "number",
+      "description": "移動速度"
+    },
+    {
+      "statName": "critRate",
+      "type": "number",
+      "description": "爆擊機率"
+    },
+    {
+      "statName": "critDamage",
+      "type": "number",
+      "description": "爆擊傷害"
+    },
+    {
+      "statName": "lifeSteal",
+      "type": "number",
+      "description": "生命偷取"
+    },
+    {
+      "statName": "pierceCount",
+      "type": "number",
+      "description": "穿透數量"
+    },
+    {
+      "statName": "chainCount",
+      "type": "number",
+      "description": "連鎖次數"
+    },
+    {
+      "statName": "bounceCount",
+      "type": "number",
+      "description": "彈跳次數"
+    },
+    {
+      "statName": "knockbackForce",
+      "type": "number",
+      "description": "擊退距離"
+    },
+    {
+      "statName": "projectileSpeed",
+      "type": "number",
+      "description": "投射物速度"
+    },
+    {
+      "statName": "areaRadius",
+      "type": "number",
+      "description": "靈氣作用範圍"
+    },
+    {
+      "statName": "sweepAngle",
+      "type": "number",
+      "description": "橫掃範圍"
+    },
+    {
+      "statName": "fireDamage",
+      "type": "number",
+      "description": "火焰傷害加成"
+    },
+    {
+      "statName": "iceDamage",
+      "type": "number",
+      "description": "寒冰傷害加成"
+    },
+    {
+      "statName": "lightningDamage",
+      "type": "number",
+      "description": "雷電傷害加成"
+    },
+    {
+      "statName": "poisonDamage",
+      "type": "number",
+      "description": "毒素傷害加成"
+    },
+    {
+      "statName": "durationMultiplier",
+      "type": "number",
+      "description": "持續時間加成"
+    },
+    {
+      "statName": "cooldownReduction",
+      "type": "number",
+      "description": "冷卻時間加成"
+    },
+    {
+      "statName": "attackSpeed",
+      "type": "number",
+      "description": "攻擊速度"
+    }
+  ],
+  "lastUpdated": "2025-11-02T06:26:08.732Z"
 }

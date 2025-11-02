@@ -86,6 +86,11 @@ export class WeaponInstanceManager {
         );
 
         weaponData.applyAllProperties(propertyData);
+
+        // 4. 🆕 計算並緩存最終屬性
+        const finalStats = WeaponDataService.calculateFinalStats(weaponData);
+        weaponData.updateFinalStats(finalStats);
+
         return instance;
     }
 

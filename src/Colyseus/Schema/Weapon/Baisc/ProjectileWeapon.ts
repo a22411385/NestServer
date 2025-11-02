@@ -72,11 +72,14 @@ export class ProjectileWeapon extends WeaponBasic {
             shootDirection,
         );
 
+        // 🆕 使用基礎方法生成帶標籤的 AttackResult
+        const baseResult = this.generateBaseAttackResult(
+            attacker.id,
+            affectedTargets.map((target) => target.id),
+        );
+
         return {
-            success: true,
-            weaponId: this.weaponId,
-            targetIds: affectedTargets.map((target) => target.id),
-            baseDamage: this.baseDamage,
+            ...baseResult,
             attackData: {
                 position: { x: attacker.position.x, y: attacker.position.y },
                 direction: shootDirection,
@@ -86,7 +89,7 @@ export class ProjectileWeapon extends WeaponBasic {
                     y: primaryTarget.position.y,
                 },
             },
-            // 🆕 投射武器使用 projectileConfig 替代 visualEffects
+            // 🆕 投射武器使用 projectileConfig 替代 visualEffects，並攜帶標籤信息
             projectileConfig: this.getProjectileConfig(attacker.id, attacker.position, shootDirection),
         };
     }
@@ -242,10 +245,19 @@ export class ProjectileWeapon extends WeaponBasic {
         // 🆕 使用屬性ID作為鍵（POE風格）
         let propertiesMap: Record<string, PropertyValue> = {};
 
-        let allProperties = this.getAllProperties();
-        for (const prop of allProperties) {
-            propertiesMap[prop.id] = prop;
+        // ✅ 從 WeaponSchema 取得所有屬性
+        if (this.weaponSchema) {
+            const properties = this.weaponSchema.getProperties();
+            const allProperties = [...properties.fixed, ...properties.random];
+            for (const prop of allProperties) {
+                propertiesMap[prop.id] = prop;
+            }
         }
+
+        // 🆕 獲取武器標籤和元素標籤
+        const tags = this.weaponSchema?.getTags() || [];
+        const elementTags = this.weaponSchema?.getElementTags() || [];
+        const modifiers = this.weaponSchema?.getModifiers() || [];
 
         return {
             weaponId: this.weaponId,
@@ -258,6 +270,11 @@ export class ProjectileWeapon extends WeaponBasic {
             maxDistance: this.attackRange,      // ✅ 武器射程
             properties: propertiesMap,
             statusEffects: this.generateStatusEffects(), // 🆕 從屬性生成狀態效果
+
+            // 🆕 攜帶標籤信息到投射物
+            tags: tags,
+            elementTags: elementTags,
+            modifiers: modifiers,
         };
     }
 

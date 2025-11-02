@@ -30,6 +30,11 @@ export class ServerBullet extends Schema {
     properties: Record<string, PropertyValue> = {};
     pierceCount: number;
 
+    // 🆕 標籤信息 (Phase 3: 從 BulletCreateConfig 攜帶過來)
+    tags: string[] = [];           // 武器標籤
+    elementTags: string[] = [];    // 元素標籤
+    modifiers: any[] = [];         // 武器詞綴
+
     /**
      * 🆕 獲取範圍傷害半徑（使用屬性ID）
      */
@@ -103,6 +108,17 @@ export class ServerBullet extends Schema {
         if (config.statusEffects) {
             this.statusEffects = config.statusEffects;
             //console.log(`💊 [Bullet] 應用 ${config.statusEffects.length} 個狀態效果:`, config.statusEffects);
+        }
+
+        // 🆕 Phase 3: 接收標籤信息（避免回查武器）
+        if (config.tags) {
+            this.tags = config.tags;
+        }
+        if (config.elementTags) {
+            this.elementTags = config.elementTags;
+        }
+        if (config.modifiers) {
+            this.modifiers = config.modifiers;
         }
     }
 }

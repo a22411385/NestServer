@@ -13,6 +13,11 @@ import { PropertyValue } from "../Equipment/EquipmentTypes";
  * 🆕 優雅的擴展方案：
  * - 新增可選屬性時，只需在這裡定義，然後在 ServerBullet.applyExtendedConfig() 中添加到屬性列表
  * - BulletFactory 會自動處理所有可選屬性
+ * 
+ * 🆕 標籤系統整合：
+ * - tags: 武器完整標籤
+ * - elementTags: 元素標籤（用於傷害計算）
+ * - modifiers: 武器詞綴（用於物理效果）
  */
 export interface BulletCreateConfig {
     // ===== 必需屬性 =====
@@ -31,6 +36,11 @@ export interface BulletCreateConfig {
     // 🆕 使用屬性ID作為鍵（POE風格）
     properties: Record<string, PropertyValue>;
     statusEffects?: StatusEffectConfig[]; // 命中時應用的狀態效果
+
+    // 🆕 標籤系統（避免回查武器）
+    tags?: string[];              // 武器完整標籤 ['weapon', 'ranged', 'bow', 'fire']
+    elementTags?: string[];       // 元素標籤 ['fire', 'elemental']
+    modifiers?: any[];            // 武器詞綴
 
     // 🔮 未來可擴展的屬性 (暫時保留註釋作為範例)
     // bounceCount?: number; // 彈射次數

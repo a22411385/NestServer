@@ -1,5 +1,5 @@
 import { WeaponBasic } from "../../../Colyseus/Schema/Weapon/Baisc/WeaponBasic";
-import { WeaponDataService, FinalWeaponStats } from "../../Services/WeaponDataService";
+import { WeaponDataService } from "../../Services/WeaponDataService";
 import { WeaponInstanceManager } from "../../Managers/WeaponInstanceManager";
 import { WeaponSchema } from "@/Colyseus/Schema/Weapon/WeaponSchema";
 
@@ -16,7 +16,7 @@ export class WeaponSystemFacade {
      */
     public static getCompleteWeaponInstance(weaponData: WeaponSchema): {
         instance: WeaponBasic | null;
-        stats: FinalWeaponStats;
+        stats: any;
     } {
         // 委託給各自的專門服務
         const instance = WeaponInstanceManager.getOrCreateInstance(weaponData);
@@ -31,7 +31,7 @@ export class WeaponSystemFacade {
     public static createAndGetWeapon(weaponId: string, classModule: string): {
         data: WeaponSchema;
         instance: WeaponBasic | null;
-        stats: FinalWeaponStats;
+        stats: any;
     } {
         // 1. 創建數據
         const data = new WeaponSchema(weaponId, classModule);
@@ -53,7 +53,11 @@ export class WeaponSystemFacade {
         const success = WeaponDataService.addExp(weaponData, expAmount);
 
         if (success) {
-            // 2. 清除實例緩存以應用新屬性（委託給管理器）
+            // 2. 🆕 重新計算並更新最終屬性
+            const newStats = WeaponDataService.calculateFinalStats(weaponData);
+            weaponData.updateFinalStats(newStats);
+
+            // 3. 清除實例緩存以應用新屬性（委託給管理器）
             WeaponInstanceManager.invalidateCache(weaponData);
         }
 

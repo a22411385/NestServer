@@ -1,6 +1,5 @@
 import { ProjectileBasic } from './ProjectileBasic';
 import { ServerGameUnit } from '../Unit/GameUnit';
-import { ExplosionVisualEffect, VisualEffect } from '../../../Types';
 import { ServerBullet } from '../Bullet';
 import { GameRoom } from '../../Rooms/GameRoom';
 
@@ -29,38 +28,10 @@ export class ExplosiveProjectile extends ProjectileBasic {
     }
 
     /**
-     * 覆寫傷害計算 - 爆炸傷害降低
+     * 🆕 覆寫傷害倍率 - 爆炸傷害降低 20%
      */
-    protected calculateDamage(
-        bullet: ServerBullet,
-        hitTarget: ServerGameUnit,
-    ): number {
-        return Math.floor(bullet.damage * 0.8); // 爆炸傷害稍微降低
-    }
-
-    /**
-     * 覆寫視覺效果 - 爆炸效果
-     *
-     * 📡 廣播事件：explosion_effect
-     */
-    protected createVisualEffects(
-        bullet: ServerBullet,
-        affectedTargets: ServerGameUnit[],
-    ): VisualEffect[] {
-        const currentPos = bullet.getCurrentPosition();
-        const explosionEffect: VisualEffect = {
-            type: 'explosion',
-            position: { x: currentPos.x, y: currentPos.y },
-            direction: { x: bullet.directionX, y: bullet.directionY },
-            data: {
-                radius: bullet.areaOfEffect,
-                colors: [0xff4400, 0xffaa00, 0xffff88],
-                duration: 400,
-                hasShockwave: true,
-            },
-        } as ExplosionVisualEffect;
-
-        return [explosionEffect];
+    protected getDamageMultiplier(): number {
+        return 0.8; // 爆炸傷害降低 20%
     }
 
     protected findAffectedTargets(

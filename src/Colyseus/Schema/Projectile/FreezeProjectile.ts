@@ -1,6 +1,6 @@
 import { ProjectileBasic } from './ProjectileBasic';
 import { ServerGameUnit } from '../Unit/GameUnit';
-import { AttackResult, VisualEffect, FreezeVisualEffect } from '../../../Types';
+import { AttackResult } from '../../../Types';
 import { ServerBullet } from '../Bullet';
 import { GameRoom } from '../../Rooms/GameRoom';
 
@@ -42,32 +42,6 @@ export class FreezeProjectile extends ProjectileBasic {
         }
 
         return result;
-    }
-
-    /**
-     * 覆寫視覺效果 - 冰凍效果
-     *
-     * 📡 廣播事件：freeze_effect
-     */
-    protected createVisualEffects(
-        bullet: ServerBullet,
-        affectedTargets: ServerGameUnit[],
-    ): VisualEffect[] {
-        const currentPos = bullet.getCurrentPosition();
-        const freezeDuration = this.getFreezeDuration(bullet);
-
-        const freezeEffect: VisualEffect = {
-            type: 'freeze',
-            position: { x: currentPos.x, y: currentPos.y },
-            direction: { x: bullet.directionX, y: bullet.directionY },
-            data: {
-                radius: bullet.areaOfEffect,
-                duration: freezeDuration,
-                slowAmount: 0.5,
-            },
-        } as FreezeVisualEffect;
-
-        return [freezeEffect];
     }
 
     protected findAffectedTargets(

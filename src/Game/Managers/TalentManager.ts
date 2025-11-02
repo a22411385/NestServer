@@ -202,6 +202,8 @@ export class TalentManager {
     /**
      * 將天賦效果應用到屬性列表上
      * 這是與武器屬性系統整合的關鍵方法
+     * 
+     * ✅ POE 風格計算：收集所有修改器後統一計算
      */
     public applyTalentEffectsToProperties(
         characterId: string,
@@ -215,99 +217,95 @@ export class TalentManager {
         // 複製基礎屬性，避免修改原始資料
         const modifiedProperties = [...baseProperties];
 
-        // 🆕 建立屬性索引以便快速查找（使用屬性ID）
-        const propertyMap = new Map<string, number>();
-        modifiedProperties.forEach((prop, index) => {
-            propertyMap.set(prop.id, index);
-        });
+        // 🆕 按屬性ID分組天賦效果
+        const effectsByStat = new Map<string, AppliedTalentEffect[]>();
+        for (const effect of talentEffects) {
+            if (!effectsByStat.has(effect.stat)) {
+                effectsByStat.set(effect.stat, []);
+            }
+            effectsByStat.get(effect.stat)!.push(effect);
+        }
 
         console.log(`🌟 應用 ${talentEffects.length} 個天賦效果到角色 ${characterId}`);
+        console.log(`   影響 ${effectsByStat.size} 個不同屬性`);
 
-        for (const appliedEffect of talentEffects) {
-            this.applyTalentEffectToProperty(
-                appliedEffect,
-                modifiedProperties,
-                propertyMap
-            );
+        // 對每個屬性統一計算
+        for (const [stat, effects] of effectsByStat) {
+            this.applyTalentEffectsToStat(stat, effects, modifiedProperties);
         }
 
         return modifiedProperties;
     }
 
     /**
-     * 🆕 應用單個天賦效果到屬性（POE風格）
+     * 🆕 對單個屬性應用所有天賦效果（POE 風格統一計算）
      */
-    private applyTalentEffectToProperty(
-        appliedEffect: AppliedTalentEffect,
-        properties: PropertyValue[],
-        propertyMap: Map<string, number>
+    private applyTalentEffectsToStat(
+        stat: string,
+        effects: AppliedTalentEffect[],
+        properties: PropertyValue[]
     ): void {
-        // 🆕 使用天賦的 stat 作為屬性ID
-        const propertyId = appliedEffect.stat;
+        // 查找屬性
+        let property = properties.find(p => p.id === stat);
 
-        // 檢查屬性是否存在
-        const propertyIndex = propertyMap.get(propertyId);
-        if (propertyIndex === undefined) {
-            // 如果屬性不存在，創建新的屬性
-            const newProperty: PropertyValue = {
-                id: propertyId,
-                displayName: propertyId, // 暫時使用ID作為顯示名稱
+        // 如果屬性不存在，創建新屬性
+        if (!property) {
+            property = {
+                id: stat,
+                displayName: stat,
                 value: 0,
                 probability: 100,
                 duration: 0,
                 stackable: false,
-                tags: appliedEffect.tags,
-                modifierType: appliedEffect.modifierType,
+                tags: effects[0].tags, // 使用第一個效果的標籤
+                modifierType: effects[0].modifierType,
                 baseDamage: 0,
                 damageScaling: 0,
-                category: 'attribute' // 天賦效果預設為屬性類別
+                category: 'attribute'
             };
-            properties.push(newProperty);
-            propertyMap.set(propertyId, properties.length - 1);
-
-            this.modifyPropertyValue(newProperty, appliedEffect.value, appliedEffect.modifierType);
-        } else {
-            // 修改現有屬性
-            const existingProperty = properties[propertyIndex];
-            this.modifyPropertyValue(existingProperty, appliedEffect.value, appliedEffect.modifierType);
+            properties.push(property);
         }
 
-        console.log(`  ✨ ${appliedEffect.talentId}: ${propertyId} ${appliedEffect.modifierType} ${appliedEffect.value}`);
-    }
+        // 獲取基礎值
+        const baseValue = Array.isArray(property.value) ? property.value[0] : property.value;
 
-    /**
-     * 根據修改器類型修改屬性值
-     */
-    private modifyPropertyValue(
-        property: PropertyValue,
-        modifierValue: number,
-        modifierType: ModifierType
-    ): void {
-        // 確保 value 是數字類型
-        let currentValue = Array.isArray(property.value) ? property.value[0] : property.value;
+        // 🔑 收集所有修改器（POE 風格）
+        let flatSum = 0;           // FLAT 總和
+        let increasedSum = 0;      // INCREASED 總和
+        let moreProduct = 1;       // MORE 乘積
 
-        // 🆕 使用 POE 風格的 ModifierType 枚舉值
-        switch (modifierType) {
-            case ModifierType.FLAT:
-                currentValue += modifierValue;
-                break;
-            case ModifierType.INCREASED:
-                currentValue = currentValue * (1 + modifierValue / 100);
-                break;
-            case ModifierType.MORE:
-                currentValue = currentValue * (1 + modifierValue / 100);
-                break;
-            default:
-                console.warn(`不支援的修改器類型: ${modifierType}`);
-                return;
+        for (const effect of effects) {
+            switch (effect.modifierType) {
+                case ModifierType.FLAT:
+                    flatSum += effect.value;
+                    break;
+                case ModifierType.INCREASED:
+                    increasedSum += effect.value;
+                    break;
+                case ModifierType.MORE:
+                    moreProduct *= (1 + effect.value / 100);
+                    break;
+            }
         }
+
+        // 🔢 POE 公式計算
+        let finalValue = baseValue;
+        finalValue += flatSum;                      // 1. 加上所有 FLAT
+        finalValue *= (1 + increasedSum / 100);     // 2. 乘以 INCREASED（加法疊加）
+        finalValue *= moreProduct;                  // 3. 乘以 MORE（乘法疊加）
 
         // 更新屬性值
         if (Array.isArray(property.value)) {
-            property.value[0] = currentValue;
+            property.value[0] = finalValue;
         } else {
-            property.value = currentValue;
+            property.value = finalValue;
         }
+
+        // 詳細日誌
+        const effectList = effects.map(e => `${e.talentId}(${e.modifierType}:${e.value})`).join(', ');
+        console.log(`  ✨ ${stat}: ${baseValue} -> ${finalValue.toFixed(2)}`);
+        console.log(`     FLAT:${flatSum} INCREASED:${increasedSum}% MORE:${((moreProduct - 1) * 100).toFixed(0)}%`);
+        console.log(`     來源: ${effectList}`);
     }
 
     /**

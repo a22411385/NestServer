@@ -1,5 +1,5 @@
 import { WeaponBasic } from './WeaponBasic';
-import { AttackFailReason, VisualEffect, AttackResult } from '@/Types';
+import { AttackFailReason, AttackResult } from '@/Types';
 import { ServerGameUnit } from '../../Unit/GameUnit';
 
 
@@ -51,18 +51,20 @@ export abstract class SupportWeapon extends WeaponBasic {
         // 更新攻擊時間
         this.updateLastAttackTime();
 
+        // 🆕 使用基礎方法生成帶標籤的 AttackResult
+        const baseResult = this.generateBaseAttackResult(
+            user.id,
+            supportTargets.map((target) => target.id),
+        );
+
         return {
-            success: true,
-            weaponId: this.weaponId,
-            targetIds: supportTargets.map((target) => target.id),
-            baseDamage: this.baseDamage, // 對於支援武器，baseDamage 代表治療量
+            ...baseResult,
             attackData: {
                 position: { x: user.position.x, y: user.position.y },
                 direction: { x: 0, y: 0 }, // 支援武器通常沒有方向性
                 range: this.attackRange,
-                supportRadius: this.range,
+                supportRadius: this.getStat('supportRadius', 0), // 🆕 支援範圍
             },
-            visualEffects: this.createSupportVisualEffects(user, supportTargets),
         };
     }
 
@@ -99,7 +101,7 @@ export abstract class SupportWeapon extends WeaponBasic {
         });
 
         // 如果有支援範圍，可以同時支援多個目標
-        if (this.range > 0) {
+        if (this.getStat('supportRadius', 0) > 0) {
             return supportTargets.slice(0, 3); // 最多支援3個目標
         } else {
             return supportTargets.slice(0, 1); // 單體支援
@@ -133,45 +135,6 @@ export abstract class SupportWeapon extends WeaponBasic {
         const dy = target.position.y - user.position.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
         return distance <= this.attackRange;
-    }
-
-    /**
-     * 創建支援武器視覺效果
-     */
-    protected createSupportVisualEffects(
-        user: ServerGameUnit,
-        targets: ServerGameUnit[],
-    ): VisualEffect[] {
-        const effects: VisualEffect[] = [];
-
-        // 主要支援效果
-        const supportEffect: VisualEffect = {
-            type: 'support',
-            position: { x: user.position.x, y: user.position.y },
-            direction: { x: 0, y: 0 },
-            data: {
-                amount: this.damage,
-                radius: this.range,
-                buffType: `支援範圍 ${this.range}`,
-            },
-        };
-        effects.push(supportEffect);
-
-        // 為每個目標創建治療效果
-        targets.forEach((target) => {
-            const healEffect: VisualEffect = {
-                type: 'heal',
-                position: { x: target.position.x, y: target.position.y },
-                direction: { x: 0, y: 0 },
-                data: {
-                    amount: this.damage,
-                    buffType: 'heal',
-                },
-            };
-            effects.push(healEffect);
-        });
-
-        return effects;
     }
 
     /**

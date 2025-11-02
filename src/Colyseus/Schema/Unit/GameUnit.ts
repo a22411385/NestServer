@@ -30,6 +30,7 @@ export class StatusEffect extends Schema {
     @type("number") value: number = 0; // 效果數值
     @type("number") stacks: number = 1; // 🆕 疊加層數（默認1層）
     @type("number") maxStacks: number = 5; // 🆕 最大疊加層數（默認5層）
+    @type("string") sourceId: string = ""; // 🆕 施加者ID（用於追蹤 DOT 傷害加成）
 
     // 🔧 伺服器專用屬性（不同步）
     public duration: number = 0; // 持續時間 (ms) - 僅伺服器使用

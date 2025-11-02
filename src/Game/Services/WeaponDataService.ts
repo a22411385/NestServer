@@ -1,47 +1,71 @@
 import { WeaponSchema } from "@/Colyseus/Schema/Weapon/WeaponSchema";
 import { WeaponConfigManager } from "../Factories/WeaponConfig";
-
-/**
- * 最終武器屬性接口
- * 🆕 支援動態擴展（詞綴可添加任意屬性）
- */
-export interface FinalWeaponStats {
-    // 基礎屬性
-    finalDamage: number;
-    finalRange: number;
-    finalSpeed: number;
-    finalCritRate?: number;
-    finalCritDamage?: number;
-    finalLifeSteal?: number;
-
-    // 詞綴相關屬性（動態擴展）
-    pierceCount?: number;           // 穿透次數
-    chainCount?: number;            // 連鎖攻擊次數
-    bounceCount?: number;           // 彈跳次數
-    projectileSpeed?: number;       // 投射物速度加成（百分比）
-    areaRadius?: number;            // 範圍效果加成（百分比）
-    sweepAngle?: number;            // 掃擊角度（度數）
-    homingStrength?: number;        // 追蹤強度（百分比）
-
-    // 其他屬性
-    displayName: string;
-    rarity?: string;
-
-    // 🆕 允許任意擴展（詞綴系統可添加新屬性）
-    [key: string]: any;
-}
+import { GoogleSheetCache } from "@/Tasks/GoogleSheetCache";
+import { WeaponModifier } from "@/Types/Equipment/WeaponPropertyTypes";
+import { WeaponStatConfig } from "@/Types";
 
 /**
  * 武器數據服務 - 專注於武器數據的業務邏輯計算
  * 不負責實例管理和緩存，只處理純計算邏輯
  */
 export class WeaponDataService {
+    // 🆕 靜態緩存：WeaponStatConfigs 數據
+    private static weaponStatConfigs: WeaponStatConfig[] | null = null;
+    private static validStatNames: Set<string> | null = null;
+
+    /**
+     * 🆕 初始化 WeaponStatConfigs（懶加載）
+     */
+    private static initWeaponStatConfigs(): void {
+        if (this.weaponStatConfigs !== null) return;
+
+        const cache = GoogleSheetCache.getInstance();
+        const data = cache.getData();
+
+        if (!data || !data.WeaponStatConfigs) {
+            console.error('❌ WeaponStatConfigs 表未找到！');
+            this.weaponStatConfigs = [];
+            this.validStatNames = new Set();
+            return;
+        }
+
+        this.weaponStatConfigs = data.WeaponStatConfigs;
+        this.validStatNames = new Set(
+            this.weaponStatConfigs.map(config => config.statName)
+        );
+
+        console.log(`✅ 已載入 ${this.weaponStatConfigs.length} 個武器屬性配置`);
+    }
+
+    /**
+     * 🆕 驗證屬性名是否存在於 WeaponStatConfigs 表中
+     */
+    static validateStatName(statName: string): boolean {
+        this.initWeaponStatConfigs();
+        return this.validStatNames!.has(statName);
+    }
+
+    /**
+     * 🆕 獲取所有合法的屬性名列表
+     */
+    static getValidStatNames(): string[] {
+        this.initWeaponStatConfigs();
+        return Array.from(this.validStatNames!);
+    }
+
+    /**
+     * 🆕 獲取屬性配置信息
+     */
+    static getStatConfig(statName: string): WeaponStatConfig | null {
+        this.initWeaponStatConfigs();
+        return this.weaponStatConfigs!.find(config => config.statName === statName) || null;
+    }
 
     /**
      * 計算武器的最終屬性
      * 🆕 包含武器詞綴和屬性加成的計算
      */
-    static calculateFinalStats(weaponData: WeaponSchema): FinalWeaponStats {
+    static calculateFinalStats(weaponData: WeaponSchema): any {
         const config = WeaponConfigManager.getConfig(weaponData.weaponId);
 
         if (!config) {
@@ -51,27 +75,27 @@ export class WeaponDataService {
         // 計算各種加成乘數
         const multipliers = this.calculateMultipliers(weaponData);
 
-        // 計算基礎屬性
-        const finalDamage = Math.floor(config.baseDamage * multipliers.damage);
-        const finalRange = Math.floor(config.attackRange + multipliers.range);
-        const finalSpeed = Math.max(100, Math.floor(config.attackSpeed * multipliers.speed));
+        // 計算基礎屬性（✅ 使用配置表標準名稱）
+        const weaponDamage = Math.floor(config.baseDamage * multipliers.damage);
+        const attackRange = Math.floor(config.attackRange + multipliers.range);
+        const attackSpeed = Math.max(100, Math.floor(config.attackSpeed * multipliers.speed));
 
-        // 計算戰鬥特效屬性
-        const finalCritRate = this.calculateBaseCritRate(weaponData) * multipliers.stats;
-        const finalCritDamage = this.calculateBaseCritDamage(weaponData) * multipliers.stats;
-        const finalLifeSteal = this.calculateBaseLifeSteal(weaponData) * multipliers.stats;
+        // 計算戰鬥特效屬性（✅ 使用配置表標準名稱）
+        const critRate = this.calculateBaseCritRate(weaponData) * multipliers.stats;
+        const critDamage = this.calculateBaseCritDamage(weaponData) * multipliers.stats;
+        const lifeSteal = this.calculateBaseLifeSteal(weaponData) * multipliers.stats;
 
         // 生成顯示名稱
         const displayName = this.generateDisplayName(weaponData, config);
 
-        // 建立基礎屬性對象
-        const finalStats: FinalWeaponStats = {
-            finalDamage,
-            finalRange,
-            finalSpeed,
-            finalCritRate,
-            finalCritDamage,
-            finalLifeSteal,
+        // 🆕 建立基礎屬性對象（使用配置表標準命名）
+        const finalStats = {
+            weaponDamage,      // ✅ 配置表標準名稱
+            attackRange,       // ✅ 配置表標準名稱
+            attackSpeed,       // ✅ 配置表標準名稱
+            critRate,          // ✅ 配置表標準名稱
+            critDamage,        // ✅ 配置表標準名稱
+            lifeSteal,         // ✅ 配置表標準名稱
             displayName,
             rarity: weaponData.rarity
         };
@@ -259,7 +283,7 @@ export class WeaponDataService {
      * 2. INCREASED（提升）- 百分比相加後統一計算
      * 3. MORE（額外）- 百分比相乘
      */
-    private static applyWeaponModifiers(weaponData: WeaponSchema, finalStats: FinalWeaponStats): void {
+    private static applyWeaponModifiers(weaponData: WeaponSchema, finalStats: any): void {
         try {
             // 獲取武器的所有詞綴
             const modifiers = weaponData.getModifiers();
@@ -297,9 +321,15 @@ export class WeaponDataService {
      */
     private static applyModifiersToStat(
         affectedStat: string,
-        modifiers: any[],
-        finalStats: FinalWeaponStats
+        modifiers: WeaponModifier[],
+        finalStats: any
     ): void {
+        // 🆕 驗證 affectedStat 是否合法
+        if (!this.validateAffectedStat(affectedStat, modifiers[0]?.id || 'unknown')) {
+            console.warn(`⚠️  跳過無效的詞綴屬性: ${affectedStat}`);
+            return;  // 跳過無效屬性
+        }
+
         // 將 snake_case 轉為 camelCase 作為屬性名
         const statKey = this.convertToCamelCase(affectedStat);
 
@@ -312,21 +342,21 @@ export class WeaponDataService {
         let moreProduct = 1;       // MORE 乘積
 
         for (const modifier of modifiers) {
-            const value = modifier.value || modifier.baseValue || 0;
+            const value = modifier.baseValue || 0;
             const modifierType = (modifier.modifierType || 'flat').toLowerCase();
-            const count = modifier.count || 1; // 疊加次數
+            // const count = modifier. || 1; // 疊加次數
 
             switch (modifierType) {
                 case 'flat':
-                    flatSum += value * count;
+                    flatSum += value;
                     break;
                 case 'increased':
                     // INCREASED 類型以百分比相加
-                    increasedSum += value * count;
+                    increasedSum += value;
                     break;
                 case 'more':
                     // MORE 類型以百分比相乘
-                    moreProduct *= (1 + (value * count / 100));
+                    moreProduct *= (1 + (value / 100));
                     break;
             }
         }
@@ -362,5 +392,29 @@ export class WeaponDataService {
      */
     private static convertToCamelCase(str: string): string {
         return str.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
+    }
+
+    /**
+     * 🆕 驗證 affectedStat 是否合法（配置驅動）
+     * 從 WeaponStatConfigs 表讀取合法屬性名
+     */
+    private static validateAffectedStat(affectedStat: string, modifierId: string): boolean {
+        // 將 snake_case 轉為 camelCase 進行驗證
+        const camelCaseStatName = this.convertToCamelCase(affectedStat);
+
+        // 檢查是否存在於 WeaponStatConfigs 表中
+        if (!this.validateStatName(camelCaseStatName)) {
+            const validStats = this.getValidStatNames();
+            console.error(
+                `\n❌ [WeaponModifier 配置錯誤]\n` +
+                `   詞綴: "${modifierId}"\n` +
+                `   錯誤的 affectedStat: "${affectedStat}" (camelCase: "${camelCaseStatName}")\n` +
+                `   可用的屬性名 (共 ${validStats.length} 個):\n` +
+                `   ${validStats.map(s => `    - ${s}`).join('\n')}\n` +
+                `\n💡 請在 Google Sheets 的 WeaponStatConfigs 表中添加新屬性！`
+            );
+            return false;
+        }
+        return true;
     }
 }

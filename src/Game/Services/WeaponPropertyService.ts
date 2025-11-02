@@ -135,7 +135,7 @@ export class WeaponPropertyService {
             }
 
             try {
-                const value = this.generatePropertyValue(propertyDef, true);
+                const value = this.generatePropertyValue(propertyDef);
                 properties.push(value);
             } catch (error) {
                 console.error(`❌ 生成狀態效果失敗: ${propType}`, error);
@@ -210,8 +210,6 @@ export class WeaponPropertyService {
      */
     private generatePropertyValue(
         propertyDef: StatusEffectDefinition,
-        useMaxValue: boolean = false,
-        rng?: () => number
     ): PropertyValue {
         // 🆕 POE 風格：直接從定義創建屬性值
         // 不再有 valueType, valueMin, valueMax 的概念

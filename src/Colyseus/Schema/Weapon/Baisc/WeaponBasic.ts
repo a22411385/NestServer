@@ -4,9 +4,11 @@ import { WeaponType, AttackResult, StatusEffectConfig } from '../../../../Types'
 import {
   PropertyValue,
   WeaponConfigDefinition,
+  WeaponModifier,
 } from '@/Types/Equipment/WeaponPropertyTypes';
 import { WeaponSchema } from '../WeaponSchema';
 import { WeaponConfigManager } from '@/Game/Factories/WeaponConfig';
+import { WeaponDataService } from '@/Game/Services/WeaponDataService';
 
 
 //武器基類：負責攻擊邏輯和目標選擇，不處理傷害計算
@@ -20,63 +22,17 @@ export abstract class WeaponBasic {
 
   // 🆕 配置相關
   protected weaponConfig: WeaponConfigDefinition;
+  public get projectileClass(): string {
+    return this.weaponConfig?.projectileClass || '';
+  }
 
-
+  public get weaponType(): WeaponType {
+    return this.weaponConfig?.weaponClass as WeaponType;
+  }
   public get weaponId(): string {
     return this.weaponSchema?.weaponId || '';
   }
 
-  public get baseDamage(): number {
-    return this.weaponSchema?.baseDamage || 0;
-  }
-
-  public get attackSpeed(): number {
-    return this.weaponSchema?.attackSpeed || 0;
-  }
-
-  public get attackRange(): number {
-    return this.weaponSchema?.attackRange || 0;
-  }
-
-  public get str(): number {
-    return this.weaponSchema?.str || 0;
-  }
-
-  public get int(): number {
-    return this.weaponSchema?.int || 0;
-  }
-
-  public get agi(): number {
-    return this.weaponSchema?.agi || 0;
-  }
-
-  public get vit(): number {
-    return this.weaponSchema?.vit || 0;
-  }
-
-  public get projectileClass(): string {
-    return this.weaponSchema?.projectileClass || '';
-  }
-
-  public get weaponType(): WeaponType {
-    return this.weaponSchema.weaponType as WeaponType;
-  }
-
-  public get name(): string {
-    return this.weaponSchema?.name || '';
-  }
-
-  public get description(): string {
-    return this.weaponSchema?.description || '';
-  }
-
-  public get rarity(): string {
-    return this.weaponSchema?.rarity || 'common';
-  }
-
-  public get enabled(): boolean {
-    return this.weaponSchema?.enabled ?? true;
-  }
 
   // 服務器端屬性
   protected lastAttackTime: number = 0;
@@ -93,6 +49,79 @@ export abstract class WeaponBasic {
   }
 
   /**
+   * 🆕 獲取武器詞綴列表（用於 DamageSystem 判斷物理效果）
+   */
+  public getModifiers(): WeaponModifier[] {
+    return this.weaponSchema?.getModifiers() || [];
+  }
+
+  /**
+   * 🆕 獲取最終計算屬性 (用於戰鬥系統)
+   */
+  public getFinalStats(): any {
+    return this.weaponSchema?.getFinalStats();
+  }
+
+  /**
+   * 🆕 安全取得武器屬性值（配置驅動）
+   * 
+   * 📝 功能說明：
+   * - 從 FinalWeaponStats 中取得指定屬性
+   * - 驗證屬性是否存在於 WeaponStatConfigs 配置表
+   * - 提供類型安全和預設值支持
+   * 
+   * @param statName - 屬性名稱（必須存在於 WeaponStatConfigs 表）
+   * @param defaultValue - 當屬性不存在或未初始化時的預設值
+   * @returns 屬性值或預設值
+   * 
+   * @example
+   * ```typescript
+   * const damage = this.getStat('weaponDamage', 0);     // ✅ 配置表標準名稱
+   * const range = this.getStat('attackRange', 100);     // ✅ 配置表標準名稱
+   * const speed = this.getStat('attackSpeed', 1000);    // ✅ 配置表標準名稱
+   * ```
+   */
+  protected getStat<T = any>(statName: string, defaultValue: T): T {
+    // 🔍 驗證屬性是否在配置表中定義
+    if (!WeaponDataService.validateStatName(statName)) {
+      const validStats = WeaponDataService.getValidStatNames();
+      console.warn(
+        `⚠️  武器屬性 "${statName}" 不存在於 WeaponStatConfigs 配置表！\n` +
+        `📋 有效屬性列表: ${validStats.join(', ')}`
+      );
+      return defaultValue;
+    }
+
+    // 🛡️ 檢查 WeaponSchema 是否已初始化
+    if (!this.weaponSchema) {
+      console.warn(`⚠️  WeaponSchema 未初始化，${statName} 返回預設值: ${defaultValue}`);
+      return defaultValue;
+    }
+
+    // 📊 從 FinalStats 讀取屬性
+    try {
+      const stats = this.getFinalStats();
+      if (!stats) {
+        console.warn(`⚠️  FinalStats 未初始化，${statName} 返回預設值: ${defaultValue}`);
+        return defaultValue;
+      }
+
+      // 檢查屬性是否存在
+      if (!(statName in stats)) {
+        console.warn(`⚠️  FinalStats 中不存在屬性 "${statName}"，返回預設值: ${defaultValue}`);
+        return defaultValue;
+      }
+
+      const value = stats[statName];
+      return value !== undefined && value !== null ? value : defaultValue;
+    } catch (error) {
+      console.error(`❌ 讀取屬性 "${statName}" 時發生錯誤:`, error);
+      return defaultValue;
+    }
+  }
+
+
+  /**
    * 🆕 從配置初始化武器 - 新的標準初始化方法
    */
   public initializeFromConfig(weaponId: string) {
@@ -104,55 +133,37 @@ export abstract class WeaponBasic {
 
   }
 
+  // ==================== 基礎屬性 Getter（配置驅動）====================
+
   /**
-   * 🆕 獲取特定屬性值 - 從 WeaponSchema 讀取（使用屬性ID）
+   * 🆕 基礎傷害（從 FinalWeaponStats 讀取）
+   * 配置驅動：必須存在於 WeaponStatConfigs 表
+   * ✅ 使用配置表標準名稱: weaponDamage
    */
-  public getProperty(propertyId: string): PropertyValue | null {
-    if (!this.weaponSchema) return null;
-
-    const properties = this.weaponSchema.getProperties();
-    const all = properties.fixed.concat(properties.random);
-
-    const filtered = all.filter(p => p.id === propertyId);
-    if (filtered.length === 0) {
-      return null;
-    }
-
-    if (filtered.length === 1 || !filtered[0].stackable) {
-      return filtered[0];
-    }
-
-    // 堆疊屬性（合併數值）
-    let statsValue = filtered[0];
-    for (let i = 1; i < filtered.length; i++) {
-      statsValue = {
-        ...statsValue,
-        value: statsValue.value + filtered[i].value,
-        duration: Math.max(statsValue.duration, filtered[i].duration),
-        probability: Math.max(statsValue.probability, filtered[i].probability),
-        baseDamage: statsValue.baseDamage + filtered[i].baseDamage,
-      };
-    }
-    return statsValue;
+  public get baseDamage(): number {
+    return this.getStat<number>('weaponDamage', 0);
   }
 
   /**
-   * 🆕 檢查是否有特定屬性 - 從 WeaponSchema 讀取
+   * 🆕 攻擊範圍（從 FinalWeaponStats 讀取）
+   * 配置驅動：必須存在於 WeaponStatConfigs 表
+   * ✅ 使用配置表標準名稱: attackRange
    */
-  public hasProperty(propertyId: string): boolean {
-    if (!this.weaponSchema) return false;
-    return this.weaponSchema.hasProperty(propertyId);
+  public get attackRange(): number {
+    return this.getStat<number>('attackRange', 0);
   }
 
   /**
-   * ✅ 獲取所有屬性 - 從 WeaponSchema 讀取
+   * 🆕 攻擊速度（從 FinalWeaponStats 讀取）
+   * 配置驅動：必須存在於 WeaponStatConfigs 表
+   * ✅ 使用配置表標準名稱: attackSpeed
+   * @returns 毫秒（預設 1000ms = 1秒）
    */
-  public getAllProperties(): PropertyValue[] {
-    if (!this.weaponSchema) return [];
-    const props = this.weaponSchema.getProperties();
-
-    return [...props.fixed, ...props.random];
+  public get attackSpeed(): number {
+    return this.getStat<number>('attackSpeed', 1000);
   }
+
+  // ====================================================================
 
   /**
    * 嘗試攻擊 - 只負責攻擊邏輯和目標選擇，不處理傷害
@@ -276,18 +287,23 @@ export abstract class WeaponBasic {
   ): ServerGameUnit[];
 
   /**
-   * 🆕 從屬性系統生成狀態效果配置
+   * 🆕 從屬性系統生成狀態效果配置（增強版 + 標籤系統）
    * 將 PropertyValue[] 轉換為 StatusEffectConfig[]
    * 
    * 📝 轉換規則：
    * - 只處理 category 為 'debuff' 或 'buff' 的屬性
    * - 只包含有觸發機率的效果（probability > 0）
    * - duration 從秒轉換為毫秒
+   * - 🆕 攜帶標籤信息（用於天賦加成）
    * 
    * @returns StatusEffectConfig[] - 狀態效果配置列表
    */
   protected generateStatusEffects(): StatusEffectConfig[] {
-    const allProperties = this.getAllProperties();
+    if (!this.weaponSchema) return [];
+
+    // ✅ 從 WeaponSchema 取得所有屬性
+    const properties = this.weaponSchema.getProperties();
+    const allProperties = [...properties.fixed, ...properties.random];
     const statusEffects: StatusEffectConfig[] = [];
 
     for (const prop of allProperties) {
@@ -304,6 +320,11 @@ export abstract class WeaponBasic {
           value: prop.value,                // 效果數值
           chance: prop.probability,         // 觸發機率 (0-100)
           category: prop.category,          // 類別
+
+          // 🆕 攜帶標籤信息（從 PropertyValue 複製）
+          tags: prop.tags || [],
+          baseDamage: prop.baseDamage || 0,
+          damageScaling: prop.damageScaling || 0,
         });
       }
     }
@@ -311,14 +332,25 @@ export abstract class WeaponBasic {
     return statusEffects;
   }
 
-  // Getter 方法
-  public get range(): number {
-    return this.attackRange;
-  }
-  public get damage(): number {
-    return this.baseDamage;
-  }
-  public get cooldown(): number {
-    return this.attackSpeed;
+  /**
+   * 🆕 生成基礎 AttackResult（攜帶標籤信息）
+   * 子類可以在此基礎上擴展
+   */
+  protected generateBaseAttackResult(attackerId: string, targetIds: string[]): AttackResult {
+    return {
+      success: true,
+      attackerId: attackerId,
+      weaponId: this.weaponId,
+      targetIds: targetIds,
+      baseDamage: this.baseDamage,
+
+      // 🆕 攜帶標籤信息
+      tags: this.weaponSchema?.getTags() || [],
+      elementTags: this.weaponSchema?.getElementTags() || ['physical'],
+      modifiers: this.weaponSchema?.getModifiers() || [],
+
+      // 狀態效果（已包含標籤）
+      statusEffects: this.generateStatusEffects(),
+    };
   }
 }

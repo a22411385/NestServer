@@ -3,11 +3,16 @@
  */
 
 import { Vector2 } from '../BaseTypes';
-import { CategoryKey, PropertyValue } from '../Equipment/WeaponPropertyTypes';
+import { CategoryKey } from '../Equipment/WeaponPropertyTypes';
 import { BulletCreateConfig } from './BulletTypes';
 
 /**
  * 統一的攻擊結果接口 - 合併了所有攻擊相關的結果
+ * 
+ * 🆕 標籤系統整合：
+ * - tags: 武器完整標籤（用於通用判斷）
+ * - elementTags: 元素標籤（用於元素傷害加成）
+ * - modifiers: 武器詞綴（用於物理效果判斷）
  */
 export interface AttackResult {
     success: boolean;
@@ -20,19 +25,21 @@ export interface AttackResult {
     actualDamage?: number; // 實際造成的傷害
     isCritical?: boolean;
 
+    // 🆕 標籤系統（POE 風格）
+    tags?: string[];              // 武器完整標籤 ['weapon', 'melee', 'sword', 'fire']
+    elementTags?: string[];       // 元素標籤 ['fire', 'elemental']
+    modifiers?: any[];            // 武器詞綴（用於物理效果判斷）
+
     // 🆕 狀態效果 (從武器屬性生成)
     // - 近戰武器: CombatSystem 立即應用到 ServerGameUnit.statusEffects
     // - 遠程武器: 存在 ProjectileConfig 中,命中時應用
     statusEffects?: StatusEffectConfig[];
-
-    // 視覺效果
-    visualEffects?: VisualEffect[];  // 🎯 近戰武器使用（swing, slash）
     projectileConfig?: BulletCreateConfig;  // 🆕 投射武器使用（替代 visualEffects）
 
     // 失敗原因
     reason?: AttackFailReason;
 
-    // 攻擊數據
+    // 攻擊數據（精簡版）
     attackData?: {
         position: Vector2;
         direction: Vector2;
@@ -40,7 +47,6 @@ export interface AttackResult {
         sweepAngle?: number;
         targetPosition?: Vector2; // 投射武器需要目標位置
         supportRadius?: number; // 支援武器需要支援範圍
-        properties?: PropertyValue[]; // 武器屬性
     };
 }
 
@@ -62,12 +68,16 @@ export enum AttackFailReason {
  * - 遠程: 存在 ProjectileConfig 中,命中時應用
  * - 客戶端: 透過 ServerGameUnit.statusEffects (Schema) 自動同步
 /**
- * 🆕 狀態效果配置（POE風格）
+ * 🆕 狀態效果配置（POE風格 + 標籤系統）
  * 
  * 📝 與 StatusEffectData 的差異:
  * - StatusEffectData: 武器屬性系統內部使用 (from properties)
  * - StatusEffectConfig: 攻擊結果傳遞使用 (in AttackResult)
  * - StatusEffect: Colyseus Schema,同步到客戶端
+ * 
+ * 🆕 標籤支持：
+ * - tags: 從定義表複製，用於天賦加成匹配
+ * - baseDamage/damageScaling: 用於傷害計算
  */
 export interface StatusEffectConfig {
     type: string;               // 🆕 使用屬性ID（如 'burn', 'freeze'）
@@ -76,91 +86,9 @@ export interface StatusEffectConfig {
     chance?: number;            // 觸發機率 (0-100)
     direction?: Vector2;        // 方向 (擊退效果用)
     category: CategoryKey;      // 效果類別
+
+    // 🆕 標籤系統（用於天賦加成）
+    tags?: string[];            // 標籤列表 ['fire', 'ailment', 'elemental']
+    baseDamage?: number;        // 基礎傷害（用於 DOT 計算）
+    damageScaling?: number;     // 傷害縮放（武器攻擊力的百分比）
 }
-
-/**
- * 基礎視覺效果接口 - 所有視覺效果共用的欄位
- */
-interface BaseVisualEffect {
-    type: 'swing' | 'slash' | 'explosion' | 'freeze' | 'hit' | 'support' | 'heal';
-    position: Vector2;
-    direction: Vector2;
-}
-
-/**
- * 近戰攻擊視覺效果（揮砍、斬擊）
- */
-export interface MeleeVisualEffect extends BaseVisualEffect {
-    data: {
-        weaponType: string;
-        damage: number;
-        attackRange?: number;
-        sweepAngle?: number;
-    };
-}
-
-/**
- * 爆炸視覺效果
- */
-export interface ExplosionVisualEffect extends BaseVisualEffect {
-    data: {
-        radius: number;
-        colors?: number[];
-        duration?: number;
-        hasShockwave?: boolean;
-    };
-}
-
-/**
- * 冰凍視覺效果
- */
-export interface FreezeVisualEffect extends BaseVisualEffect {
-    data: {
-        radius: number;
-        duration: number;
-        slowAmount?: number;
-    };
-}
-
-/**
- * 命中視覺效果
- */
-export interface HitVisualEffect extends BaseVisualEffect {
-    data: {
-        damage: number;
-        isCritical?: boolean;
-        isPierce?: boolean;
-    };
-}
-
-/**
- * 輔助/治療視覺效果
- */
-export interface SupportVisualEffect extends BaseVisualEffect {
-    data: {
-        amount: number;
-        radius?: number;
-        buffType?: string;
-    };
-}
-
-/**
- * 視覺效果聯合類型 - 所有視覺效果的總和
- *
- * 🎯 設計原則：
- * - position, direction 統一在頂層，避免混淆
- * - data 只包含該類型特有的資料
- * - 使用聯合類型提供類型安全和自動補全
- * - type 用於判斷邏輯，廣播時自動轉換為 `${type}_effect` 事件名稱
- *
- * 📡 事件廣播規則：
- * - 投射物 → 不使用 VisualEffect,使用 ProjectileConfig 通過 Schema 同步
- * - 其他類型 → broadcast(`${type}_effect`, data)
- */
-export type VisualEffect =
-    | MeleeVisualEffect
-    | ExplosionVisualEffect
-    | FreezeVisualEffect
-    | HitVisualEffect
-    | SupportVisualEffect;
-

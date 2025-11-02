@@ -1,7 +1,7 @@
 import { GameRoom } from '../../../Colyseus/Rooms/GameRoom';
-import { ServerGameUnit } from '../../../Colyseus/Schema/Unit/GameUnit';
-import { ServerHero } from '../../../Colyseus/Schema/Unit/Hero';
-import { UnitType } from '../../../Colyseus/Schema/GameState';
+import { ServerGameUnit, StatusEffect } from '../../../Colyseus/Schema/Unit/GameUnit';
+import { DamageInfo } from './DamageSystem';
+import { EffectHelper } from './EffectHelper';
 
 /**
  * 狀態效果系統
@@ -78,47 +78,56 @@ export class StatusEffectSystem {
     }
 
     /**
-     * 處理持續性效果（每次 tick 執行）
+     * 🔥 處理持續性效果（每次 tick 執行）- 使用標籤系統判斷
+     * 
+     * ✅ 標籤系統優勢：
+     * - 不需要硬編碼 switch case
+     * - 新增效果類型只需在 EffectHelper 配置
+     * - 支援 POE 風格的標籤組合判斷
+     * 
+     * @example
+     * 效果標籤組合示例：
+     * - ['damage', 'debuff', 'dot'] → DOT 傷害
+     * - ['control', 'debuff', 'slow'] → 控制效果
+     * - ['buff', 'speed'] → 增益效果
      */
     private applyOngoingEffect(
         unit: ServerGameUnit,
-        effect: any,
+        effect: StatusEffect,
         currentTime: number,
     ): void {
-        switch (effect.type) {
-            case 'burn':
-            case 'poison':
-            case 'bleed':
-                // 持續傷害效果
-                this.applyDamageOverTime(unit, effect, currentTime);
-                break;
+        // 🔥 使用 EffectHelper 標籤系統判斷效果類型
+        const effectType = effect.type;
 
-            case 'slow':
-            case 'freeze':
-                // 減速效果（通過 value 字段表示減速百分比）
-                // 客戶端會讀取 statusEffects 來應用減速
-                break;
-
-            case 'stun':
-                // 眩暈效果（客戶端處理，停止移動和攻擊）
-                break;
-
-            case 'knockback':
-                // 擊退效果（由 CombatSystem 處理速度設置）
-                // 這裡只需要確保效果過期時清除
-                break;
-
-            default:
-                console.warn(`⚠️ 未知的狀態效果類型: ${effect.type}`);
+        // ✅ DOT 效果（持續傷害）
+        if (EffectHelper.isDamageOverTime(effectType)) {
+            this.applyDamageOverTime(unit, effect, currentTime);
+            return;
         }
+
+        // ✅ 控制效果（減速、眩暈、擊退等）
+        if (EffectHelper.isCrowdControl(effectType)) {
+            // 控制效果由客戶端處理（讀取 statusEffects 自動應用）
+            // 伺服器只需維護效果狀態和過期時間
+            return;
+        }
+
+        // ⚠️ 未知效果類型（可能是自訂效果）
+        console.warn(`⚠️ 未知的狀態效果類型: ${effectType}，請在 EffectHelper 中配置`);
     }
 
     /**
-     * 應用持續傷害效果
-     * 使用最後傷害時間來避免重複計算
-     * 🆕 支援元素傷害加成（從施加者讀取）
+     * 🔥 應用持續傷害效果（統一通過 DamageSystem.dealDamageToTarget）
+     * 
+     * ✅ 自動套用：
+     * - Hero 的 attackDamage（力量加成）
+     * - 元素傷害加成（基於 elementTags 標籤匹配）
+     * - 天賦效果（所有傷害 +20%）
+     * - 目標防禦減免（根據 damageType）
+     * - 生命偷取（對 DOT 傷害也有效）
+     * - 死亡處理（經驗、掉落）
      */
-    private applyDamageOverTime(unit: ServerGameUnit, effect: any, currentTime: number): void {
+    private applyDamageOverTime(unit: ServerGameUnit, effect: StatusEffect, currentTime: number): void {
         // 在 effect 上存儲最後傷害時間（不需要同步到客戶端）
         if (!effect._lastDamageTick) {
             effect._lastDamageTick = effect.startTime;
@@ -130,48 +139,22 @@ export class StatusEffectSystem {
         if (timeSinceLastTick >= 1000) {
             const baseDamagePerSecond = effect.value || 0;
             const stacks = effect.stacks || 1;
-
-            // 🆕 套用元素傷害加成（如果施加者是英雄）
-            let damagePerSecond = baseDamagePerSecond;
-            const attacker = this.getEffectSource(effect);
-            if (attacker && attacker.type === UnitType.hero) {
-                const hero = attacker as ServerHero;
-                const elementBonus = this.getElementDamageBonusForDebuff(hero, effect.type);
-                if (elementBonus > 0) {
-                    damagePerSecond = baseDamagePerSecond * (1 + elementBonus / 100);
-                    //console.log(`🔥 持續傷害元素加成: ${effect.type} +${elementBonus}% → ${damagePerSecond.toFixed(1)}/s`);
-                }
-            }
-
-            // 計算實際傷害（考慮可能超過1秒的情況和疊加層數）
             const ticks = Math.floor(timeSinceLastTick / 1000);
-            const totalDamage = Math.floor(damagePerSecond * stacks * ticks);
 
-            // 應用傷害
-            if (totalDamage > 0) {
-                unit.hp = Math.max(0, unit.hp - totalDamage);
+            // 🔥 獲取施加者（用於套用屬性加成）
+            const attacker = this.getEffectSource(effect);
 
-                // 廣播傷害事件給客戶端
-                this.gameRoom.broadcast('status_damage', {
-                    unitId: unit.id,
-                    effectType: effect.type,
-                    damage: totalDamage,
-                    stacks: stacks,
-                    remainingHp: unit.hp,
-                    timestamp: currentTime,
-                });
+            // 🎯 構建傷害資訊（套用疊加層數）
+            const damageInfo: DamageInfo = {
+                baseDamage: baseDamagePerSecond * ticks * stacks, // 基礎傷害 × 秒數 × 疊加層數
+                elementTags: EffectHelper.getElementTags(effect.type), // 🔥 使用 EffectHelper 統一轉換
+                damageType: EffectHelper.getDamageType(effect.type), // 🔥 使用 EffectHelper 統一轉換
+                attacker: attacker || undefined, // 施加者（可能為空）
+                target: unit, // 目標
+            };
 
-                //console.log(`🔥 持續傷害: ${effect.type} x${stacks} 對 ${unit.id} 造成 ${totalDamage} 傷害 (${damagePerSecond.toFixed(1)}/s × ${stacks} × ${ticks}秒)`);
-
-                // 🔧 檢查單位是否死亡並觸發死亡事件
-                if (unit.hp <= 0) {
-                    unit.isDead = true;
-                    console.log(`💀 單位因 ${effect.type} 效果死亡: ${unit.id}`);
-
-                    // 🆕 觸發死亡處理
-                    this.handleUnitDeath(unit, effect.type);
-                }
-            }
+            // 🔥 使用統一的傷害系統（自動處理生命偷取、死亡、經驗掉落）
+            this.gameRoom.damageSystem.dealDamageToTarget(damageInfo);
 
             // 更新最後傷害時間
             effect._lastDamageTick = currentTime;
@@ -179,68 +162,22 @@ export class StatusEffectSystem {
     }
 
     /**
-     * 🆕 獲取效果來源（施加狀態效果的單位）
+     * 🔍 獲取效果來源（施加狀態效果的單位）
+     * 
      * @param effect 狀態效果
      * @returns 施加者單位，如果找不到則返回 null
      */
-    private getEffectSource(effect: any): ServerGameUnit | null {
+    private getEffectSource(effect: StatusEffect): ServerGameUnit | null {
+        // 🆕 使用 sourceId 字段查找施加者
         if (!effect.sourceId) return null;
 
-        // 嘗試從英雄中查找
-        const heroes = this.gameRoom.unitManager.getAllAliveHeroes();
-        for (const hero of heroes) {
-            if (hero.id === effect.sourceId) {
-                return hero;
-            }
-        }
+        // 在房間的 UnitManager 中查找施加者
+        const allUnits = [
+            ...this.gameRoom.unitManager.getAllAliveHeroes(),
+            ...this.gameRoom.unitManager.getAllAliveEnemies()
+        ];
 
-        // 嘗試從敵人中查找（雖然目前敵人沒有元素加成，但預留接口）
-        const enemies = this.gameRoom.unitManager.getAllAliveEnemies();
-        for (const enemy of enemies) {
-            if (enemy.id === effect.sourceId) {
-                return enemy;
-            }
-        }
-
-        return null;
-    }
-
-    /**
-     * 🆕 根據Debuff類型獲取對應的元素傷害加成（POE風格標籤系統）
-     * 使用標籤匹配而非enum映射
-     * @param hero 英雄實例
-     * @param debuffType Debuff類型（如 'burn', 'poison'）
-     * @returns 傷害加成百分比 (0-100)
-     */
-    private getElementDamageBonusForDebuff(hero: ServerHero, debuffType: string): number {
-        // TODO: 實作 hero.getElementDamageBonusByTags([debuffType, 'ailment'])
-        // 暫時返回 0，待 ModifierManager 整合後實作
-        // debuffType 本身就是標籤（如 'burn' → 'fire,ailment'）
-        return 0;
-    }
-
-    /**
-     * 🆕 處理單位死亡
-     */
-    private handleUnitDeath(unit: ServerGameUnit, causeType: string): void {
-        const unitType = unit.type;
-
-        if (unitType === 0) { // UnitType.enemy
-            // 敵人死亡處理
-            const enemy = unit as any; // ServerEnemy
-
-            // 移除單位
-            this.gameRoom.state.removeEnemy(enemy.id);
-
-            // 發送死亡消息
-            this.gameRoom.broadcast('unitRemoved', { id: enemy.id });
-
-            console.log(`💀 敵人 ${enemy.id} 因 ${causeType} 死亡`);
-
-        } else if (unitType === 1) { // UnitType.hero
-            // 英雄死亡處理（由 PlayerManager 統一處理）
-            console.log(`💀 英雄 ${unit.id} 因 ${causeType} 死亡，將由 PlayerManager 處理`);
-        }
+        return allUnits.find(unit => unit.id === effect.sourceId) || null;
     }
 
     /**
@@ -275,69 +212,4 @@ export class StatusEffectSystem {
         }
     }
 
-    /**
-     * 獲取單位當前的減速百分比（疊加所有減速效果）
-     */
-    public getSlowPercentage(unit: ServerGameUnit): number {
-        let totalSlow = 0;
-
-        for (const [, effect] of unit.statusEffects) {
-            if (effect.type === 'slow' || effect.type === 'freeze') {
-                totalSlow += effect.value || 0;
-            }
-        }
-
-        // 限制最大減速為 95%（防止完全靜止）
-        return Math.min(totalSlow, 95);
-    }
-
-    /**
-     * 檢查單位是否被眩暈
-     */
-    public isStunned(unit: ServerGameUnit): boolean {
-        for (const [, effect] of unit.statusEffects) {
-            if (effect.type === 'stun') {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    /**
-     * 獲取狀態效果的剩餘時間（毫秒）
-     */
-    public getRemainingDuration(unit: ServerGameUnit, effectId: string): number {
-        const effect = unit.statusEffects.get(effectId);
-        if (!effect) return 0;
-
-        const currentTime = Date.now();
-        const remaining = effect.endTime - currentTime;
-
-        return Math.max(0, remaining);
-    }
-
-    /**
-     * 獲取系統統計信息（調試用）
-     */
-    public getStats(): {
-        totalEffects: number;
-        effectsByType: Map<string, number>;
-    } {
-        const allHeroes = this.gameRoom.unitManager.getAllAliveHeroes();
-        const allEnemies = this.gameRoom.unitManager.getAllAliveEnemies();
-        const allUnits = [...allHeroes, ...allEnemies];
-
-        let totalEffects = 0;
-        const effectsByType = new Map<string, number>();
-
-        for (const unit of allUnits) {
-            for (const [, effect] of unit.statusEffects) {
-                totalEffects++;
-                const count = effectsByType.get(effect.type) || 0;
-                effectsByType.set(effect.type, count + 1);
-            }
-        }
-
-        return { totalEffects, effectsByType };
-    }
 }

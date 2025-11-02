@@ -31,23 +31,6 @@ export class WeaponSchema extends Schema {
     classModule: string = ''; // 武器類型模塊
     public projectileClass: string = ''; // 投射物類型
 
-    @type("number")
-    public baseDamage: number = 0; // 基礎傷害
-    @type("number")
-    public attackSpeed: number = 0; // 攻擊間隔 (毫秒)
-    @type("number")
-    public attackRange: number = 0; // 攻擊範圍 (像素)
-
-    // 傳統屬性加成 (保留向下兼容性，但會被新屬性系統覆寫)
-    @type("number")
-    public int: number = 0;
-    @type("number")
-    public agi: number = 0;
-    @type("number")
-    public str: number = 0;
-    @type("number")
-    public vit: number = 0;
-
     public enabled: boolean = true;
 
 
@@ -60,7 +43,7 @@ export class WeaponSchema extends Schema {
     @type("string") name: string = "";                  // 武器英文名
 
     @type("string") description: string = "";           // 武器描述
-    @type("string") rarity: WeaponQuality = "normal";          // 稀有度
+    @type("string") rarity: WeaponQuality = "normal";   // 稀有度
     @type("string") craftingBranch: string = "none";    // 製作分支 (poison/frost/flame/lightning/explosive/none)
     @type("string") elementType: string = "physical";   // 🆕 武器元素類型 (physical/fire/ice/lightning/poison/holy/shadow/arcane)
 
@@ -73,8 +56,12 @@ export class WeaponSchema extends Schema {
     fixedProperties: PropertyValue[] = [];    // 固定屬性列表 (同步到客戶端)
 
     // === 🆕 武器詞綴和屬性加成 (JSON 序列化) ===
+    @type("string") effectPropertiesJson: string = "[]"; // 🆕 狀態效果列表（JSON）- 如燃燒、穿透等
     @type("string") modifiersJson: string = "[]";       // 武器詞綴列表（JSON）
     @type("string") bonusesJson: string = "[]";         // 屬性加成列表（JSON）
+
+    // === 🆕 最終計算屬性緩存 (不同步到客戶端) ===
+    private _cachedStats: {};
 
     // === 🆕 邏輯實例緩存 (不同步到客戶端) ===
     private _logicInstance: WeaponBasic;
@@ -109,43 +96,53 @@ export class WeaponSchema extends Schema {
 
     /**
      * 🆕 武器設定上也有基本的數值（POE風格）
-     * @param config 
+     * ⚠️ 注意: baseDamage/attackSpeed/attackRange 現在只在初始化時使用
+     * 實際戰鬥值由 FinalWeaponStats 提供
      */
     public weaponBasicDataSetting(config: WeaponConfigDefinition) {
-        this.baseDamage = config.baseDamage;
-        this.attackSpeed = config.attackSpeed;
+        // 初始化基礎值（會在 calculateFinalStats 時使用）
         this.enabled = config.enabled;
-        this.attackRange = config.attackRange;
         this.projectileClass = config.projectileClass || '';
-        // 🆕 elementType 已移除，改用 tags
-        // 元素資訊現在存儲在 properties 的 tags 中
+
+        // 🆕 創建初始 FinalWeaponStats（✅ 使用配置表標準名稱）
+        this._cachedStats = {
+            weaponDamage: config.baseDamage,    // ✅ 配置表標準名稱
+            attackSpeed: config.attackSpeed,    // ✅ 配置表標準名稱
+            attackRange: config.attackRange,    // ✅ 配置表標準名稱
+            displayName: this.name,
+            rarity: this.rarity
+        };
     }
 
     /**
      * 🆕 應用所有屬性（三種資料）
+     * ⚠️ 注意: 此方法只存儲原始配置數據，不計算最終屬性
+     * 最終屬性由 WeaponDataService.calculateFinalStats() 計算
      */
     public applyAllProperties(data: {
         statusEffects: PropertyValue[],
         modifiers: any[],
         bonuses: any[]
     }): void {
-        // 1. 狀態效果（保留現有邏輯）
+        // 1. 狀態效果（用於 UI 顯示和參考）
         this.fixedProperties = [];
         for (const effect of data.statusEffects) {
-            this.updateBaseStats(effect);
             this.fixedProperties.push(effect);
         }
+        // 同步到客戶端
+        this.effectPropertiesJson = JSON.stringify(data.statusEffects);
 
-        // 2. 🆕 武器詞綴（JSON 序列化）
+        // 2. 武器詞綴（JSON 序列化，同步到客戶端）
         this.modifiersJson = JSON.stringify(data.modifiers);
 
-        // 3. 🆕 屬性加成（JSON 序列化）
+        // 3. 屬性加成（JSON 序列化，同步到客戶端）
         this.bonusesJson = JSON.stringify(data.bonuses);
 
         console.log(`✅ 武器屬性已應用:`);
         console.log(`   - 狀態效果: ${this.fixedProperties.length} 個`);
         console.log(`   - 武器詞綴: ${data.modifiers.length} 個`);
         console.log(`   - 屬性加成: ${data.bonuses.length} 個`);
+        console.log(`   ⚠️  注意: 最終屬性需要調用 updateFinalStats() 來計算`);
     }
 
     /**
@@ -153,10 +150,9 @@ export class WeaponSchema extends Schema {
      * @deprecated 使用 applyAllProperties 代替
      */
     public applyProperties(properties: WeaponPropertiesType): void {
-        // 更新基礎屬性（影響戰鬥邏輯）
+        // 只存儲屬性，不再修改基礎值
         this.fixedProperties = [];
         for (const property of [...properties.fixed, ...properties.random]) {
-            this.updateBaseStats(property);
             this.fixedProperties.push(property);
         }
     }
@@ -239,34 +235,77 @@ export class WeaponSchema extends Schema {
         const modifiers = this.getModifiers();
         return modifiers.some((mod: any) => mod.id === modifierId);
     }
-    /**
-     * 🆕 更新基礎屬性（使用字符串匹配）
-     */
-    private updateBaseStats(property: PropertyValue): void {
-        const propId = property.id;
-        const value = property.value;
 
-        // 基礎武器屬性
-        if (propId === 'attack_damage') {
-            this.baseDamage += value;
-        } else if (propId === 'attack_speed') {
-            // 攻擊速度是減少間隔時間
-            this.attackSpeed = Math.max(100, this.attackSpeed - value);
-        } else if (propId === 'attack_range') {
-            this.attackRange += value;
+    // === 🆕 最終屬性管理 ===
+
+    /**
+     * 獲取最終計算屬性 (戰鬥系統使用)
+     */
+    public getFinalStats(): any {
+        if (!this._cachedStats) {
+            throw new Error(`武器 ${this.weaponId} 的 FinalStats 尚未初始化!請先調用 updateFinalStats()`);
         }
-        // 角色屬性加成
-        else if (propId === 'strength') {
-            this.str += value;
-        } else if (propId === 'intelligence') {
-            this.int += value;
-        } else if (propId === 'vitality') {
-            this.vit += value;
-        } else if (propId === 'agility') {
-            this.agi += value;
+        return this._cachedStats;
+    }
+
+    /**
+     * 更新最終計算屬性 (在屬性變化時調用)
+     */
+    public updateFinalStats(stats: any): void {
+        this._cachedStats = stats;
+        console.log(`✅ 武器 ${this.weaponId} 的 FinalStats 已更新`);
+    }
+
+    // === 🆕 標籤系統方法 ===
+
+    /**
+     * 🆕 獲取武器完整標籤
+     * 從配置表讀取，避免硬編碼
+     */
+    public getTags(): string[] {
+        const config = WeaponConfigManager.getConfig(this.weaponId);
+        if (config && config.tags) {
+            return config.tags.split(',').map(t => t.trim());
         }
-        // 其他屬性（戰鬥效果、狀態效果等）不影響基礎屬性
-        // 這些會在戰鬥計算時通過屬性系統處理
+
+        // 向下兼容：如果配置表沒有標籤，從 classModule 推斷
+        return ['weapon', this.classModule.toLowerCase()];
+    }
+
+    /**
+     * 🆕 獲取元素標籤
+     * 用於傷害計算和天賦加成
+     */
+    public getElementTags(): string[] {
+        const allTags = this.getTags();
+
+        // 元素標籤列表
+        const elementList = ['fire', 'cold', 'lightning', 'poison', 'physical', 'chaos', 'holy', 'shadow', 'arcane'];
+        const elementTags = allTags.filter(tag => elementList.includes(tag));
+
+        // 如果有元素傷害（非物理），添加通用 'elemental' 標籤
+        if (elementTags.length > 0 && !elementTags.includes('physical')) {
+            elementTags.push('elemental');
+        }
+
+        // 如果沒有找到元素標籤，使用 elementType（向下兼容）
+        if (elementTags.length === 0) {
+            const fallbackElement = this.elementType || 'physical';
+            elementTags.push(fallbackElement);
+
+            if (fallbackElement !== 'physical') {
+                elementTags.push('elemental');
+            }
+        }
+
+        return elementTags;
+    }
+
+    /**
+     * 檢查是否有最終屬性緩存
+     */
+    public hasFinalStats(): boolean {
+        return this._cachedStats !== null;
     }
 
     // === 🆕 邏輯實例管理 ===

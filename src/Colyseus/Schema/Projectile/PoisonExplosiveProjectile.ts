@@ -1,7 +1,7 @@
 import { ExplosiveProjectile } from './ExplosiveProjectile';
 import { ServerBullet } from '../Bullet';
 import { ServerGameUnit } from '../Unit/GameUnit';
-import { AttackResult, VisualEffect } from '@/Types';
+import { AttackResult } from '@/Types';
 import { GameRoom } from '@/Colyseus/Rooms/GameRoom';
 
 /**
@@ -58,32 +58,5 @@ export class PoisonExplosiveProjectile extends ExplosiveProjectile {
         // ✅ StatusEffectSystem 會自動處理 bullet.statusEffects
 
         return result;
-    }
-
-    /**
-     * 覆寫視覺效果，添加毒屬性特效（綠色毒霧爆炸）
-     *
-     * 📡 廣播事件：explosion_effect
-     * 客戶端可根據顏色判斷是毒屬性爆炸
-     */
-    protected createVisualEffects(
-        bullet: ServerBullet,
-        affectedTargets: ServerGameUnit[],
-    ): VisualEffect[] {
-        const currentPos = bullet.getCurrentPosition();
-
-        const poisonExplosionEffect: VisualEffect = {
-            type: 'explosion',
-            position: { x: currentPos.x, y: currentPos.y },
-            direction: { x: bullet.directionX, y: bullet.directionY },
-            data: {
-                radius: bullet.areaOfEffect,
-                colors: [0x00ff00, 0x88ff00, 0xaaff00], // 綠色毒霧
-                duration: 600,
-                hasShockwave: true,
-            },
-        };
-
-        return [poisonExplosionEffect];
     }
 }

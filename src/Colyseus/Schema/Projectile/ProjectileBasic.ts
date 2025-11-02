@@ -1,5 +1,5 @@
 import { ServerGameUnit } from '../Unit/GameUnit';
-import { AttackResult, AttackFailReason, VisualEffect, UnitType } from '../../../Types';
+import { AttackResult, AttackFailReason } from '../../../Types';
 import { ServerBullet } from '../Bullet';
 import { GameRoom } from '../../Rooms/GameRoom';
 
@@ -68,7 +68,7 @@ export abstract class ProjectileBasic {
     }
 
     // 3. 計算傷害
-    const finalDamage = this.calculateDamage(bullet, hitTarget);
+    const finalDamage = this.calculateDamage(bullet, hitTarget, gameRoom);
 
     // 4. 減少子彈的穿透次數
     bullet.pierceCount--;
@@ -78,13 +78,58 @@ export abstract class ProjectileBasic {
   }
 
   /**
-   * 計算最終傷害（子類可以覆寫以修改傷害）
+   * 🆕 計算最終傷害（統一通過 DamageSystem）
+   * 子類可以覆寫 getDamageMultiplier() 來修改傷害倍率
+   * 
+   * ✅ 自動套用：
+   * - Hero 的 attackDamage（力量加成）
+   * - 元素傷害加成（火焰精通 +15%）
+   * - 天賦效果（所有傷害 +20%）
+   * - 目標防禦減免
+   * - 暴擊計算
    */
   protected calculateDamage(
     bullet: ServerBullet,
     hitTarget: ServerGameUnit,
+    gameRoom: GameRoom,
   ): number {
-    return bullet.damage;
+    const attacker = this.getAttacker(bullet.ownerId, gameRoom);
+
+    if (!attacker) {
+      console.warn(`⚠️ 找不到攻擊者: ${bullet.ownerId}，使用基礎傷害`);
+      return Math.floor(bullet.damage * this.getDamageMultiplier());
+    }
+
+    // 🆕 Phase 3: 直接使用 bullet 攜帶的標籤信息（不再回查武器）
+    const damageInfo = {
+      attacker,
+      target: hitTarget,
+      baseDamage: bullet.damage * this.getDamageMultiplier(), // 套用投射物倍率
+      elementTags: bullet.elementTags.length > 0 ? bullet.elementTags : ['physical'], // 使用攜帶的元素標籤
+      weaponModifiers: bullet.modifiers, // 使用攜帶的武器詞綴
+      damageType: 'physical' as const,
+      source: bullet.weaponId
+    };
+
+    // ✅ 自動套用所有加成（hero.attackDamage + 元素加成 + 天賦 + 防禦減免）
+    return gameRoom.damageSystem.calculateFinalDamage(damageInfo);
+  }
+
+  /**
+   * 🆕 獲取傷害倍率（子類可覆寫）
+   * @example
+   * ExplosiveProjectile: return 0.8; // 爆炸傷害降低 20%
+   * PiercingProjectile: return 1.0;  // 穿透傷害不變
+   */
+  protected getDamageMultiplier(): number {
+    return 1.0; // 預設不修改
+  }
+
+  /**
+   * 🆕 找到攻擊者
+   */
+  private getAttacker(ownerId: string, gameRoom: GameRoom): ServerGameUnit | null {
+    return gameRoom.state.allUnits.get(ownerId) || null;
   }
 
   /**
@@ -105,19 +150,10 @@ export abstract class ProjectileBasic {
         direction: { x: bullet.directionX, y: bullet.directionY },
         range: bullet.areaOfEffect,
       },
-      visualEffects: this.createVisualEffects(bullet, affectedTargets),
       // ✅ 傳遞狀態效果配置（燃燒、中毒等）
       statusEffects: bullet.statusEffects.filter(se => se.category != 'attribute'),
     };
   }
-
-  /**
-   * 創建預設視覺效果（子類需覆寫）
-   */
-  protected abstract createVisualEffects(
-    bullet: ServerBullet,
-    affectedTargets: ServerGameUnit[],
-  ): VisualEffect[];
 
   /**
    * 尋找受影響的目標（子類必須實現）

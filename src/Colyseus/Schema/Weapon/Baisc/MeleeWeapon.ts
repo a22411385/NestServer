@@ -1,7 +1,6 @@
 import { WeaponBasic } from './WeaponBasic';
 import {
     AttackFailReason,
-    VisualEffect,
     AttackResult,
 } from '@/Types';
 import { ServerGameUnit } from '../../Unit/GameUnit';
@@ -19,25 +18,30 @@ export abstract class MeleeWeapon extends WeaponBasic {
     }
 
     /**
-     * 🆕 獲取擊退力度（從屬性系統，使用屬性ID）
+     * 🆕 獲取擊退力度（從 FinalWeaponStats 讀取）
+     * 配置驅動：從 WeaponStatConfigs 表驗證的動態屬性
      */
     public get knockbackForce(): number {
-        const prop = this.getProperty('knockback');
-        if (prop) {
-            return prop.value;
-        } else {
+        try {
+            const stats = this.getFinalStats();
+            return stats.knockbackForce || 0;
+        } catch (error) {
+            console.warn('⚠️  FinalStats 未初始化，knockbackForce 返回默認值 0');
             return 0;
         }
     }
 
     /**
-     * 🆕 獲取掃射角度（從屬性系統，使用屬性ID）
+     * 🆕 獲取掃射角度（從 FinalWeaponStats 讀取）
+     * 配置驅動：從 WeaponStatConfigs 表驗證的動態屬性
      */
     public get sweepAngle(): number {
-        const prop = this.getProperty('sweep_angle');
-        if (prop) {
-            return (prop.value * Math.PI) / 180;
-        } else {
+        try {
+            const stats = this.getFinalStats();
+            const angleDegrees = stats.sweepAngle || 0;
+            return (angleDegrees * Math.PI) / 180;  // 轉換為弧度
+        } catch (error) {
+            console.warn('⚠️  FinalStats 未初始化，sweepAngle 返回默認值 0');
             return 0;
         }
     }
@@ -77,42 +81,24 @@ export abstract class MeleeWeapon extends WeaponBasic {
             y: Math.sin(attacker.facingDirection),
         };
 
-        return {
-            success: true,
-            weaponId: this.weaponId,
-            targetIds: validTargets.map((target) => target.id),
-            baseDamage: this.baseDamage,
-            attackData: {
-                position: { x: attacker.position.x, y: attacker.position.y },
-                direction: facingDirection,
-                range: this.attackRange,
-                sweepAngle: this.sweepAngle,
-            },
-            visualEffects: this.createMeleeVisualEffects(attacker, facingDirection),
-            statusEffects: this.generateStatusEffects(), // 🆕 從屬性生成狀態效果
+        // ✅ 使用新的基礎方法生成 AttackResult（攜帶標籤）
+        const result = this.generateBaseAttackResult(
+            attacker.id,
+            validTargets.map((target) => target.id)
+        );
+
+        // 添加近戰特有數據
+        result.attackData = {
+            position: { x: attacker.position.x, y: attacker.position.y },
+            direction: facingDirection,
+            range: this.attackRange,
+            sweepAngle: this.sweepAngle,
         };
+
+        return result;
     }
 
     /**
-     * 創建近戰視覺效果
-     */
-    protected createMeleeVisualEffects(
-        attacker: ServerGameUnit,
-        facingDirection: { x: number; y: number },
-    ): VisualEffect[] {
-        const meleeEffect: VisualEffect = {
-            type: 'swing',
-            position: { x: attacker.position.x, y: attacker.position.y },
-            direction: facingDirection,
-            data: {
-                weaponType: this.weaponId,
-                damage: this.baseDamage,
-                attackRange: this.attackRange + attacker.attackRange,
-                sweepAngle: (this.sweepAngle * 180) / Math.PI, // 轉換為度給客戶端
-            },
-        };
-        return [meleeEffect];
-    } /**
    * 近戰武器的目標選擇邏輯 - 360度搜尋最近敵人
    * 每次攻擊都會自動瞄準並攻擊最近的敵人
    */

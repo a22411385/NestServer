@@ -2,7 +2,6 @@ import { ProjectileBasic } from './ProjectileBasic';
 import { ServerGameUnit } from '../Unit/GameUnit';
 import { ServerBullet } from '../Bullet';
 import { GameRoom } from '../../Rooms/GameRoom';
-import { VisualEffect } from '@/Types';
 
 /**
  * 基礎投射物 - 單體攻擊，命中後消失
@@ -28,13 +27,6 @@ export class BasicProjectile extends ProjectileBasic {
     return BasicProjectile.instance;
   }
 
-  protected createVisualEffects(
-    bullet: ServerBullet,
-    affectedTargets: ServerGameUnit[],
-  ): VisualEffect[] {
-    // 基礎投射物不需要廣播額外的視覺效果
-    return [];
-  }
   // onHit 使用基類的虛擬實現，無需覆寫
 
   protected findAffectedTargets(

@@ -116,6 +116,7 @@ export class CombatSystem {
             //console.log(`🏹 投射武器攻擊: ${result.weaponId} - 創建投射物`);
         } else {
             // 近戰武器：立即造成傷害
+            // 🆕 Phase 3: 使用 AttackResult 攜帶的詞綴，不再從武器回查
             attackData.damageResults =
                 this.gameRoom.damageSystem.dealDamageToMultipleTargets(
                     hero,
@@ -123,6 +124,7 @@ export class CombatSystem {
                     result.baseDamage,
                     'physical',
                     result.weaponId,
+                    result.modifiers // 🆕 使用 AttackResult 攜帶的武器詞綴
                 );
 
             // 近戰武器立即應用狀態效果
@@ -131,7 +133,8 @@ export class CombatSystem {
                     this.applyStatusEffects(
                         target,
                         result.statusEffects,
-                        { x: hero.position.x, y: hero.position.y }
+                        { x: hero.position.x, y: hero.position.y },
+                        hero.id // 🆕 傳遞攻擊者ID
                     );
                 }
             }
@@ -170,7 +173,6 @@ export class CombatSystem {
             weaponId: result.weaponId,
             attackData: result.attackData,
             damageResults: attackData.damageResults,
-            visualEffects: result.visualEffects,
             timestamp: Date.now(),
         });
     }
@@ -199,11 +201,13 @@ export class CombatSystem {
      * @param target 目標單位
      * @param effectConfigs 狀態效果配置數組
      * @param attackerPosition 攻擊者位置 (用於擊退方向計算)
+     * @param attackerId 攻擊者ID (用於 DOT 傷害計算)
      */
     public applyStatusEffects(
         target: ServerGameUnit,
         effectConfigs: StatusEffectConfig[],
         attackerPosition?: { x: number; y: number },
+        attackerId?: string,
     ): void {
 
         for (const config of effectConfigs) {
@@ -236,7 +240,7 @@ export class CombatSystem {
                     //  console.log(`🔥 狀態效果疊加: ${config.type} → ${target.id} (${existingEffect.stacks}層)`);
                 } else {
                     // 创建新效果
-                    this.createNewEffect(target, config);
+                    this.createNewEffect(target, config, attackerId);
                     // console.log(`✨ 狀態效果已應用: ${config.type} → ${target.id} (持續 ${config.duration}ms)`);
                 }
             }
@@ -327,8 +331,9 @@ export class CombatSystem {
      * 🎯 優化點：
      * 1. 使用簡短的 ID（類型 + 目標ID）- 減少字符串長度
      * 2. 同步結束時間而非開始時間 - 客戶端可直接計算剩餘時間
+     * 3. 記錄 sourceId - 用於 DOT 傷害計算時套用施加者的屬性加成
      */
-    private createNewEffect(target: ServerGameUnit, config: StatusEffectConfig): void {
+    private createNewEffect(target: ServerGameUnit, config: StatusEffectConfig, attackerId?: string): void {
         // 🔧 優化：使用簡短的ID（狀態類型可以保證唯一性）
         const effectId = `${config.type}_${target.id}`;
 
@@ -342,6 +347,7 @@ export class CombatSystem {
         statusEffect.value = config.value || 0;
         statusEffect.stacks = 1; // 初始1层
         statusEffect.maxStacks = this.getMaxStacks(config.type); // 根据类型设置最大层数
+        statusEffect.sourceId = attackerId || ""; // 🆕 記錄施加者ID
 
         // 🔧 伺服器專用屬性
         statusEffect.duration = config.duration;

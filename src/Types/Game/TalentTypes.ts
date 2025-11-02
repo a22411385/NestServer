@@ -1,3 +1,5 @@
+
+
 /**
  * 🆕 天賦屬性類型 - 使用字符串（配置驅動）
  * 不再使用枚舉，完全由配置文件決定
@@ -19,7 +21,6 @@ export interface TalentConfig {
 
 export interface TalentEffect {
     talent_id: string;
-    effect_type: TalentEffectType;
 
     // 🆕 屬性和修改器（POE 風格）
     stat: string;                   // 影響的屬性 (damage, attack_speed, burn_chance)
