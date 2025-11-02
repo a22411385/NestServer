@@ -53,6 +53,11 @@ export class WeaponSchema extends Schema {
 
     @type("boolean") isEquipped: boolean = false;       // 是否裝備中
 
+    // === 🆕 基礎屬性（從配置讀取，用於 UI 顯示） ===
+    @type("number") baseDamage: number = 0;             // 基礎傷害
+    @type("number") attackSpeed: number = 0;            // 攻擊速度
+    @type("number") attackRange: number = 0;            // 攻擊範圍
+
     fixedProperties: PropertyValue[] = [];    // 固定屬性列表 (同步到客戶端)
 
     // === 🆕 武器詞綴和屬性加成 (JSON 序列化) ===
@@ -104,6 +109,11 @@ export class WeaponSchema extends Schema {
         this.enabled = config.enabled;
         this.projectileClass = config.projectileClass || '';
 
+        // 🆕 設置基礎屬性（同步到客戶端用於 UI 顯示）
+        this.baseDamage = config.baseDamage || 0;
+        this.attackSpeed = config.attackSpeed || 0;
+        this.attackRange = config.attackRange || 0;
+
         // 🆕 創建初始 FinalWeaponStats（✅ 使用配置表標準名稱）
         this._cachedStats = {
             weaponDamage: config.baseDamage,    // ✅ 配置表標準名稱
@@ -143,27 +153,6 @@ export class WeaponSchema extends Schema {
         console.log(`   - 武器詞綴: ${data.modifiers.length} 個`);
         console.log(`   - 屬性加成: ${data.bonuses.length} 個`);
         console.log(`   ⚠️  注意: 最終屬性需要調用 updateFinalStats() 來計算`);
-    }
-
-    /**
-     * ✅ 應用屬性到武器實例 - 舊版相容方法（已棄用）
-     * @deprecated 使用 applyAllProperties 代替
-     */
-    public applyProperties(properties: WeaponPropertiesType): void {
-        // 只存儲屬性，不再修改基礎值
-        this.fixedProperties = [];
-        for (const property of [...properties.fixed, ...properties.random]) {
-            this.fixedProperties.push(property);
-        }
-    }
-
-    /**
-     * 🆕 獲取屬性值列表（使用屬性ID）
-     * @deprecated 建議使用 getProperty() 獲取單個屬性
-     */
-    public getPropertyValue(propertyId: string): PropertyValue[] {
-        const property = this.fixedProperties.filter(prop => prop.id === propertyId);
-        return property.length > 0 ? property : [];
     }
 
     /**

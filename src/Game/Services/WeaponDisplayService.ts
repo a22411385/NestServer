@@ -156,18 +156,14 @@ export class WeaponDisplayService {
 
     /**
      * 📝 生成詞綴描述文字
+     * valueType 可以是中文單位 ('%', '次', '度', '距離' 等)
      */
     private static generateModifierDescription(mod: WeaponModifier): string {
         const statName = this.getStatDisplayName(mod.affectedStat);
         const modTypeText = this.getModifierTypeText(mod.modifierType);
+        const unit = mod.valueType || '';
 
-        if (mod.valueType === 'percentage') {
-            return `${statName} ${modTypeText} ${mod.baseValue}%`;
-        } else if (mod.valueType === 'count') {
-            return `${statName} +${mod.baseValue}`;
-        } else {
-            return `${statName} ${modTypeText} ${mod.baseValue}`;
-        }
+        return `${statName} ${modTypeText} ${mod.baseValue}${unit}`;
     }
 
     /**
@@ -186,17 +182,13 @@ export class WeaponDisplayService {
 
     /**
      * 🎯 格式化詞綴文字（簡短版，用於列表）
+     * valueType 可以是中文單位 ('%', '次', '度', '距離' 等)
      */
     private static formatModifierText(mod: WeaponModifier): string {
         const statName = this.getStatDisplayName(mod.affectedStat);
+        const unit = mod.valueType || '';
 
-        if (mod.valueType === 'percentage') {
-            return `${statName} +${mod.baseValue}%`;
-        } else if (mod.valueType === 'count') {
-            return `${statName} +${mod.baseValue}`;
-        } else {
-            return `${statName} +${mod.baseValue}`;
-        }
+        return `${statName} +${mod.baseValue}${unit}`;
     }
 
     /**

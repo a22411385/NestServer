@@ -4,8 +4,6 @@
 
 import { WeaponConfigDefinition } from "@/Types/Equipment/WeaponPropertyTypes";
 import { GoogleSheetCache } from "../../Tasks/GoogleSheetCache";
-import { WeaponType } from "@/Types/Equipment/WeaponTypes";
-import { EquipmentQuality } from "@/Types";
 
 /**
  * 動態武器配置管理器

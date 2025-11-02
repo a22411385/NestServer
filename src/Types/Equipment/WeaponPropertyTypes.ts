@@ -79,7 +79,7 @@ export interface WeaponModifier {
 
     // 詞綴數值
     baseValue: number;               // 基礎數值
-    valueType: 'count' | 'percentage' | 'distance' | 'degree'; // 數值類型
+    valueType: string;               // 顯示單位 (可使用中文: '%', '次', '度', '距離' 等)
 
     // 修改器配置
     modifierType: ModifierType;      // 修改器類型

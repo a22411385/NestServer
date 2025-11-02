@@ -168,13 +168,137 @@ export class CombatSystem {
         result: AttackResult,
         attackData: CombatExecution,
     ): void {
+        // 🆕 生成視覺效果資訊
+        const visualEffects = this.generateVisualEffects(
+            hero,
+            result,
+            attackData.damageResults
+        );
+
         this.gameRoom.broadcast('weapon_attack', {
             heroId: hero.id,
             weaponId: result.weaponId,
             attackData: result.attackData,
             damageResults: attackData.damageResults,
+            visualEffects: visualEffects, // 🆕 添加視覺效果
             timestamp: Date.now(),
         });
+    }
+
+    /**
+     * 🎨 生成視覺效果資訊
+     * 從武器詞綴(modifiers)和傷害結果生成客戶端需要的視覺效果資料
+     */
+    private generateVisualEffects(
+        hero: ServerHero,
+        result: AttackResult,
+        damageResults: DamageResult[]
+    ): any[] {
+        const effects: any[] = [];
+        const modifiers = result.modifiers || [];
+
+        // 遍歷武器詞綴，根據標籤生成視覺效果
+        for (const mod of modifiers) {
+            if (!mod.tags) continue;
+
+            const tags = mod.tags.split(',').map((t: string) => t.trim());
+
+            // 1️⃣ 近戰揮擊效果 (melee + area)
+            if (tags.includes('melee') && tags.includes('area')) {
+                effects.push({
+                    type: 'swing',
+                    position: result.attackData?.position || { x: hero.position.x, y: hero.position.y },
+                    direction: result.attackData?.direction || { x: 1, y: 0 },
+                    data: {
+                        sweepAngle: mod.baseValue || result.attackData?.sweepAngle || 60,
+                        range: result.attackData?.range || 100,
+                        weaponType: this.getWeaponTypeFromTags(tags),
+                    }
+                });
+            }
+
+            // 2️⃣ 擊退效果 (knockback)
+            if (tags.includes('knockback')) {
+                for (const dmgResult of damageResults) {
+                    // 從英雄位置指向目標的方向
+                    const target = this.gameRoom.unitManager.getUnitById(dmgResult.targetId);
+                    if (target) {
+                        const direction = {
+                            x: target.position.x - hero.position.x,
+                            y: target.position.y - hero.position.y
+                        };
+                        const length = Math.sqrt(direction.x ** 2 + direction.y ** 2);
+                        if (length > 0) {
+                            direction.x /= length;
+                            direction.y /= length;
+                        }
+
+                        effects.push({
+                            type: 'knockback',
+                            targetId: dmgResult.targetId,
+                            value: mod.baseValue,
+                            direction: direction,
+                            position: { x: target.position.x, y: target.position.y }
+                        });
+                    }
+                }
+            }
+
+            // 3️⃣ 穿透效果 (pierce)
+            if (tags.includes('pierce') && damageResults.length > 1) {
+                const targetIds = damageResults.map(r => r.targetId);
+                effects.push({
+                    type: 'pierce',
+                    targetIds: targetIds,
+                    pierceCount: mod.baseValue,
+                });
+            }
+
+            // 4️⃣ 連鎖攻擊效果 (chain)
+            if (tags.includes('chain') && damageResults.length > 1) {
+                const chainPath = damageResults.map(r => {
+                    const target = this.gameRoom.unitManager.getUnitById(r.targetId);
+                    return target ? { x: target.position.x, y: target.position.y, targetId: r.targetId } : null;
+                }).filter(p => p !== null);
+
+                effects.push({
+                    type: 'chain',
+                    chainPath: chainPath,
+                    chainCount: mod.baseValue,
+                });
+            }
+
+            // 5️⃣ 範圍效果 (area/aoe/splash)
+            if (tags.includes('area') || tags.includes('aoe') || tags.includes('splash')) {
+                if (damageResults.length > 0 && !tags.includes('melee')) {
+                    const firstTarget = this.gameRoom.unitManager.getUnitById(damageResults[0].targetId);
+                    if (firstTarget) {
+                        effects.push({
+                            type: 'explosion',
+                            position: { x: firstTarget.position.x, y: firstTarget.position.y },
+                            radius: mod.baseValue || 100,
+                            affectedTargets: damageResults.map(r => r.targetId),
+                        });
+                    }
+                }
+            }
+        }
+
+        return effects;
+    }
+
+    /**
+     * 🔍 從標籤推測武器類型
+     */
+    private getWeaponTypeFromTags(tags: string[]): string {
+        if (tags.includes('sword')) return 'sword';
+        if (tags.includes('axe')) return 'axe';
+        if (tags.includes('mace')) return 'mace';
+        if (tags.includes('dagger')) return 'dagger';
+        if (tags.includes('bow')) return 'bow';
+        if (tags.includes('staff')) return 'staff';
+        if (tags.includes('wand')) return 'wand';
+        return 'melee';
     }
 
     /**

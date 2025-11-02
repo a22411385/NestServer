@@ -201,16 +201,39 @@ export class DamageSystem {
         const { attacker, target, baseDamage, damageType, elementTags } = damageInfo;
         let finalDamage = baseDamage;
 
+        // 🔍 調試模式 - 詳細傷害計算日誌
+        const DEBUG_DAMAGE = true; // 設為 false 關閉調試
+        if (DEBUG_DAMAGE) {
+            console.log(`\n🎯 ====== 傷害計算開始 ======`);
+            console.log(`📊 基礎傷害: ${baseDamage}`);
+            console.log(`🎭 傷害類型: ${damageType || 'physical'}`);
+            console.log(`🏷️  元素標籤: [${elementTags?.join(', ') || '無'}]`);
+        }
+
         // 根據攻擊者屬性調整傷害
         if (attacker && attacker.type === UnitType.hero) {
             const hero = attacker as ServerHero;
+
+            if (DEBUG_DAMAGE) {
+                console.log(`\n👤 攻擊者: ${hero.name}`);
+                console.log(`⚔️  攻擊力: ${hero.attackDamage}`);
+            }
+
             finalDamage += hero.attackDamage; // 添加英雄攻擊力
+
+            if (DEBUG_DAMAGE) {
+                console.log(`➕ 套用攻擊力後: ${finalDamage}`);
+            }
 
             // 🔥 套用元素傷害加成（統一使用標籤系統）
             const elementDamageBonus = this.getElementDamageBonus(hero, elementTags);
             if (elementDamageBonus > 0) {
+                const beforeBonus = finalDamage;
                 finalDamage *= (1 + elementDamageBonus / 100);
-                //console.log(`🔥 元素加成: ${elementTags?.join(',')} +${elementDamageBonus}% → ${finalDamage.toFixed(1)}`);
+
+                if (DEBUG_DAMAGE) {
+                    console.log(`🔥 元素加成: +${elementDamageBonus}% (${beforeBonus} → ${finalDamage.toFixed(1)})`);
+                }
             }
         }
 
@@ -218,7 +241,19 @@ export class DamageSystem {
         if (damageType === 'physical') {
             // 物理傷害防禦計算
             const defense = this.getTargetDefense(target);
-            finalDamage = BattleMathUtils.atLeast(finalDamage - defense, 1); // 至少造成1點傷害
+            if (defense > 0) {
+                const beforeDefense = finalDamage;
+                finalDamage = BattleMathUtils.atLeast(finalDamage - defense, 1); // 至少造成1點傷害
+
+                if (DEBUG_DAMAGE) {
+                    console.log(`🛡️  防禦減免: -${defense} (${beforeDefense.toFixed(1)} → ${finalDamage.toFixed(1)})`);
+                }
+            }
+        }
+
+        if (DEBUG_DAMAGE) {
+            console.log(`\n✅ 最終傷害: ${Math.floor(finalDamage)}`);
+            console.log(`🎯 ====== 傷害計算結束 ======\n`);
         }
 
         return Math.floor(finalDamage);
