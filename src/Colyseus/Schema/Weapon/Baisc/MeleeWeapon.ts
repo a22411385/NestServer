@@ -12,7 +12,7 @@ import { ServerGameUnit } from '../../Unit/GameUnit';
  * 使用屬性系統替代硬編碼的 knockbackForce 和 sweepAngle
  * 🆕 支持配置驅動的初始化
  */
-export abstract class MeleeWeapon extends WeaponBasic {
+export class MeleeWeapon extends WeaponBasic {
     constructor() {
         super(); // 🆕 調用無參數的父類構造函數
     }
@@ -87,11 +87,14 @@ export abstract class MeleeWeapon extends WeaponBasic {
             validTargets.map((target) => target.id)
         );
 
+        // 🔧 計算實際攻擊範圍（武器範圍 + 角色加成）
+        const actualAttackRange = this.attackRange + attacker.attackRange;
+
         // 添加近戰特有數據
         result.attackData = {
             position: { x: attacker.position.x, y: attacker.position.y },
             direction: facingDirection,
-            range: this.attackRange,
+            range: actualAttackRange, // ✅ 使用實際範圍（包含角色加成）
             sweepAngle: this.sweepAngle,
         };
 

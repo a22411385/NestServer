@@ -25,7 +25,7 @@ export interface BulletCreateConfig {
     startPosition: { x: number, y: number };
     direction: { x: number, y: number };
     damage: number;
-    bulletClass: string;
+
     weaponId: string; // 武器ID，用於獲取武器屬性
     // ===== 可選屬性 (基礎) =====
     speed?: number;

@@ -5,6 +5,7 @@ import { ServerGameUnit } from '../../../Colyseus/Schema/Unit/GameUnit';
 import { UnitType } from '../../../Colyseus/Schema/GameState';
 import { BattleMathUtils } from '../../../Util/BattleMathUtils';
 import { WeaponModifier } from '../../../Types/Equipment/WeaponPropertyTypes';
+import { BonusCalculator } from '../BonusCalculator';
 
 export interface DamageInfo {
     attacker?: ServerGameUnit; // 🆕 改為可選（DOT 可能沒有施加者）
@@ -202,7 +203,7 @@ export class DamageSystem {
         let finalDamage = baseDamage;
 
         // 🔍 調試模式 - 詳細傷害計算日誌
-        const DEBUG_DAMAGE = true; // 設為 false 關閉調試
+        const DEBUG_DAMAGE = process.env.DEBUG_DAMAGE === 'true'; // 設為 false 關閉調試
         if (DEBUG_DAMAGE) {
             console.log(`\n🎯 ====== 傷害計算開始 ======`);
             console.log(`📊 基礎傷害: ${baseDamage}`);
@@ -261,75 +262,17 @@ export class DamageSystem {
 
     /**
      * 🔥 獲取元素傷害加成（POE風格標籤系統）
-     * ✅ 統一使用標籤匹配，支持多元素疊加
+     * ✅ 使用統一的 BonusCalculator（配置驅動，不再硬編碼）
      * 
      * @param hero 英雄實例
      * @param elementTags 元素標籤陣列（如 ['fire', 'elemental'] 或 DOT 的 ['burn']）
-     * @returns 傷害加成百分比 (0-100)
-     * 
-     * @example
-     * // 武器攻擊
-     * getElementDamageBonus(hero, ['fire', 'elemental'])
-     * 
-     * // DOT 傷害
-     * getElementDamageBonus(hero, ['burn']) // burn 會匹配到 fire
+     * @returns 傷害加成百分比 (0-1, 如 0.3 = +30%)
      */
     private getElementDamageBonus(
         hero: ServerHero,
         elementTags?: string[]
     ): number {
-        if (!elementTags || elementTags.length === 0) {
-            return 0; // 沒有元素標籤
-        }
-
-        let totalBonus = 0;
-
-        // 🔥 標籤匹配：檢查每個元素標籤並累加對應的傷害加成
-        for (const tag of elementTags) {
-            const lowerTag = tag.toLowerCase();
-
-            switch (lowerTag) {
-                case 'physical':
-                    totalBonus += hero.physicalDamageBonus;
-                    break;
-                case 'fire':
-                case 'burn':
-                case 'ignite':
-                    totalBonus += hero.fireDamageBonus;
-                    break;
-                case 'ice':
-                case 'cold':
-                case 'freeze':
-                case 'chill':
-                    totalBonus += hero.iceDamageBonus;
-                    break;
-                case 'lightning':
-                case 'shock':
-                    totalBonus += hero.lightningDamageBonus;
-                    break;
-                case 'poison':
-                    totalBonus += hero.poisonDamageBonus;
-                    break;
-                case 'bleed':
-                    totalBonus += hero.physicalDamageBonus; // 流血視為物理傷害
-                    break;
-                case 'holy':
-                    totalBonus += hero.holyDamageBonus;
-                    break;
-                case 'shadow':
-                    totalBonus += hero.shadowDamageBonus;
-                    break;
-                case 'arcane':
-                    totalBonus += hero.arcaneDamageBonus;
-                    break;
-            }
-        }
-
-        // TODO: 整合天賦加成
-        // const talentBonus = TalentManager.getInstance().getElementBonus(hero.id, elementTags);
-        // totalBonus += talentBonus;
-
-        return totalBonus;
+        return BonusCalculator.getElementDamageBonus(hero, elementTags);
     }
 
     /**

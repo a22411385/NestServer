@@ -20,6 +20,9 @@ export * from './Game/EnemyTypes';
 export * from './Game/BulletTypes';
 export * from './Game/TalentTypes';
 
+// ========================= 視覺效果類型 =========================
+export * from './Visual/VisualEffectTypes';
+
 // ========================= 系統特定類型 (新位置) =========================
 export * from '../Game/Managers/WaveManager';      // 波次管理系統類型
 export * from '../Game/Managers/SpawnManager';     // 生成管理系統類型

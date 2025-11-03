@@ -11,6 +11,8 @@ import { GoogleSheetCache } from './Tasks/GoogleSheetCache';
 import { TalentSystemInitializer } from './Game/Systems/Talent/TalentSystemInitializer';
 import { WeaponInstanceManager } from './Game/Managers/WeaponInstanceManager';
 import { WeaponFactory } from './Game/Factories/WeaponFactory';
+import { TagService } from './Game/Services/TagService';
+import { VisualEffectService } from './Game/Services/VisualEffectService';
 
 export const IS_PUBLIC_KEY = 'isPublic';
 export const IsPublic = () => SetMetadata(IS_PUBLIC_KEY, true);
@@ -21,7 +23,7 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.enableCors({
 
-    origin: ["http://192.168.50.144:5175"],
+    origin: [`http://${process.env.SERVER_HOST}:5175`],
     methods: ["GET", "POST", 'OPTIONS'],
     credentials: true,
   })
@@ -44,13 +46,13 @@ async function bootstrap() {
   }));
 
 
-  await app.listen(process.env.PORT ?? 8000, process.env.HOST ?? 'localhost');
+  await app.listen(process.env.PORT ?? 8000, process.env.SERVER_HOST ?? 'localhost');
 
 
   const colyseusServer = new ColyseusServer();
   await colyseusServer.listen(3001);
 
-  console.log(`NestJS server running on: http://localhost:${process.env.PORT ?? 8000}`);
+  console.log(`NestJS server running on: http://${process.env.SERVER_HOST}:${process.env.PORT ?? 8000}`);
   console.log(`Colyseus server running on: http://localhost:3001`);
 
   // 🎯 初始化順序很重要，必須按照依賴關係依序初始化
@@ -58,23 +60,35 @@ async function bootstrap() {
     console.log('🔧 開始初始化遊戲系統...');
 
     // 1️⃣ 初始化 Google Sheets 快取（最底層依賴）
-    console.log('📥 步驟 1/4: 初始化 Google Sheets 快取...');
+    console.log('📥 步驟 1/5: 初始化 Google Sheets 快取...');
     const googlesheet = new GoogleSheetCache();
     await googlesheet.init();
     console.log('✅ Google Sheets 快取已就緒');
 
-    // 2️⃣ 初始化武器工廠（依賴 GoogleSheetCache）
-    console.log('🏭 步驟 2/4: 初始化武器工廠...');
+    // 2️⃣ 初始化標籤服務（依賴 GoogleSheetCache）
+    console.log('🏷️ 步驟 2/6: 初始化標籤服務...');
+    const tagService = TagService.getInstance();
+    await tagService.initialize();
+    console.log('✅ 標籤服務已初始化');
+
+    // 3️⃣ 初始化視覺效果服務（依賴 GoogleSheetCache）
+    console.log('🎨 步驟 3/6: 初始化視覺效果服務...');
+    const visualEffectService = VisualEffectService.getInstance();
+    await visualEffectService.initialize();
+    console.log('✅ 視覺效果服務已初始化');
+
+    // 4️⃣ 初始化武器工廠（依賴 GoogleSheetCache）
+    console.log('🏭 步驟 4/6: 初始化武器工廠...');
     await WeaponFactory.initialize();
     console.log('✅ 武器工廠已初始化');
 
-    // 3️⃣ 初始化武器實例管理器（依賴 WeaponFactory）
-    console.log('🔧 步驟 3/4: 初始化武器實例管理器...');
+    // 5️⃣ 初始化武器實例管理器（依賴 WeaponFactory）
+    console.log('🔧 步驟 5/6: 初始化武器實例管理器...');
     await WeaponInstanceManager.initialize();
     console.log('✅ 武器實例管理器已初始化');
 
-    // 4️⃣ 初始化天賦系統（依賴 GoogleSheetCache）
-    console.log('⭐ 步驟 4/4: 初始化天賦系統...');
+    // 6️⃣ 初始化天賦系統（依賴 GoogleSheetCache）
+    console.log('⭐ 步驟 6/6: 初始化天賦系統...');
     await TalentSystemInitializer.initialize();
     console.log('✅ 天賦系統已初始化');
 

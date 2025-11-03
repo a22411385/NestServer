@@ -42,7 +42,7 @@ export class BulletFactory {
             new Vector2(config.direction.x, config.direction.y),
             config.damage,
             config.speed || 300,
-            config.bulletClass.toString(),
+
             config.weaponId || "",
             maxDistance
         );

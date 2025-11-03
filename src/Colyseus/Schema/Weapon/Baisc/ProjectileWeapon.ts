@@ -78,19 +78,22 @@ export class ProjectileWeapon extends WeaponBasic {
             affectedTargets.map((target) => target.id),
         );
 
+        // 🔧 計算實際攻擊範圍（武器範圍 + 角色加成）
+        const actualAttackRange = this.attackRange + attacker.attackRange;
+
         return {
             ...baseResult,
             attackData: {
                 position: { x: attacker.position.x, y: attacker.position.y },
                 direction: shootDirection,
-                range: this.attackRange,
+                range: actualAttackRange, // ✅ 使用實際範圍（包含角色加成）
                 targetPosition: {
                     x: primaryTarget.position.x,
                     y: primaryTarget.position.y,
                 },
             },
             // 🆕 投射武器使用 projectileConfig 替代 visualEffects，並攜帶標籤信息
-            projectileConfig: this.getProjectileConfig(attacker.id, attacker.position, shootDirection),
+            projectileConfig: this.getProjectileConfig(attacker.id, attacker.position, shootDirection, actualAttackRange),
         };
     }
 
@@ -230,17 +233,15 @@ export class ProjectileWeapon extends WeaponBasic {
     }
 
     /**
-     * 🆕 獲取投射物配置（替代 createProjectileVisualEffects）
+     * 🆕 獲取投射物配置（POE風格）
      * 
-     * 📝 職責：
-     * - 創建投射物配置對象
-     * - 合併武器屬性和彈藥覆蓋
-     * - 包含狀態效果配置
-     * - 直接傳遞給 CombatSystem
-     * 
+     * @param ownerId 發射者ID
+     * @param startPosition 起始位置
+     * @param direction 發射方向
+     * @param actualRange 實際攻擊範圍（包含角色加成）
      * @returns ProjectileConfig - 投射物完整配置
      */
-    protected getProjectileConfig(ownerId: string, startPosition: Vector2, direction: Vector2): BulletCreateConfig {
+    protected getProjectileConfig(ownerId: string, startPosition: Vector2, direction: Vector2, actualRange?: number): BulletCreateConfig {
 
         // 🆕 使用屬性ID作為鍵（POE風格）
         let propertiesMap: Record<string, PropertyValue> = {};
@@ -259,15 +260,19 @@ export class ProjectileWeapon extends WeaponBasic {
         const elementTags = this.weaponSchema?.getElementTags() || [];
         const modifiers = this.weaponSchema?.getModifiers() || [];
 
+        // 🔍 調試：確認標籤是否被正確讀取
+        console.log(`🎯 [ProjectileWeapon] 武器 ${this.weaponId} 創建子彈配置:`);
+        console.log(`   - tags: [${tags.join(', ')}]`);
+        console.log(`   - elementTags: [${elementTags.join(', ')}]`);
+
         return {
             weaponId: this.weaponId,
             ownerId: ownerId,
             startPosition: startPosition, // 由 CombatSystem 設置,
             direction: direction,           // 由 CombatSystem 設置,
-            bulletClass: this.projectileClass,  // ✅ 彈藥類型
 
             damage: this.baseDamage,            // ✅ 武器傷害
-            maxDistance: this.attackRange,      // ✅ 武器射程
+            maxDistance: actualRange ?? this.attackRange, // ✅ 使用實際範圍（包含角色加成）
             properties: propertiesMap,
             statusEffects: this.generateStatusEffects(), // 🆕 從屬性生成狀態效果
 

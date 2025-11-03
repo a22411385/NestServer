@@ -23,6 +23,7 @@ import { CombatSystem } from "@/Game/Systems/Battle/CombatSystem";
 import { StatusEffectSystem } from "@/Game/Systems/Battle/StatusEffectSystem";
 import { WeaponInstanceManager } from "@/Game/Managers/WeaponInstanceManager";
 import { WeaponFactory } from "@/Game/Factories/WeaponFactory";
+import { HitHandler } from "@/Game/Systems/HitHandler"; // 🆕 命中處理器
 
 // 🆕 引入統一類型定義
 import { GameRoomOptions } from "@/Types";
@@ -48,6 +49,7 @@ export class GameRoom extends MiddleRoom<GameRoomState> {
     public bulletSystem: BulletSystem; // 🆕 添加子彈系統
     public combatSystem: CombatSystem; // 🆕 戰鬥系統
     public statusEffectSystem: StatusEffectSystem; // 🆕 狀態效果系統
+    public hitHandler: HitHandler; // 🆕 命中處理器（統一近戰和投射物）
 
     public dropSystem: DropSystem; // 🆕 掉落系統
 
@@ -71,6 +73,7 @@ export class GameRoom extends MiddleRoom<GameRoomState> {
         this.bulletSystem = new BulletSystem(this); // 🆕 初始化子彈系統
         this.combatSystem = new CombatSystem(this); // 🆕 初始化戰鬥系統
         this.statusEffectSystem = new StatusEffectSystem(this); // 🆕 初始化狀態效果系統
+        this.hitHandler = new HitHandler(this); // 🆕 初始化命中處理器
 
         this.dropSystem = new DropSystem(this); // 🆕 初始化掉落系統
         this.dropSystem.initialize(); // 🆕 初始化掉落系統配置

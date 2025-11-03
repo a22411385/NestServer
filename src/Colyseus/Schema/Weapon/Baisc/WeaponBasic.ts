@@ -22,17 +22,13 @@ export abstract class WeaponBasic {
 
   // 🆕 配置相關
   protected weaponConfig: WeaponConfigDefinition;
-  public get projectileClass(): string {
-    return this.weaponConfig?.projectileClass || '';
-  }
 
-  public get weaponType(): WeaponType {
-    return this.weaponConfig?.weaponClass as WeaponType;
-  }
   public get weaponId(): string {
     return this.weaponSchema?.weaponId || '';
   }
-
+  public get weaponClassMoule(): WeaponType {
+    return this.weaponSchema.classModule as WeaponType;
+  }
 
   // 服務器端屬性
   protected lastAttackTime: number = 0;

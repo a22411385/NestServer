@@ -1,9 +1,11 @@
+import { ConfigManager } from "@/Game/Managers/ConfigManager";
+
 /**
  * 🔥 效果工具類 - 統一管理效果類型的轉換邏輯
  * 
  * 🎯 職責：
- * - 提供效果類型 → 元素標籤的轉換
- * - 提供效果類型 → 防禦計算類型的轉換
+ * - 提供效果類型 → 元素標籤的轉換（✅ 從配置表讀取）
+ * - 提供效果類型 → 防禦計算類型的轉換（✅ 從配置表讀取）
  * - 集中管理效果配置，避免邏輯散落
  * 
  * 📌 使用場景：
@@ -12,59 +14,46 @@
  * - WeaponConfig: 武器效果配置時
  * - SkillSystem: 技能效果配置時
  * 
- * 🔮 未來擴展：
- * - 可改為配置表驅動（從 Google Sheets 載入）
- * - 可新增更多效果屬性（持續時間、疊加上限等）
+ * ✅ 改進：
+ * - 從 Google Sheets (StatusEffectDefinitions) 讀取配置
+ * - 不再使用硬編碼的 switch case
+ * - 支援動態新增效果類型
  */
 export class EffectHelper {
     /**
-     * 🔥 根據效果類型獲取元素標籤（用於傷害加成匹配）
+     * 🔥 根據效果類型獲取元素標籤（✅ 從配置表讀取）
      * 
      * @param effectType 效果類型（如 'burn', 'poison', 'bleed'）
      * @returns 元素標籤陣列（用於匹配 Hero 的元素傷害加成）
      * 
      * @example
-     * getElementTags('burn')   => ['burn', 'fire']  // 會匹配 fireDamageBonus
-     * getElementTags('poison') => ['poison']        // 匹配 poisonDamageBonus
-     * getElementTags('bleed')  => ['bleed', 'physical']  // 匹配 physicalDamageBonus
+     * // 配置表設置: burn.elementTags = "fire"
+     * getElementTags('burn')   => ['fire']
+     * 
+     * // 配置表設置: flame_punch.elementTags = "physical,fire"
+     * getElementTags('flame_punch') => ['physical', 'fire']
      */
     static getElementTags(effectType: string): string[] {
-        switch (effectType.toLowerCase()) {
-            case "burn":
-            case "ignite":
-                return ["burn", "fire"];
+        const effectDef = ConfigManager.getById<import('@/Types/Equipment/WeaponPropertyTypes').StatusEffectDefinition>(
+            'StatusEffectDefinitions',
+            effectType
+        );
 
-            case "poison":
-                return ["poison"];
-
-            case "bleed":
-                return ["bleed", "physical"];
-
-            case "freeze":
-            case "chill":
-                return ["freeze", "ice"];
-
-            case "shock":
-                return ["shock", "lightning"];
-
-            case "holy":
-            case "sacred":
-                return ["holy"];
-
-            case "shadow":
-            case "curse":
-                return ["shadow"];
-
-            case "arcane":
-                return ["arcane"];
-
-            default:
-                return ["physical"]; // 預設物理元素
+        if (effectDef && effectDef.elementTags) {
+            // 解析逗號分隔的字串 → 陣列
+            return effectDef.elementTags
+                .split(',')
+                .map((tag: string) => tag.trim())
+                .filter((tag: string) => tag.length > 0);
         }
+
+        // ⚠️ 找不到配置時的預設值
+        console.warn(`⚠️ 效果 '${effectType}' 未配置 elementTags，使用預設值 ['physical']`);
+        return ['physical'];
     }
 
     /**
-     * 🔥 根據效果類型決定防禦計算類型
+     * 🔥 根據效果類型決定防禦計算類型（✅ 從配置表讀取）
      * 
      * damageType 決定目標的防禦減免方式：
      * - 'physical': 扣除物理防禦（physicalDefense）
@@ -75,35 +64,25 @@ export class EffectHelper {
      * @returns 防禦計算類型
      * 
      * @example
-     * getDamageType('burn')  => 'magic'     // 火焰 DOT 扣魔法防禦
-     * getDamageType('bleed') => 'physical'  // 流血扣物理防禦
+     * // 配置表設置: burn.damageType = "magic"
+     * getDamageType('burn')  => 'magic'
+     * 
+     * // 配置表設置: bleed.damageType = "physical"
+     * getDamageType('bleed') => 'physical'
      */
     static getDamageType(effectType: string): 'physical' | 'magic' | 'true' {
-        switch (effectType.toLowerCase()) {
-            // 元素 DOT → 魔法傷害（扣魔法防禦）
-            case "burn":
-            case "ignite":
-            case "poison":
-            case "freeze":
-            case "chill":
-            case "shock":
-            case "holy":
-            case "sacred":
-            case "shadow":
-            case "curse":
-            case "arcane":
-                return "magic";
+        const effectDef = ConfigManager.getById<import('@/Types/Equipment/WeaponPropertyTypes').StatusEffectDefinition>(
+            'StatusEffectDefinitions',
+            effectType
+        );
 
-            // 物理 DOT → 物理傷害（扣物理防禦）
-            case "bleed":
-            case "rupture":
-            case "lacerate":
-                return "physical";
-
-            // 預設物理
-            default:
-                return "physical";
+        if (effectDef && effectDef.damageType) {
+            return effectDef.damageType;
         }
+
+        // ⚠️ 找不到配置時的預設值
+        console.warn(`⚠️ 效果 '${effectType}' 未配置 damageType，使用預設值 'physical'`);
+        return 'physical';
     }
 
     /**

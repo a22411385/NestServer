@@ -63,6 +63,10 @@ export interface StatusEffectDefinition {
     // 🆕 修改器類型（決定如何應用這個屬性）
     defaultModifierType: ModifierType;
 
+    // 🆕 傷害計算相關（從配置表讀取，取代硬編碼）
+    elementTags: string;             // 元素標籤（複選，逗號分隔）如: "physical,fire" (火焰拳 = 物理+火系)
+    damageType: 'physical' | 'magic' | 'true'; // 傷害類型（單選）決定防禦計算方式
+
     category: CategoryKey;           // 屬性類別
     stackable: boolean;              // 是否可堆疊
 }
@@ -130,9 +134,7 @@ export interface WeaponConfigDefinition {
     attackRange: number;
 
     // 武器類別（用於實例化）
-    weaponClass: string;             // BaseSword, Fireball, etc.
     classModule: string;             // MeleeWeapon, ProjectileWeapon, etc.
-    projectileClass?: string;        // 投射物類別（遠程武器）
 
     // 屬性配置
     effectProperties: string;      // 武器效果屬性列表 (burn,sweep_angle)

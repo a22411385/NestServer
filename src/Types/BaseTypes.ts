@@ -7,6 +7,7 @@ import { MaterialConfigDefinition } from "./Equipment/MaterialTypes";
 import { TalentConfig, TalentEffect } from "./Game/TalentTypes";
 import { EnemyConfigDefinition } from "./Game/EnemyTypes";
 import { WeaponStatConfig } from "./Equipment/WeaponTypes";
+import { VisualEffectDefinition } from "./Visual/VisualEffectTypes";
 
 /**
  * JWT 載荷接口
@@ -74,5 +75,6 @@ export interface GoogleCacheData {
     TalentConfigs: TalentConfig[];
     TalentEffects: TalentEffect[];
     WeaponStatConfigs: WeaponStatConfig[];
+    VisualEffectDefinitions: VisualEffectDefinition[];  // 🆕 視覺效果定義
     lastUpdated: string;
 }

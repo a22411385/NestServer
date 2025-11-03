@@ -1,4 +1,4 @@
-import { Schema, type } from "@colyseus/schema";
+import { ArraySchema, Schema, type } from "@colyseus/schema";
 import { Vector2 } from "./Unit/GameUnit";
 import { BulletCreateConfig, StatusEffectConfig } from "@/Types";
 import { PropertyValue } from "@/Types/Equipment/WeaponPropertyTypes";
@@ -18,8 +18,6 @@ export class ServerBullet extends Schema {
     @type("number") directionY: number = 0 // 發射方向 (單位向量)
     @type("number") startTime: number = 0; // 發射時間戳
 
-    // 子彈類型相關
-    @type("string") bulletType: string = "basic"; // 子彈類型: basic, piercing, explosive
     @type("string") weaponId: string = ""; // 發射武器的ID (用於獲取武器屬性)
 
     damage: number = 0; // 傷害
@@ -31,8 +29,8 @@ export class ServerBullet extends Schema {
     pierceCount: number;
 
     // 🆕 標籤信息 (Phase 3: 從 BulletCreateConfig 攜帶過來)
-    tags: string[] = [];           // 武器標籤
-    elementTags: string[] = [];    // 元素標籤
+    @type(["string"]) tags = new ArraySchema<string>();           // 武器標籤
+    @type(["string"]) elementTags = new ArraySchema<string>();    // 元素標籤
     modifiers: any[] = [];         // 武器詞綴
 
     /**
@@ -52,7 +50,7 @@ export class ServerBullet extends Schema {
         targetDir: Vector2,
         damage: number,
         speed: number = 200,
-        bulletType: string,
+
         weaponId: string = "",
         maxDistance: number = 400
     ): void {
@@ -65,7 +63,7 @@ export class ServerBullet extends Schema {
         this.directionY = targetDir.y;
         this.damage = damage;
         this.speed = speed;
-        this.bulletType = bulletType;
+
         this.maxDistance = maxDistance;
         this.startTime = Date.now();
     }
@@ -112,10 +110,10 @@ export class ServerBullet extends Schema {
 
         // 🆕 Phase 3: 接收標籤信息（避免回查武器）
         if (config.tags) {
-            this.tags = config.tags;
+            this.tags.push(...config.tags);
         }
         if (config.elementTags) {
-            this.elementTags = config.elementTags;
+            this.elementTags.push(...config.elementTags);
         }
         if (config.modifiers) {
             this.modifiers = config.modifiers;

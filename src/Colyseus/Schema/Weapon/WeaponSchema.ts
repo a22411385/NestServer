@@ -5,6 +5,7 @@ import { WeaponConfigManager } from "@/Game/Factories/WeaponConfig";
 import { PropertyValue, WeaponConfigDefinition, WeaponQuality } from "@/Types/Equipment/WeaponPropertyTypes";
 import { WeaponBasic } from "./Baisc/WeaponBasic";
 import { WeaponInstanceManager } from "@/Game/Managers/WeaponInstanceManager";
+import { TagService } from "@/Game/Services/TagService";
 
 /**
  * 武器 Schema 類 - 同步武器狀態到客戶端
@@ -71,13 +72,6 @@ export class WeaponSchema extends Schema {
     // === 🆕 邏輯實例緩存 (不同步到客戶端) ===
     private _logicInstance: WeaponBasic;
 
-    /**
-     * 簡單的武器類型推斷（最小邏輯）
-     */
-    private getWeaponType(type: string): WeaponType {
-        return WeaponType[type as keyof typeof WeaponType];
-    }
-
     constructor(weaponId: string, classModule: string) {
         super();
         this.weaponId = weaponId;
@@ -107,7 +101,6 @@ export class WeaponSchema extends Schema {
     public weaponBasicDataSetting(config: WeaponConfigDefinition) {
         // 初始化基礎值（會在 calculateFinalStats 時使用）
         this.enabled = config.enabled;
-        this.projectileClass = config.projectileClass || '';
 
         // 🆕 設置基礎屬性（同步到客戶端用於 UI 顯示）
         this.baseDamage = config.baseDamage || 0;
@@ -264,13 +257,25 @@ export class WeaponSchema extends Schema {
     /**
      * 🆕 獲取元素標籤
      * 用於傷害計算和天賦加成
+     * 
+     * 改進：從 TagService 動態讀取 element category 的標籤，不再硬編碼
      */
     public getElementTags(): string[] {
         const allTags = this.getTags();
+        const tagService = TagService.getInstance();
 
-        // 元素標籤列表
-        const elementList = ['fire', 'cold', 'lightning', 'poison', 'physical', 'chaos', 'holy', 'shadow', 'arcane'];
-        const elementTags = allTags.filter(tag => elementList.includes(tag));
+        // 🎯 從 TagService 讀取所有 element category 的標籤
+        let elementTags: string[] = [];
+
+        if (tagService.isReady()) {
+            // 從 TagDefinitions 動態讀取元素標籤列表
+            elementTags = tagService.filterTagsByCategory(allTags, 'element');
+        } else {
+            // Fallback：如果 TagService 未初始化，使用硬編碼列表（向下兼容）
+            console.warn('⚠️ TagService 未初始化，使用硬編碼元素列表');
+            const elementList = ['fire', 'cold', 'lightning', 'poison', 'physical', 'chaos', 'holy', 'shadow', 'arcane'];
+            elementTags = allTags.filter(tag => elementList.includes(tag));
+        }
 
         // 如果有元素傷害（非物理），添加通用 'elemental' 標籤
         if (elementTags.length > 0 && !elementTags.includes('physical')) {

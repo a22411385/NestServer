@@ -1,8 +1,8 @@
 import { WeaponBasic } from "../../Colyseus/Schema/Weapon/Baisc/WeaponBasic";
-import { WeaponClassRegistry } from "./WeaponClassRegistry";
 import { WeaponType } from "@/Types";
 import { WeaponConfigDefinition } from "@/Types/Equipment/WeaponPropertyTypes";
 import { WeaponConfigManager } from "./WeaponConfig";
+import { MeleeWeapon, ProjectileWeapon } from "@/Colyseus/Schema/Weapon/Baisc";
 
 /**
  * 武器工廠 - 負責創建各種武器實例
@@ -11,7 +11,6 @@ import { WeaponConfigManager } from "./WeaponConfig";
 
 export class WeaponFactory {
     // 🆕 動態武器類別映射，從配置中載入
-    private static dynamicWeaponClassMap = new Map<string, any>();
     private static isInitialized = false;
 
     /**
@@ -27,12 +26,6 @@ export class WeaponFactory {
             console.log('🏭 初始化武器工廠...');
             await WeaponConfigManager.initialize();
             console.log("🎮 武器配置系統已初始化");
-
-            // 獲取所有武器配置
-            const weaponConfigs = WeaponConfigManager.getAllConfigs();
-
-            // 載入所有武器類別
-            this.dynamicWeaponClassMap = await WeaponClassRegistry.loadWeaponClasses(weaponConfigs);
 
             this.isInitialized = true;
             console.log('✅ 武器工廠初始化完成');
@@ -62,23 +55,9 @@ export class WeaponFactory {
             console.warn(`❌ 未找到武器配置: ${weaponId}`);
             return null;
         }
-
-        // 🆕 優先使用動態類別映射
-        let weaponClass = this.dynamicWeaponClassMap.get(config.weaponClass);
-
-        // 🆕 第三備用方案：通過配置中的 weaponClass 查找
-        if (!weaponClass && config.weaponClass) {
-            weaponClass = WeaponClassRegistry.getWeaponClass(config.weaponClass);
-        }
-
-        if (!weaponClass) {
-            console.warn(`❌ 未找到武器類別: ${weaponId} (weaponClass: ${config.weaponClass || 'not specified'})`);
-            return null;
-        }
-
         try {
             // 🆕 創建武器實例（無參數構造函數）
-            const weapon = new weaponClass();
+            const weapon = config.classModule == WeaponType.MELEE_WEAPON ? new MeleeWeapon() : new ProjectileWeapon();
 
             // 🆕 從配置初始化武器
             weapon.initializeFromConfig(weaponId);
@@ -127,34 +106,6 @@ export class WeaponFactory {
         return WeaponConfigManager.getConfig(weaponId) !== null;
     }
 
-    /**
-     * 根據類型獲取武器
-     */
-    public static getWeaponsByType(type: WeaponType): WeaponConfigDefinition[] {
-        const allConfigs = WeaponConfigManager.getAllConfigs();
-        return Object.values(allConfigs).filter(config => {
-            // 根據 classModule 判斷武器類型
-            switch (type) {
-                case WeaponType.MELEE_WEAPON:
-                    return config.classModule === 'MeleeWeapon';
-                case WeaponType.PROJECTILE_WEAPON:
-                    return config.classModule === 'ProjectileWeapon';
-                case WeaponType.SUPPORT_WEAPON:
-                    return config.classModule === 'SupportWeapon';
-                default:
-                    return false;
-            }
-        });
-    }
-
-    /**
-     * 註冊新武器類別（用於動態添加武器）
-     */
-    public static registerWeaponClass(weaponId: string, weaponClass: any): void {
-        // 🆕 更新動態映射
-        this.dynamicWeaponClassMap.set(weaponId, weaponClass);
-        console.log(`🔧 註冊武器類別: ${weaponId} -> ${weaponClass.name}`);
-    }
 
     /**
      * 🆕 重新載入武器類別映射
@@ -163,23 +114,6 @@ export class WeaponFactory {
         console.log('🔄 重新載入武器類別...');
         this.isInitialized = false;
         await this.initialize();
-    }
-
-
-    /**
-     * 🆕 檢查武器類別是否可用
-     */
-    public static isWeaponClassAvailable(weaponId: string): boolean {
-        const config = WeaponConfigManager.getConfig(weaponId);
-        if (!config) return false;
-
-        // 檢查動態映射
-        if (this.dynamicWeaponClassMap.has(weaponId)) return true;
-
-        // 檢查類別註冊器
-        if (config.weaponClass && WeaponClassRegistry.isClassRegistered(config.weaponClass)) return true;
-
-        return false;
     }
 
     /**
@@ -193,18 +127,12 @@ export class WeaponFactory {
             // 檢查必要欄位
             if (!config.id) issues.push(`武器缺少 ID: ${JSON.stringify(config)}`);
             if (!config.name) issues.push(`武器 ${config.id} 缺少名稱`);
-            if (!config.weaponClass) issues.push(`武器 ${config.id} 缺少 weaponClass`);
             if (!config.classModule) issues.push(`武器 ${config.id} 缺少 classModule`);
 
             // 檢查數值欄位
             if (typeof config.baseDamage !== 'number') issues.push(`武器 ${config.id} 的 baseDamage 無效`);
             if (typeof config.attackSpeed !== 'number') issues.push(`武器 ${config.id} 的 attackSpeed 無效`);
             if (typeof config.attackRange !== 'number') issues.push(`武器 ${config.id} 的 attackRange 無效`);
-
-            // 檢查類別可用性
-            if (!this.isWeaponClassAvailable(config.id)) {
-                issues.push(`武器 ${config.id} 的類別 ${config.weaponClass} 不可用`);
-            }
         }
 
         return {

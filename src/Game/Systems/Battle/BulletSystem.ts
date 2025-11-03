@@ -7,7 +7,6 @@ import { ServerHero } from "../../../Colyseus/Schema/Unit/Hero";
 import { UnitType } from "../../../Colyseus/Schema/GameState";
 
 import { Vector2 } from "@/Colyseus/Schema/Unit/GameUnit";
-import { ProjectileRegistry } from "@/Colyseus/Schema/Projectile";
 
 /**
  * 子彈系統 - 負責子彈的創建、更新和碰撞檢測
@@ -206,7 +205,7 @@ export class BulletSystem {
 
         return false;
     }    /**
-     * 處理子彈命中 - 使用新的投射物系統
+     * 處理子彈命中 - 使用統一的 HitHandler 系統
      */
     private handleBulletHit(bullet: ServerBullet, enemy: ServerEnemy): void {
         const owner = this.gameRoom.state.allUnits.get(bullet.ownerId);
@@ -215,11 +214,27 @@ export class BulletSystem {
             return;
         }
 
-        // 使用投射物系統處理命中（單例模式）
-        const projectile = ProjectileRegistry.getRegisteredClasse(bullet.bulletType);
+        // 🎯 使用統一的 HitHandler 處理命中
+        const attackResult = this.gameRoom.hitHandler.handle({
+            type: 'projectile',
+            attacker: owner,
+            target: enemy,
+            damage: bullet.damage,
+            position: bullet.getCurrentPosition(),
+            direction: { x: bullet.directionX, y: bullet.directionY },
+            weaponId: bullet.weaponId,
+            statusEffects: bullet.statusEffects,
+            modifiers: bullet.modifiers || [],
+            behaviors: [], // TODO: 從武器配置中獲取 behaviors
+            bulletConfig: {
 
-        // 投射物處理命中邏輯，返回標準的 AttackResult
-        const attackResult = projectile.onHit(bullet, enemy, this.gameRoom);
+                speed: bullet.speed,
+                maxDistance: bullet.maxDistance,
+                properties: bullet.properties || {},
+                tags: Array.from(bullet.tags || []),
+                elementTags: Array.from(bullet.elementTags || []),
+            }
+        });
 
         if (attackResult.success) {
             // 🎯 優化：將廣播加入批次隊列，而不是立即發送
@@ -229,40 +244,17 @@ export class BulletSystem {
                 timestamp: Date.now()
             });
 
-            // 對所有受影響的目標造成傷害
+            // 檢查是否有擊殺
             for (const targetId of attackResult.targetIds || []) {
                 const target = this.gameRoom.state.allUnits.get(targetId);
-                if (!target) {
-                    console.warn(`⚠️ 找不到目標單位: ${targetId}`);
-                    continue;
-                }
-
-                if (target.isDead) continue;
-
-                const damageResult = this.gameRoom.damageSystem.dealDamageToTarget({
-                    attacker: owner,
-                    target: target,
-                    baseDamage: attackResult.baseDamage,
-                    damageType: 'physical',
-                    source: `projectile_${bullet.bulletType}`,
-                    position: bullet.getCurrentPosition()
-                });
-
-                // 投射物命中時應用狀態效果
-                if (bullet.statusEffects && bullet.statusEffects.length > 0) {
-                    this.gameRoom.combatSystem.applyStatusEffects(
-                        target,
-                        bullet.statusEffects,
-                        bullet.getCurrentPosition()
-                    );
-                }
-
-                if (damageResult.targetKilled) {
+                if (target && target.isDead && target.type === UnitType.enemy) {
                     this.handleEnemyKilled(bullet, target as ServerEnemy, targetId);
                 }
             }
         }
 
+        // 減少穿透次數（命中一次就減少一次，到 0 時子彈會被清理）
+        bullet.pierceCount--;
     }
 
     /**
@@ -356,20 +348,5 @@ export class BulletSystem {
 
         // 清空隊列
         this.pendingBroadcasts = [];
-    }
-
-    /**
-     * 獲取子彈數量統計
-     */
-    public getBulletStats(): { total: number, byType: Record<string, number> } {
-        const stats = { total: 0, byType: {} as Record<string, number> };
-
-        for (const [, bullet] of this.bullets) {
-            stats.total++;
-            const type = bullet.bulletType || 'unknown';
-            stats.byType[type] = (stats.byType[type] || 0) + 1;
-        }
-
-        return stats;
     }
 }

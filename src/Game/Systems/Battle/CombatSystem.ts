@@ -110,34 +110,45 @@ export class CombatSystem {
             shouldCreateProjectile: false,
         };
 
-        if (weapon.weaponType === WeaponType.PROJECTILE_WEAPON) {
+        if (weapon.weaponClassMoule === WeaponType.PROJECTILE_WEAPON) {
             // 投射武器：延遲傷害處理
             attackData.shouldCreateProjectile = true;
             //console.log(`🏹 投射武器攻擊: ${result.weaponId} - 創建投射物`);
         } else {
-            // 近戰武器：立即造成傷害
-            // 🆕 Phase 3: 使用 AttackResult 攜帶的詞綴，不再從武器回查
-            attackData.damageResults =
-                this.gameRoom.damageSystem.dealDamageToMultipleTargets(
-                    hero,
-                    targets,
-                    result.baseDamage,
-                    'physical',
-                    result.weaponId,
-                    result.modifiers // 🆕 使用 AttackResult 攜帶的武器詞綴
-                );
+            // 🎯 近戰武器：使用統一的 HitHandler 處理每個目標
+            const allTargetIds: string[] = [];
 
-            // 近戰武器立即應用狀態效果
-            if (result.statusEffects && result.statusEffects.length > 0) {
-                for (const target of targets) {
-                    this.applyStatusEffects(
-                        target,
-                        result.statusEffects,
-                        { x: hero.position.x, y: hero.position.y },
-                        hero.id // 🆕 傳遞攻擊者ID
-                    );
+            for (const target of targets) {
+                const hitResult = this.gameRoom.hitHandler.handle({
+                    type: 'melee',
+                    attacker: hero,
+                    target: target,
+                    damage: result.baseDamage,
+                    position: hero.position,
+                    direction: result.attackData?.direction || { x: 1, y: 0 },
+                    weaponId: result.weaponId || '',
+                    statusEffects: result.statusEffects || [],
+                    modifiers: result.modifiers || [],
+                    behaviors: [], // TODO: 從武器配置中獲取 behaviors
+                });
+
+                if (hitResult.success && hitResult.targetIds) {
+                    allTargetIds.push(...hitResult.targetIds);
                 }
             }
+
+            // 從 targetIds 重建 DamageResult（用於戰報）
+            attackData.damageResults = allTargetIds.map(targetId => {
+                const target = this.gameRoom.state.allUnits.get(targetId);
+                return {
+                    targetId,
+                    attackerId: hero.id,
+                    actualDamage: result.baseDamage, // 簡化：使用基礎傷害
+                    wasCritical: false,
+                    targetKilled: target?.isDead || false,
+                    damageType: 'physical' as const,
+                };
+            });
 
             // 處理戰報
             this.handleBattleLog(hero, attackData.damageResults);
@@ -188,6 +199,8 @@ export class CombatSystem {
     /**
      * 🎨 生成視覺效果資訊
      * 從武器詞綴(modifiers)和傷害結果生成客戶端需要的視覺效果資料
+     * 
+     * ⚠️ 重要：優先使用 result.attackData 中的最終計算值，避免與實際效果不一致
      */
     private generateVisualEffects(
         hero: ServerHero,
@@ -205,12 +218,17 @@ export class CombatSystem {
 
             // 1️⃣ 近戰揮擊效果 (melee + area)
             if (tags.includes('melee') && tags.includes('area')) {
+                // 🔧 武器系統使用弧度（計算用），客戶端需要角度（顯示用）
+                const sweepAngleRadians = result.attackData?.sweepAngle || (60 * Math.PI / 180);
+                const sweepAngleDegrees = (sweepAngleRadians * 180) / Math.PI; // 轉換為角度
+
                 effects.push({
                     type: 'swing',
                     position: result.attackData?.position || { x: hero.position.x, y: hero.position.y },
                     direction: result.attackData?.direction || { x: 1, y: 0 },
                     data: {
-                        sweepAngle: mod.baseValue || result.attackData?.sweepAngle || 60,
+                        // ✅ 使用角度制（客戶端顯示）
+                        sweepAngle: sweepAngleDegrees,
                         range: result.attackData?.range || 100,
                         weaponType: this.getWeaponTypeFromTags(tags),
                     }
@@ -218,43 +236,48 @@ export class CombatSystem {
             }
 
             // 2️⃣ 擊退效果 (knockback)
-            if (tags.includes('knockback')) {
-                for (const dmgResult of damageResults) {
-                    // 從英雄位置指向目標的方向
-                    const target = this.gameRoom.unitManager.getUnitById(dmgResult.targetId);
-                    if (target) {
-                        const direction = {
-                            x: target.position.x - hero.position.x,
-                            y: target.position.y - hero.position.y
-                        };
-                        const length = Math.sqrt(direction.x ** 2 + direction.y ** 2);
-                        if (length > 0) {
-                            direction.x /= length;
-                            direction.y /= length;
-                        }
+            // ✅ 擊退力量從 statusEffects 中讀取（已經是最終計算值）
+            if (tags.includes('knockback') && result.statusEffects) {
+                const knockbackEffect = result.statusEffects.find(e => e.type === 'knockback');
+                if (knockbackEffect) {
+                    for (const dmgResult of damageResults) {
+                        const target = this.gameRoom.unitManager.getUnitById(dmgResult.targetId);
+                        if (target) {
+                            const direction = {
+                                x: target.position.x - hero.position.x,
+                                y: target.position.y - hero.position.y
+                            };
+                            const length = Math.sqrt(direction.x ** 2 + direction.y ** 2);
+                            if (length > 0) {
+                                direction.x /= length;
+                                direction.y /= length;
+                            }
 
-                        effects.push({
-                            type: 'knockback',
-                            targetId: dmgResult.targetId,
-                            value: mod.baseValue,
-                            direction: direction,
-                            position: { x: target.position.x, y: target.position.y }
-                        });
+                            effects.push({
+                                type: 'knockback',
+                                targetId: dmgResult.targetId,
+                                value: knockbackEffect.value || 0, // ✅ 使用 statusEffect 中的最終值
+                                direction: direction,
+                                position: { x: target.position.x, y: target.position.y }
+                            });
+                        }
                     }
                 }
             }
 
             // 3️⃣ 穿透效果 (pierce)
+            // ✅ 穿透數量從實際命中目標數推導
             if (tags.includes('pierce') && damageResults.length > 1) {
                 const targetIds = damageResults.map(r => r.targetId);
                 effects.push({
                     type: 'pierce',
                     targetIds: targetIds,
-                    pierceCount: mod.baseValue,
+                    pierceCount: damageResults.length - 1, // ✅ 實際穿透數 = 總目標數 - 1
                 });
             }
 
             // 4️⃣ 連鎖攻擊效果 (chain)
+            // ✅ 連鎖數量從實際命中目標數推導
             if (tags.includes('chain') && damageResults.length > 1) {
                 const chainPath = damageResults.map(r => {
                     const target = this.gameRoom.unitManager.getUnitById(r.targetId);
@@ -264,11 +287,12 @@ export class CombatSystem {
                 effects.push({
                     type: 'chain',
                     chainPath: chainPath,
-                    chainCount: mod.baseValue,
+                    chainCount: damageResults.length - 1, // ✅ 實際連鎖數 = 總目標數 - 1
                 });
             }
 
             // 5️⃣ 範圍效果 (area/aoe/splash)
+            // ⚠️ 範圍半徑暫時使用詞綴基礎值（TODO: 需要從 FinalWeaponStats 讀取）
             if (tags.includes('area') || tags.includes('aoe') || tags.includes('splash')) {
                 if (damageResults.length > 0 && !tags.includes('melee')) {
                     const firstTarget = this.gameRoom.unitManager.getUnitById(damageResults[0].targetId);
@@ -276,7 +300,7 @@ export class CombatSystem {
                         effects.push({
                             type: 'explosion',
                             position: { x: firstTarget.position.x, y: firstTarget.position.y },
-                            radius: mod.baseValue || 100,
+                            radius: mod.baseValue || 100, // ⚠️ 暫用基礎值（需改進）
                             affectedTargets: damageResults.map(r => r.targetId),
                         });
                     }

@@ -1,0 +1,569 @@
+import { ServerGameUnit } from '@/Colyseus/Schema/Unit/GameUnit';
+import { AttackResult, AttackFailReason } from '@/Types';
+import { GameRoom } from '@/Colyseus/Rooms/GameRoom';
+import { BulletFactory } from '@/Game/Factories/BulletFactory';
+import { ServerHero } from '@/Colyseus/Schema/Unit/Hero';
+import { BonusCalculator } from './BonusCalculator';
+
+/**
+ * 行為配置接口
+ */
+export interface Behavior {
+    trigger: 'onHit' | 'onKill' | 'onCrit' | 'onExpire' | 'onPierce';
+    action: 'aoeExplode' | 'split' | 'chain' | 'damageTarget' | 'applyStatus';
+    config: {
+        // AOE 爆炸配置
+        radius?: number;
+        damageMultiplier?: number;
+
+        // 分裂配置
+        count?: number;
+        spreadAngle?: number;
+        childDamageMultiplier?: number;
+        childTags?: string;
+
+        // 彈射配置
+        chainCount?: number;
+        chainRange?: number;
+
+        // 狀態效果配置
+        statusEffects?: any[];
+    };
+}
+
+/**
+ * 命中上下文（統一近戰和投射物）
+ */
+export interface HitContext {
+    type: 'melee' | 'projectile';
+    attacker: ServerGameUnit;
+    target: ServerGameUnit;
+    damage: number;
+    position: { x: number; y: number };
+    direction?: { x: number; y: number };
+    range?: number;
+
+    // 武器屬性
+    weaponId: string;
+    elementTags?: string[];
+    modifiers?: any[];
+    statusEffects?: any[];
+
+    // 行為配置
+    behaviors?: Behavior[];
+
+    // 投射物專用（用於分裂時創建子彈）
+    bulletConfig?: any;
+}
+
+/**
+ * 🎯 統一的命中處理器
+ * 
+ * 處理近戰和投射物的命中邏輯，統一執行：
+ * 1. 對主要目標造成傷害
+ * 2. 執行額外行為（AOE 爆炸、分裂、彈射等）
+ * 3. 應用狀態效果
+ * 
+ * 📝 使用方式：
+ * ```typescript
+ * // 近戰
+ * hitHandler.handle({
+ *     type: 'melee',
+ *     attacker: hero,
+ *     target: enemy,
+ *     position: hero.position,
+ *     ...
+ * });
+ * 
+ * // 投射物
+ * hitHandler.handle({
+ *     type: 'projectile',
+ *     attacker: bullet.owner,
+ *     target: hitTarget,
+ *     position: bullet.position,
+ *     behaviors: bullet.behaviors,
+ *     ...
+ * });
+ * ```
+ */
+export class HitHandler {
+    constructor(private gameRoom: GameRoom) { }
+
+    /**
+     * 統一的命中處理入口
+     */
+    public handle(context: HitContext): AttackResult {
+        // 1. 基礎驗證
+        if (!context.attacker || context.attacker.isDead) {
+            return this.failResult(context.weaponId, AttackFailReason.NO_TARGET);
+        }
+
+        if (!context.target || context.target.isDead) {
+            return this.failResult(context.weaponId, AttackFailReason.NO_TARGET);
+        }
+
+        // 2. 對主要目標造成傷害
+        const primaryResult = this.handlePrimaryTarget(context);
+
+        if (!primaryResult.success) {
+            return primaryResult;
+        }
+
+        // 3. 執行行為（可能產生額外傷害、效果）
+        this.executeBehaviors(context, primaryResult);
+
+        return primaryResult;
+    }
+
+    /**
+     * 處理主要目標（直接命中的目標）
+     */
+    private handlePrimaryTarget(context: HitContext): AttackResult {
+        const { attacker, target, damage, weaponId, elementTags, modifiers } = context;
+
+        // 計算最終傷害
+        const finalDamage = this.gameRoom.damageSystem.calculateFinalDamage({
+            attacker,
+            target,
+            baseDamage: damage,
+            elementTags: elementTags && elementTags.length > 0 ? elementTags : ['physical'],
+            weaponModifiers: modifiers || [],
+            damageType: 'physical' as const,
+            source: weaponId,
+        });
+
+        // 應用傷害
+        const damageResults = this.gameRoom.damageSystem.dealDamageToMultipleTargets(
+            attacker,
+            [target],
+            finalDamage,
+            'physical',
+            weaponId,
+            modifiers || []
+        );
+
+        // 應用狀態效果
+        const statusEffects = (context.statusEffects || []).filter(se => se.category !== 'attribute');
+        if (statusEffects.length > 0) {
+            this.gameRoom.combatSystem.applyStatusEffects(
+                target,
+                statusEffects,
+                context.position,
+                attacker.id
+            );
+        }
+
+        console.log(`⚔️ [HitHandler] ${context.type} 命中: ${attacker.name} → ${target.name}, 傷害: ${damageResults[0]?.actualDamage || finalDamage}`);
+
+        return {
+            success: true,
+            weaponId,
+            targetIds: [target.id],
+            baseDamage: finalDamage,
+            attackData: {
+                position: context.position,
+                direction: context.direction || { x: 0, y: 0 },
+                range: context.range || 0,
+            },
+            statusEffects,
+        };
+    }
+
+    /**
+     * 執行命中行為
+     */
+    private executeBehaviors(context: HitContext, result: AttackResult): void {
+        if (!context.behaviors || context.behaviors.length === 0) {
+            return;
+        }
+
+        for (const behavior of context.behaviors) {
+            // onHit 行為
+            if (behavior.trigger === 'onHit') {
+                this.executeBehavior(behavior, context, result);
+            }
+
+            // onKill 行為（檢查目標是否被擊殺）
+            if (context.target.isDead && behavior.trigger === 'onKill') {
+                this.executeBehavior(behavior, context, result);
+            }
+
+            // onCrit 行為（需要在 context 中傳遞 isCrit 標記）
+            // TODO: 實現暴擊判定
+        }
+    }
+
+    /**
+     * 執行單個行為
+     */
+    private executeBehavior(
+        behavior: Behavior,
+        context: HitContext,
+        result: AttackResult,
+    ): void {
+        switch (behavior.action) {
+            case 'aoeExplode':
+                this.actionAoeExplode(behavior, context);
+                break;
+            case 'split':
+                this.actionSplit(behavior, context);
+                break;
+            case 'chain':
+                this.actionChain(behavior, context);
+                break;
+            case 'damageTarget':
+                // 已在 handlePrimaryTarget() 中處理
+                break;
+            case 'applyStatus':
+                this.actionApplyStatus(behavior, context);
+                break;
+            default:
+                console.warn(`⚠️ [HitHandler] 未知的行為: ${behavior.action}`);
+        }
+    }
+
+    /**
+     * 行為：AOE 爆炸
+     */
+    private actionAoeExplode(behavior: Behavior, context: HitContext): void {
+        const baseRadius = behavior.config.radius || 100;
+        const baseDamageMultiplier = behavior.config.damageMultiplier || 1.0;
+
+        // ✅ 應用角色的範圍加成（天賦、裝備等）
+        const finalRadius = this.applyAreaModifier(baseRadius, context.attacker);
+
+        // ✅ 應用角色的傷害加成
+        const finalDamageMultiplier = this.applyDamageModifier(baseDamageMultiplier, context.attacker);
+
+        // 找到範圍內的其他敵人（排除主要目標）
+        const targets = this.findTargetsInRadius(
+            context.position,
+            finalRadius,  // 使用最終半徑
+            context.attacker,
+            context.target, // 排除主要目標
+        );
+
+        if (targets.length === 0) {
+            return;
+        }
+
+        // 對每個敵人造成傷害
+        for (const target of targets) {
+            const explosionDamage = context.damage * finalDamageMultiplier;
+
+            // 應用爆炸傷害
+            this.gameRoom.damageSystem.dealDamageToMultipleTargets(
+                context.attacker,
+                [target],
+                explosionDamage,
+                'physical',
+                context.weaponId,
+                context.modifiers || []
+            );
+
+            // 應用狀態效果
+            if (context.statusEffects && context.statusEffects.length > 0) {
+                this.gameRoom.combatSystem.applyStatusEffects(
+                    target,
+                    context.statusEffects,
+                    context.position,
+                    context.attacker.id
+                );
+            }
+        }
+
+        console.log(`💥 [AOE Explode] 爆炸範圍 ${finalRadius.toFixed(0)} (基礎: ${baseRadius})，額外命中 ${targets.length} 個敵人`);
+    }
+
+    /**
+     * 行為：分裂
+     */
+    private actionSplit(behavior: Behavior, context: HitContext): void {
+        // 只有投射物才能分裂
+        if (context.type !== 'projectile') {
+            console.warn(`⚠️ [Split] 只有投射物可以分裂`);
+            return;
+        }
+
+        if (!context.bulletConfig) {
+            console.warn(`⚠️ [Split] 缺少 bulletConfig`);
+            return;
+        }
+
+        const baseCount = behavior.config.count || 3;
+        const baseSpreadAngle = behavior.config.spreadAngle || 60;
+        const baseChildDamageMultiplier = behavior.config.childDamageMultiplier || 1.0;
+        const childTags = behavior.config.childTags;
+
+        // ✅ 應用分裂數量加成
+        const finalCount = Math.max(1, Math.floor(this.applySplitCountModifier(baseCount, context.attacker)));
+
+        const baseAngle = Math.atan2(
+            context.direction?.y || 0,
+            context.direction?.x || 1
+        );
+
+        // 生成子彈
+        for (let i = 0; i < finalCount; i++) {
+            const angleOffset = (baseSpreadAngle * (i / Math.max(finalCount - 1, 1))) - (baseSpreadAngle / 2);
+            const fragmentAngle = baseAngle + (angleOffset * Math.PI / 180);
+
+            // ✅ 應用投射物速度加成
+            const baseSpeed = context.bulletConfig?.speed || 300;
+            const finalSpeed = this.applyProjectileSpeedModifier(baseSpeed, context.attacker);
+
+            // 使用 BulletFactory 創建子彈
+            const bulletConfig: any = {
+                ownerId: context.attacker.id,
+                startPosition: { x: context.position.x, y: context.position.y },
+                direction: { x: Math.cos(fragmentAngle), y: Math.sin(fragmentAngle) },
+                damage: context.damage * baseChildDamageMultiplier,
+                bulletClass: context.bulletConfig?.bulletClass || 'default',
+                weaponId: context.weaponId,
+                speed: finalSpeed,  // 使用最終速度
+                maxDistance: context.bulletConfig?.maxDistance,
+                properties: context.bulletConfig?.properties || {},
+                statusEffects: context.statusEffects,
+                tags: childTags ? childTags.split(',') : context.bulletConfig?.tags,
+                elementTags: context.bulletConfig?.elementTags,
+                modifiers: context.modifiers,
+            };
+
+            const bullet = BulletFactory.createBullet(bulletConfig);
+            this.gameRoom.state.bullets.set(bullet.id, bullet);
+        }
+
+        console.log(`🌟 [Split] 分裂成 ${finalCount} 個子彈 (基礎: ${baseCount})，速度: ${context.bulletConfig?.speed || 300}`);
+    }
+
+    /**
+     * 行為：彈射
+     */
+    private actionChain(behavior: Behavior, context: HitContext): void {
+        const baseChainCount = behavior.config.chainCount || 3;
+        const baseChainRange = behavior.config.chainRange || 200;
+        const baseDamageMultiplier = behavior.config.damageMultiplier || 0.8;
+
+        // ✅ 應用彈射範圍加成（使用 AOE 加成，因為都是範圍相關）
+        const finalChainRange = this.applyAreaModifier(baseChainRange, context.attacker);
+
+        // TODO: 可以添加「彈射次數」加成
+        // const finalChainCount = this.applyChainCountModifier(baseChainCount, context.attacker);
+
+        let currentTarget = context.target;
+        let currentDamage = context.damage;
+        let hitTargets = new Set<string>([currentTarget.id]);
+
+        for (let i = 0; i < baseChainCount; i++) {
+            // 找到下一個目標
+            const nextTarget = this.findNearestTarget(
+                currentTarget.position,
+                finalChainRange,  // 使用最終彈射範圍
+                context.attacker,
+                hitTargets,
+            );
+
+            if (!nextTarget) {
+                console.log(`⚡ [Chain] 彈射中斷，找不到下一個目標（已彈射 ${i} 次）`);
+                break;
+            }
+
+            // 計算彈射傷害（遞減）
+            currentDamage *= baseDamageMultiplier;
+
+            // 應用彈射傷害
+            const damageResults = this.gameRoom.damageSystem.dealDamageToMultipleTargets(
+                context.attacker,
+                [nextTarget],
+                currentDamage,
+                'physical',
+                context.weaponId,
+                context.modifiers || []
+            );
+
+            // 應用狀態效果
+            if (context.statusEffects && context.statusEffects.length > 0) {
+                this.gameRoom.combatSystem.applyStatusEffects(
+                    nextTarget,
+                    context.statusEffects,
+                    nextTarget.position,
+                    context.attacker.id
+                );
+            }
+
+            // 記錄已命中目標
+            hitTargets.add(nextTarget.id);
+            currentTarget = nextTarget;
+
+            const actualDamage = damageResults[0]?.actualDamage || currentDamage;
+            console.log(`⚡ [Chain] 彈射 ${i + 1}/${baseChainCount}: ${nextTarget.name}, 傷害: ${actualDamage.toFixed(0)} (範圍: ${finalChainRange.toFixed(0)})`);
+        }
+    }
+
+    /**
+     * 行為：應用狀態效果
+     */
+    private actionApplyStatus(behavior: Behavior, context: HitContext): void {
+        const { statusEffects = [] } = behavior.config;
+
+        if (statusEffects.length === 0) {
+            return;
+        }
+
+        // TODO: 應用額外的狀態效果
+        console.log(`✨ [ApplyStatus] 應用 ${statusEffects.length} 個狀態效果`);
+    }
+
+    /**
+     * 範圍搜索敵人
+     */
+    private findTargetsInRadius(
+        center: { x: number; y: number },
+        radius: number,
+        attacker: ServerGameUnit,
+        exclude?: ServerGameUnit,
+    ): ServerGameUnit[] {
+        const targets: ServerGameUnit[] = [];
+
+        for (const [, unit] of this.gameRoom.state.allUnits) {
+            if (unit.isDead || unit === exclude || unit === attacker) {
+                continue;
+            }
+
+            const distance = Math.hypot(
+                unit.position.x - center.x,
+                unit.position.y - center.y,
+            );
+
+            if (distance <= radius) {
+                targets.push(unit);
+            }
+        }
+
+        return targets;
+    }
+
+    /**
+     * 找到最近的目標（用於彈射）
+     */
+    private findNearestTarget(
+        center: { x: number; y: number },
+        maxRange: number,
+        attacker: ServerGameUnit,
+        hitTargets: Set<string>,
+    ): ServerGameUnit | null {
+        let nearestTarget: ServerGameUnit | null = null;
+        let nearestDistance = maxRange;
+
+        for (const [, unit] of this.gameRoom.state.allUnits) {
+            if (unit.isDead || unit === attacker || hitTargets.has(unit.id)) {
+                continue;
+            }
+
+            const distance = Math.hypot(
+                unit.position.x - center.x,
+                unit.position.y - center.y,
+            );
+
+            if (distance < nearestDistance) {
+                nearestDistance = distance;
+                nearestTarget = unit;
+            }
+        }
+
+        return nearestTarget;
+    }
+
+    /**
+     * 失敗結果
+     */
+    private failResult(weaponId: string, reason: AttackFailReason): AttackResult {
+        return {
+            success: false,
+            weaponId,
+            baseDamage: 0,
+            reason,
+        };
+    }
+
+    // =================== 🎯 POE 風格屬性加成系統 ===================
+
+    /**
+     * 應用範圍加成（Area of Effect）
+     * 
+     * 影響：AOE 半徑、彈射範圍等所有範圍相關參數
+     * 
+     * POE 公式：最終值 = (基礎值 + FLAT) × (1 + INCREASED) × MORE
+     */
+    private applyAreaModifier(baseValue: number, attacker: ServerGameUnit): number {
+        const bonus = BonusCalculator.getPropertyBonus('area_of_effect', attacker);
+        return BonusCalculator.applyBonus(baseValue, bonus, 'Area');
+    }
+
+    /**
+     * 應用投射物速度加成
+     * POE 公式：最終值 = (基礎值 + FLAT) × (1 + INCREASED) × MORE
+     */
+    private applyProjectileSpeedModifier(baseValue: number, attacker: ServerGameUnit): number {
+        const bonus = BonusCalculator.getPropertyBonus('projectile_speed', attacker);
+        return BonusCalculator.applyBonus(baseValue, bonus);
+    }
+
+    /**
+     * 應用持續時間加成（Duration）
+     * 影響：buff/debuff 持續時間、DOT 持續時間等
+     * POE 公式：最終值 = (基礎值 + FLAT) × (1 + INCREASED) × MORE
+     */
+    private applyDurationModifier(baseValue: number, attacker: ServerGameUnit): number {
+        const bonus = BonusCalculator.getPropertyBonus('duration', attacker);
+        return BonusCalculator.applyBonus(baseValue, bonus);
+    }
+
+    /**
+     * 應用冷卻縮減（Cooldown Reduction）
+     * POE 公式：最終冷卻 = (基礎冷卻 + FLAT) × (1 - INCREASED) × MORE
+     * 注意：冷卻縮減的 INCREASED 是減法
+     */
+    private applyCooldownModifier(baseValue: number, attacker: ServerGameUnit): number {
+        const bonus = BonusCalculator.getPropertyBonus('cooldown_reduction', attacker);
+        return BonusCalculator.applyCooldownBonus(baseValue, bonus);
+    }
+
+    /**
+     * 應用傷害倍率加成
+     * 影響：Behavior 中的 damageMultiplier 參數
+     * POE 公式：最終倍率 = (基礎倍率 + FLAT) × (1 + INCREASED) × MORE
+     */
+    private applyDamageModifier(baseMultiplier: number, attacker: ServerGameUnit): number {
+        const bonus = BonusCalculator.getPropertyBonus('area_damage', attacker);
+        return BonusCalculator.applyBonus(baseMultiplier, bonus);
+    }
+
+    /**
+     * 應用彈射次數加成
+     * 影響：chain 行為的彈射次數
+     * 數量加成通常只有 FLAT 和 INCREASED，沒有 MORE
+     */
+    private applyChainCountModifier(baseCount: number, attacker: ServerGameUnit): number {
+        const bonus = BonusCalculator.getPropertyBonus('chain_count', attacker);
+        return BonusCalculator.applyCountBonus(baseCount, bonus);
+    }
+
+    /**
+     * 應用穿透次數加成
+     * 影響：pierce 行為的穿透次數
+     */
+    private applyPierceCountModifier(baseCount: number, attacker: ServerGameUnit): number {
+        const bonus = BonusCalculator.getPropertyBonus('pierce_count', attacker);
+        return BonusCalculator.applyCountBonus(baseCount, bonus);
+    }
+
+    /**
+     * 應用分裂數量加成
+     * 影響：split 行為的分裂數量
+     */
+    private applySplitCountModifier(baseCount: number, attacker: ServerGameUnit): number {
+        const bonus = BonusCalculator.getPropertyBonus('additional_projectiles', attacker);
+        return BonusCalculator.applyCountBonus(baseCount, bonus);
+    }
+}
