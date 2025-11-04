@@ -277,28 +277,21 @@ export class DamageSystem {
 
     /**
      * 暴擊判定
-     * ✅ 整合武器暴擊率加成
+     * ✅ 使用 BonusCalculator 統一計算暴擊率
      */
     private rollCriticalHit(attacker: ServerGameUnit, target: ServerGameUnit): boolean {
         if (attacker.type === UnitType.hero) {
             const hero = attacker as ServerHero;
-            let totalCritRate = hero.critRate || 0; // 基礎暴擊率（來自屬性）
 
-            // 🆕 加上裝備武器的暴擊率
-            const equippedWeapons = hero.weaponInventory.filter(w => w.isEquipped);
-            for (const weaponSchema of equippedWeapons) {
-                try {
-                    const finalStats = weaponSchema.getFinalStats();
-                    if (finalStats && finalStats.critRate) {
-                        totalCritRate += finalStats.critRate;
-                    }
-                } catch (error) {
-                    // 武器 FinalStats 未初始化，跳過
-                }
-            }
+            // 基礎暴擊率（來自角色屬性）
+            const baseCritRate = hero.critRate || 0;
 
-            // 暴擊率上限 100%
-            totalCritRate = Math.min(totalCritRate, 100);
+            // ✅ 使用 BonusCalculator 獲取所有來源的暴擊率加成
+            const bonus = BonusCalculator.getPropertyBonus('critical_chance', attacker);
+            const totalCritRate = Math.min(
+                BonusCalculator.applyBonus(baseCritRate, bonus),
+                100 // 暴擊率上限 100%
+            );
 
             return BattleMathUtils.rollProbability(totalCritRate / 100);
         }
@@ -307,7 +300,7 @@ export class DamageSystem {
 
     /**
      * 🆕 獲取暴擊傷害倍率
-     * ✅ 整合武器暴擊傷害加成
+     * ✅ 使用 BonusCalculator 統一計算暴擊傷害
      * @returns 暴擊倍率（如 1.5 表示 150% 傷害）
      */
     private getCriticalDamageMultiplier(attacker: ServerGameUnit): number {
@@ -316,55 +309,27 @@ export class DamageSystem {
         }
 
         const hero = attacker as ServerHero;
-        let baseCritDamage = 150; // 基礎暴擊傷害 150%
+        const baseCritDamage = 150; // 基礎暴擊傷害 150%
 
-        // 🆕 加上裝備武器的暴擊傷害
-        const equippedWeapons = hero.weaponInventory.filter(w => w.isEquipped);
-        for (const weaponSchema of equippedWeapons) {
-            try {
-                const finalStats = weaponSchema.getFinalStats();
-                if (finalStats && finalStats.critDamage) {
-                    baseCritDamage += finalStats.critDamage;
-                }
-            } catch (error) {
-                // 武器 FinalStats 未初始化，跳過
-            }
-        }
-
-        // TODO: 整合天賦暴擊傷害加成
-        // const talentCritDamage = TalentManager.getInstance().getCritDamageBonus(hero.id);
-        // baseCritDamage += talentCritDamage;
+        // ✅ 使用 BonusCalculator 獲取所有來源的暴擊傷害加成
+        const bonus = BonusCalculator.getPropertyBonus('critical_damage', attacker);
+        const finalCritDamage = BonusCalculator.applyBonus(baseCritDamage, bonus);
 
         // 轉換為倍率（150% → 1.5）
-        return baseCritDamage / 100;
+        return finalCritDamage / 100;
     }
 
     /**
      * 🆕 應用生命偷取
-     * ✅ 整合所有裝備武器的生命偷取
+     * ✅ 使用 BonusCalculator 統一計算生命偷取
      * 
      * @param hero 攻擊者（英雄）
      * @param damageDealt 造成的實際傷害
      */
     private applyLifeSteal(hero: ServerHero, damageDealt: number): void {
-        let totalLifeSteal = 0;
-
-        // 累加所有裝備武器的生命偷取
-        const equippedWeapons = hero.weaponInventory.filter(w => w.isEquipped);
-        for (const weaponSchema of equippedWeapons) {
-            try {
-                const finalStats = weaponSchema.getFinalStats();
-                if (finalStats && finalStats.lifeSteal) {
-                    totalLifeSteal += finalStats.lifeSteal;
-                }
-            } catch (error) {
-                // 武器 FinalStats 未初始化，跳過
-            }
-        }
-
-        // TODO: 整合天賦生命偷取加成
-        // const talentLifeSteal = TalentManager.getInstance().getLifeStealBonus(hero.id);
-        // totalLifeSteal += talentLifeSteal;
+        // ✅ 使用 BonusCalculator 獲取所有來源的生命偷取加成
+        const bonus = BonusCalculator.getPropertyBonus('life_steal', hero);
+        const totalLifeSteal = BonusCalculator.applyBonus(0, bonus); // 基礎值為 0，僅計算加成
 
         // 如果有生命偷取，回復生命
         if (totalLifeSteal > 0) {

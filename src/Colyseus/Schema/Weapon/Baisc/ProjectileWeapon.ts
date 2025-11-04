@@ -255,9 +255,9 @@ export class ProjectileWeapon extends WeaponBasic {
             }
         }
 
-        // 🆕 獲取武器標籤和元素標籤
-        const tags = this.weaponSchema?.getTags() || [];
-        const elementTags = this.weaponSchema?.getElementTags() || [];
+        // 🆕 獲取武器標籤和元素標籤（確保無重複）
+        const tags = Array.from(new Set(this.weaponSchema?.getTags() || []));
+        const elementTags = Array.from(new Set(this.weaponSchema?.getElementTags() || []));
         const modifiers = this.weaponSchema?.getModifiers() || [];
 
         // 🔍 調試：確認標籤是否被正確讀取

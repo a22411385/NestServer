@@ -7,6 +7,7 @@ import { BattleLogSystem } from './BattleLogSystem';
 import { DamageResult } from './DamageSystem';
 import { WeaponBasic } from '@/Colyseus/Schema/Weapon/Baisc';
 import { StatusEffect } from '@/Colyseus/Schema/Unit/GameUnit';
+import { BehaviorResolver } from '../BehaviorResolver';
 
 /**
  * 戰鬥系統 - 負責處理所有戰鬥相關邏輯（英雄攻擊、敵人攻擊、戰鬥協調）
@@ -118,6 +119,13 @@ export class CombatSystem {
             // 🎯 近戰武器：使用統一的 HitHandler 處理每個目標
             const allTargetIds: string[] = [];
 
+            // ✅ 從武器詞綴解析 Behaviors（POE 風格）
+            const weaponTags = weapon.getTags();
+            const behaviors = BehaviorResolver.getBehaviorsFromModifiers(
+                result.modifiers || [],
+                weaponTags
+            );
+
             for (const target of targets) {
                 const hitResult = this.gameRoom.hitHandler.handle({
                     type: 'melee',
@@ -129,7 +137,7 @@ export class CombatSystem {
                     weaponId: result.weaponId || '',
                     statusEffects: result.statusEffects || [],
                     modifiers: result.modifiers || [],
-                    behaviors: [], // TODO: 從武器配置中獲取 behaviors
+                    behaviors: behaviors, // ✅ 從詞綴自動生成
                 });
 
                 if (hitResult.success && hitResult.targetIds) {
@@ -223,7 +231,8 @@ export class CombatSystem {
                 const sweepAngleDegrees = (sweepAngleRadians * 180) / Math.PI; // 轉換為角度
 
                 effects.push({
-                    type: 'swing',
+                    type: 'motion', // ✅ 使用客戶端支援的 effectType
+                    tags: mod.tags, // ✅ 添加標籤資訊
                     position: result.attackData?.position || { x: hero.position.x, y: hero.position.y },
                     direction: result.attackData?.direction || { x: 1, y: 0 },
                     data: {
@@ -254,7 +263,8 @@ export class CombatSystem {
                             }
 
                             effects.push({
-                                type: 'knockback',
+                                type: 'motion', // ✅ 使用客戶端支援的 effectType (擊退是運動效果)
+                                tags: mod.tags, // ✅ 添加標籤資訊
                                 targetId: dmgResult.targetId,
                                 value: knockbackEffect.value || 0, // ✅ 使用 statusEffect 中的最終值
                                 direction: direction,
@@ -270,7 +280,8 @@ export class CombatSystem {
             if (tags.includes('pierce') && damageResults.length > 1) {
                 const targetIds = damageResults.map(r => r.targetId);
                 effects.push({
-                    type: 'pierce',
+                    type: 'trail', // ✅ 使用客戶端支援的 effectType (穿透是拖尾效果)
+                    tags: mod.tags, // ✅ 添加標籤資訊
                     targetIds: targetIds,
                     pierceCount: damageResults.length - 1, // ✅ 實際穿透數 = 總目標數 - 1
                 });
@@ -285,7 +296,8 @@ export class CombatSystem {
                 }).filter(p => p !== null);
 
                 effects.push({
-                    type: 'chain',
+                    type: 'trail', // ✅ 使用客戶端支援的 effectType (連鎖是拖尾效果)
+                    tags: mod.tags, // ✅ 添加標籤資訊
                     chainPath: chainPath,
                     chainCount: damageResults.length - 1, // ✅ 實際連鎖數 = 總目標數 - 1
                 });
@@ -298,7 +310,8 @@ export class CombatSystem {
                     const firstTarget = this.gameRoom.unitManager.getUnitById(damageResults[0].targetId);
                     if (firstTarget) {
                         effects.push({
-                            type: 'explosion',
+                            type: 'particle', // ✅ 使用客戶端支援的 effectType (爆炸是粒子效果)
+                            tags: mod.tags, // ✅ 添加標籤資訊
                             position: { x: firstTarget.position.x, y: firstTarget.position.y },
                             radius: mod.baseValue || 100, // ⚠️ 暫用基礎值（需改進）
                             affectedTargets: damageResults.map(r => r.targetId),

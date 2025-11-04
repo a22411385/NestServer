@@ -241,10 +241,10 @@ export class BonusCalculator {
 
             // 🎯 使用 TagService 獲取標籤的完整路徑（包含父級）
             const tagPath = tagService.getTagPath(lowerTag);
-            
+
             // 找到根元素（通常是 element category 的標籤）
             let rootElement: string | null = null;
-            
+
             for (const pathTag of tagPath) {
                 const tagDef = tagService.getTagDefinition(pathTag);
                 if (tagDef && tagDef.category === 'element') {

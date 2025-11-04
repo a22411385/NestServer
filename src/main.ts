@@ -60,10 +60,19 @@ async function bootstrap() {
     console.log('🔧 開始初始化遊戲系統...');
 
     // 1️⃣ 初始化 Google Sheets 快取（最底層依賴）
-    console.log('📥 步驟 1/5: 初始化 Google Sheets 快取...');
+    console.log('📥 步驟 1/6: 初始化 Google Sheets 快取...');
     const googlesheet = new GoogleSheetCache();
     await googlesheet.init();
     console.log('✅ Google Sheets 快取已就緒');
+
+    // 🆕 1.5️⃣ 自動檢查並修正標籤順序（在快取載入後立即執行）
+    console.log('🔍 步驟 1.5/6: 自動檢查標籤順序...');
+    try {
+      const { autoValidateAndFixTags } = await import('./utils/TagOrderValidator');
+      await autoValidateAndFixTags();
+    } catch (error) {
+      console.warn('⚠️ 標籤檢查跳過（不影響伺服器運行）:', error.message);
+    }
 
     // 2️⃣ 初始化標籤服務（依賴 GoogleSheetCache）
     console.log('🏷️ 步驟 2/6: 初始化標籤服務...');

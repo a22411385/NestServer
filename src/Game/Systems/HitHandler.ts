@@ -1,5 +1,5 @@
 import { ServerGameUnit } from '@/Colyseus/Schema/Unit/GameUnit';
-import { AttackResult, AttackFailReason } from '@/Types';
+import { AttackResult, AttackFailReason, BulletCreateConfig } from '@/Types';
 import { GameRoom } from '@/Colyseus/Rooms/GameRoom';
 import { BulletFactory } from '@/Game/Factories/BulletFactory';
 import { ServerHero } from '@/Colyseus/Schema/Unit/Hero';
@@ -174,17 +174,22 @@ export class HitHandler {
      */
     private executeBehaviors(context: HitContext, result: AttackResult): void {
         if (!context.behaviors || context.behaviors.length === 0) {
+            console.log(`⚠️ [HitHandler] 武器 ${context.weaponId} 沒有行為，跳過`);
             return;
         }
+
+        console.log(`🔥 [HitHandler] 武器 ${context.weaponId} 執行 ${context.behaviors.length} 個行為`);
 
         for (const behavior of context.behaviors) {
             // onHit 行為
             if (behavior.trigger === 'onHit') {
+                console.log(`🎯 [HitHandler] 執行 onHit 行為: ${behavior.action}, 配置:`, behavior.config);
                 this.executeBehavior(behavior, context, result);
             }
 
             // onKill 行為（檢查目標是否被擊殺）
             if (context.target.isDead && behavior.trigger === 'onKill') {
+                console.log(`💀 [HitHandler] 執行 onKill 行為: ${behavior.action}`);
                 this.executeBehavior(behavior, context, result);
             }
 
@@ -313,19 +318,20 @@ export class HitHandler {
             const finalSpeed = this.applyProjectileSpeedModifier(baseSpeed, context.attacker);
 
             // 使用 BulletFactory 創建子彈
-            const bulletConfig: any = {
+            const bulletConfig: BulletCreateConfig = {
                 ownerId: context.attacker.id,
                 startPosition: { x: context.position.x, y: context.position.y },
                 direction: { x: Math.cos(fragmentAngle), y: Math.sin(fragmentAngle) },
                 damage: context.damage * baseChildDamageMultiplier,
-                bulletClass: context.bulletConfig?.bulletClass || 'default',
+
                 weaponId: context.weaponId,
                 speed: finalSpeed,  // 使用最終速度
                 maxDistance: context.bulletConfig?.maxDistance,
                 properties: context.bulletConfig?.properties || {},
                 statusEffects: context.statusEffects,
-                tags: childTags ? childTags.split(',') : context.bulletConfig?.tags,
-                elementTags: context.bulletConfig?.elementTags,
+                // 🆕 確保標籤無重複
+                tags: Array.from(new Set(childTags ? childTags.split(',') : (context.bulletConfig?.tags || []))),
+                elementTags: Array.from(new Set(context.bulletConfig?.elementTags || [])),
                 modifiers: context.modifiers,
             };
 

@@ -247,7 +247,9 @@ export class WeaponSchema extends Schema {
     public getTags(): string[] {
         const config = WeaponConfigManager.getConfig(this.weaponId);
         if (config && config.tags) {
-            return config.tags.split(',').map(t => t.trim());
+            const tags = config.tags.split(',').map(t => t.trim());
+            // 🆕 移除重複標籤
+            return Array.from(new Set(tags));
         }
 
         // 向下兼容：如果配置表沒有標籤，從 classModule 推斷
@@ -278,7 +280,7 @@ export class WeaponSchema extends Schema {
         }
 
         // 如果有元素傷害（非物理），添加通用 'elemental' 標籤
-        if (elementTags.length > 0 && !elementTags.includes('physical')) {
+        if (elementTags.length > 0 && !elementTags.includes('physical') && !elementTags.includes('elemental')) {
             elementTags.push('elemental');
         }
 
@@ -287,12 +289,13 @@ export class WeaponSchema extends Schema {
             const fallbackElement = this.elementType || 'physical';
             elementTags.push(fallbackElement);
 
-            if (fallbackElement !== 'physical') {
+            if (fallbackElement !== 'physical' && !elementTags.includes('elemental')) {
                 elementTags.push('elemental');
             }
         }
 
-        return elementTags;
+        // 🆕 移除重複的標籤
+        return Array.from(new Set(elementTags));
     }
 
     /**

@@ -3,6 +3,3 @@ export * from './WeaponBasic';
 export * from './MeleeWeapon';
 export * from './ProjectileWeapon';
 export * from './SupportWeapon';
-
-// 具體武器實現導出
-export * from '../SupportWeapon/HealingPotion';

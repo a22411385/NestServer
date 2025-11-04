@@ -52,6 +52,14 @@ export abstract class WeaponBasic {
   }
 
   /**
+   * 🆕 獲取武器標籤列表（用於 BehaviorResolver）
+   */
+  public getTags(): string[] {
+    if (!this.weaponConfig?.tags) return [];
+    return this.weaponConfig.tags.split(',').map(t => t.trim());
+  }
+
+  /**
    * 🆕 獲取最終計算屬性 (用於戰鬥系統)
    */
   public getFinalStats(): any {
@@ -340,9 +348,9 @@ export abstract class WeaponBasic {
       targetIds: targetIds,
       baseDamage: this.baseDamage,
 
-      // 🆕 攜帶標籤信息
-      tags: this.weaponSchema?.getTags() || [],
-      elementTags: this.weaponSchema?.getElementTags() || ['physical'],
+      // 🆕 攜帶標籤信息（確保無重複）
+      tags: Array.from(new Set(this.weaponSchema?.getTags() || [])),
+      elementTags: Array.from(new Set(this.weaponSchema?.getElementTags() || ['physical'])),
       modifiers: this.weaponSchema?.getModifiers() || [],
 
       // 狀態效果（已包含標籤）

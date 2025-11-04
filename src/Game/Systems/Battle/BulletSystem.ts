@@ -7,6 +7,7 @@ import { ServerHero } from "../../../Colyseus/Schema/Unit/Hero";
 import { UnitType } from "../../../Colyseus/Schema/GameState";
 
 import { Vector2 } from "@/Colyseus/Schema/Unit/GameUnit";
+import { BehaviorResolver } from "../BehaviorResolver";
 
 /**
  * 子彈系統 - 負責子彈的創建、更新和碰撞檢測
@@ -214,6 +215,13 @@ export class BulletSystem {
             return;
         }
 
+        // ✅ 從子彈的詞綴和標籤解析 Behaviors（POE 風格）
+        const bulletTags = Array.from(bullet.tags || []);
+        const behaviors = BehaviorResolver.getBehaviorsFromBullet(
+            bullet.modifiers || [],
+            bulletTags
+        );
+
         // 🎯 使用統一的 HitHandler 處理命中
         const attackResult = this.gameRoom.hitHandler.handle({
             type: 'projectile',
@@ -225,13 +233,13 @@ export class BulletSystem {
             weaponId: bullet.weaponId,
             statusEffects: bullet.statusEffects,
             modifiers: bullet.modifiers || [],
-            behaviors: [], // TODO: 從武器配置中獲取 behaviors
+            behaviors: behaviors, // ✅ 從詞綴自動生成
             bulletConfig: {
 
                 speed: bullet.speed,
                 maxDistance: bullet.maxDistance,
                 properties: bullet.properties || {},
-                tags: Array.from(bullet.tags || []),
+                tags: bulletTags,
                 elementTags: Array.from(bullet.elementTags || []),
             }
         });

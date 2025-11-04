@@ -104,7 +104,7 @@ export class GoogleSheetCache {
         }
 
         // 檢查本地檔案是否存在，不存在就更新快取
-        if (!fs.existsSync(this.cacheFilePath)) {
+        if (!fs.existsSync(this.cacheFilePath) || process.env.FORCE_UPDATE_CACHE === 'true') {
             console.log('📥 快取檔案不存在，從 Google Sheets 下載...');
             await this.updateCache();
         } else {
