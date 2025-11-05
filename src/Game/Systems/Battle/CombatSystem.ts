@@ -9,6 +9,7 @@ import { DamageResult } from './DamageSystem';
 import { WeaponBasic } from '@/Colyseus/Schema/Weapon/Baisc';
 import { StatusEffect } from '@/Colyseus/Schema/Unit/GameUnit';
 import { BehaviorResolver } from '../BehaviorResolver';
+import { UnifiedAttributeSystem } from '../UnifiedAttributeSystem';
 
 /**
  * 戰鬥系統 - 負責處理所有戰鬥相關邏輯（英雄攻擊、敵人攻擊、戰鬥協調）

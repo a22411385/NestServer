@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "2025-11-05T01:32:43.929Z",
+  "lastUpdated": "2025-11-05T04:04:08.349Z",
   "StatusEffectDefinitions": [
     {
       "id": "burn",
@@ -1791,104 +1791,184 @@
   ],
   "WeaponStatConfigs": [
     {
+      "attributeId": "weapon_damage",
       "statName": "weaponDamage",
+      "description": "武器傷害",
       "type": "number",
-      "description": "武器傷害"
+      "category": "combat",
+      "aliases": "",
+      "enabled": true
     },
     {
+      "attributeId": "attack_range",
       "statName": "attackRange",
+      "description": "攻擊距離",
       "type": "number",
-      "description": "攻擊距離"
+      "category": "combat",
+      "aliases": "",
+      "enabled": true
     },
     {
+      "attributeId": "move_speed",
       "statName": "moveSpeed",
+      "description": "移動速度",
       "type": "number",
-      "description": "移動速度"
+      "category": "combat",
+      "aliases": "",
+      "enabled": true
     },
     {
-      "statName": "critRate",
-      "type": "number",
-      "description": "爆擊機率"
-    },
-    {
-      "statName": "critDamage",
-      "type": "number",
-      "description": "爆擊傷害"
-    },
-    {
-      "statName": "lifeSteal",
-      "type": "number",
-      "description": "生命偷取"
-    },
-    {
-      "statName": "pierceCount",
-      "type": "number",
-      "description": "穿透數量"
-    },
-    {
-      "statName": "chainCount",
-      "type": "number",
-      "description": "連鎖次數"
-    },
-    {
-      "statName": "bounceCount",
-      "type": "number",
-      "description": "彈跳次數"
-    },
-    {
-      "statName": "knockbackForce",
-      "type": "number",
-      "description": "擊退距離"
-    },
-    {
-      "statName": "projectileSpeed",
-      "type": "number",
-      "description": "投射物速度"
-    },
-    {
-      "statName": "areaRadius",
-      "type": "number",
-      "description": "靈氣作用範圍"
-    },
-    {
-      "statName": "sweepAngle",
-      "type": "number",
-      "description": "橫掃範圍"
-    },
-    {
-      "statName": "fireDamage",
-      "type": "number",
-      "description": "火焰傷害加成"
-    },
-    {
-      "statName": "iceDamage",
-      "type": "number",
-      "description": "寒冰傷害加成"
-    },
-    {
-      "statName": "lightningDamage",
-      "type": "number",
-      "description": "雷電傷害加成"
-    },
-    {
-      "statName": "poisonDamage",
-      "type": "number",
-      "description": "毒素傷害加成"
-    },
-    {
-      "statName": "durationMultiplier",
-      "type": "number",
-      "description": "持續時間加成"
-    },
-    {
-      "statName": "cooldownReduction",
-      "type": "number",
-      "description": "冷卻時間加成"
-    },
-    {
+      "attributeId": "attack_speed",
       "statName": "attackSpeed",
+      "description": "攻擊速度",
       "type": "number",
-      "description": "攻擊速度"
+      "category": "combat",
+      "aliases": "",
+      "enabled": true
+    },
+    {
+      "attributeId": "critical_chance",
+      "statName": "critRate",
+      "description": "爆擊機率",
+      "type": "number",
+      "category": "critical",
+      "aliases": "crit_chance,critical_strike_chance",
+      "enabled": true
+    },
+    {
+      "attributeId": "critical_damage",
+      "statName": "critDamage",
+      "description": "爆擊傷害",
+      "type": "number",
+      "category": "critical",
+      "aliases": "crit_damage,critical_strike_multiplier",
+      "enabled": true
+    },
+    {
+      "attributeId": "life_steal",
+      "statName": "lifeSteal",
+      "description": "生命偷取",
+      "type": "number",
+      "category": "survival",
+      "aliases": "life_leech",
+      "enabled": true
+    },
+    {
+      "attributeId": "pierce_count",
+      "statName": "pierceCount",
+      "description": "穿透數量",
+      "type": "number",
+      "category": "special",
+      "aliases": "",
+      "enabled": true
+    },
+    {
+      "attributeId": "chain_count",
+      "statName": "chainCount",
+      "description": "連鎖次數",
+      "type": "number",
+      "category": "special",
+      "aliases": "",
+      "enabled": true
+    },
+    {
+      "attributeId": "bounce_count",
+      "statName": "bounceCount",
+      "description": "彈跳次數",
+      "type": "number",
+      "category": "special",
+      "aliases": "",
+      "enabled": true
+    },
+    {
+      "attributeId": "knockback_force",
+      "statName": "knockbackForce",
+      "description": "擊退距離",
+      "type": "number",
+      "category": "special",
+      "aliases": "",
+      "enabled": true
+    },
+    {
+      "attributeId": "projectile_speed",
+      "statName": "projectileSpeed",
+      "description": "投射物速度",
+      "type": "number",
+      "category": "projectile",
+      "aliases": "",
+      "enabled": true
+    },
+    {
+      "attributeId": "area_of_effect",
+      "statName": "areaRadius",
+      "description": "靈氣作用範圍",
+      "type": "number",
+      "category": "area",
+      "aliases": "aoe,splash_radius",
+      "enabled": true
+    },
+    {
+      "attributeId": "sweep_angle",
+      "statName": "sweepAngle",
+      "description": "橫掃範圍",
+      "type": "number",
+      "category": "area",
+      "aliases": "",
+      "enabled": true
+    },
+    {
+      "attributeId": "fire_damage",
+      "statName": "fireDamage",
+      "description": "火焰傷害加成",
+      "type": "number",
+      "category": "elemental",
+      "aliases": "",
+      "enabled": true
+    },
+    {
+      "attributeId": "cold_damage",
+      "statName": "iceDamage",
+      "description": "寒冰傷害加成",
+      "type": "number",
+      "category": "elemental",
+      "aliases": "",
+      "enabled": true
+    },
+    {
+      "attributeId": "lightning_damage",
+      "statName": "lightningDamage",
+      "description": "雷電傷害加成",
+      "type": "number",
+      "category": "elemental",
+      "aliases": "",
+      "enabled": true
+    },
+    {
+      "attributeId": "poison_damage",
+      "statName": "poisonDamage",
+      "description": "毒素傷害加成",
+      "type": "number",
+      "category": "elemental",
+      "aliases": "chaos_damage",
+      "enabled": true
+    },
+    {
+      "attributeId": "duration_multiplier",
+      "statName": "durationMultiplier",
+      "description": "持續時間加成",
+      "type": "number",
+      "category": "duration",
+      "aliases": "",
+      "enabled": true
+    },
+    {
+      "attributeId": "cooldown_reduction",
+      "statName": "cooldownReduction",
+      "description": "冷卻時間加成",
+      "type": "number",
+      "category": "resource",
+      "aliases": "",
+      "enabled": true
     }
   ],
   "VisualEffectDefinitions": [

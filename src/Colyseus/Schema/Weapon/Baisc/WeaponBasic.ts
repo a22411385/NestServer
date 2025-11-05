@@ -9,6 +9,7 @@ import {
 import { WeaponSchema } from '../WeaponSchema';
 import { WeaponConfigManager } from '@/Game/Factories/WeaponConfig';
 import { WeaponDataService } from '@/Game/Services/WeaponDataService';
+import { UnifiedAttributeSystem } from '@/Game/Systems/UnifiedAttributeSystem';
 
 
 //武器基類：負責攻擊邏輯和目標選擇，不處理傷害計算
@@ -165,6 +166,30 @@ export abstract class WeaponBasic {
    */
   public get attackSpeed(): number {
     return this.getStat<number>('attackSpeed', 1000);
+  }
+
+  // ==================== 🆕 統一屬性計算方法 ====================
+
+  /**
+   * 🎯 獲取最終武器傷害（考慮持有者的所有加成）
+   * 使用統一屬性計算系統，避免重複計算
+   */
+  public getFinalDamageWithOwner(owner?: ServerGameUnit): number {
+    return UnifiedAttributeSystem.getWeaponDamage(this, owner);
+  }
+
+  /**
+   * 🎯 獲取最終攻擊範圍（考慮持有者的所有加成）
+   */
+  public getFinalRangeWithOwner(owner?: ServerGameUnit): number {
+    return UnifiedAttributeSystem.getAttackRange(this, owner);
+  }
+
+  /**
+   * 🎯 獲取最終攻擊速度（考慮持有者的所有加成）
+   */
+  public getFinalSpeedWithOwner(owner?: ServerGameUnit): number {
+    return UnifiedAttributeSystem.getAttackSpeed(this, owner);
   }
 
   // ====================================================================
@@ -339,14 +364,24 @@ export abstract class WeaponBasic {
   /**
    * 🆕 生成基礎 AttackResult（攜帶標籤信息）
    * 子類可以在此基礎上擴展
+   * 🎯 Phase 1: 支持統一屬性計算，但保持向下兼容
    */
-  protected generateBaseAttackResult(attackerId: string, targetIds: string[]): AttackResult {
+  protected generateBaseAttackResult(
+    attackerId: string,
+    targetIds: string[],
+    attacker?: ServerGameUnit
+  ): AttackResult {
+    // 🎯 優先使用統一計算系統（如果有攻擊者）
+    const finalDamage = attacker ?
+      this.getFinalDamageWithOwner(attacker) :
+      this.baseDamage;
+
     return {
       success: true,
       attackerId: attackerId,
       weaponId: this.weaponId,
       targetIds: targetIds,
-      baseDamage: this.baseDamage,
+      baseDamage: finalDamage,
 
       // 🆕 攜帶標籤信息（確保無重複）
       tags: Array.from(new Set(this.weaponSchema?.getTags() || [])),

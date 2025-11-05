@@ -59,45 +59,49 @@ export class BonusCalculator {
             more: 1, // MORE 是乘法，初始值為 1
         };
 
-        // 1. 從武器屬性獲取加成
-        if (unit.type === 0) { // UnitType.hero
-            const hero = unit as ServerHero;
-            if (hero.getEquippedWeapons) {
-                const weapons = hero.getEquippedWeapons();
+        // 1. ❌ Phase 2: 暫時禁用武器屬性讀取（避免與統一屬性系統重複計算）
+        // 🎯 武器本身的屬性現在由 UnifiedAttributeSystem 處理
+        // if (unit.type === 0) { // UnitType.hero
+        //     const hero = unit as ServerHero;
+        //     if (hero.getEquippedWeapons) {
+        //         const weapons = hero.getEquippedWeapons();
 
-                weapons.forEach((weapon: any) => {
-                    // 從武器的 properties 中讀取指定屬性
-                    const property = weapon.properties?.[propertyId];
-                    if (!property || !property.value) {
-                        return;
-                    }
+        //         weapons.forEach((weapon: any) => {
+        //             // 從武器的 properties 中讀取指定屬性
+        //             const property = weapon.properties?.[propertyId];
+        //             if (!property || !property.value) {
+        //                 return;
+        //             }
 
-                    // ✅ 根據 modifierType 分類處理
-                    const modifierType = (property.modifierType || 'increased').toLowerCase();
+        //             // ✅ 根據 modifierType 分類處理
+        //             const modifierType = (property.modifierType || 'increased').toLowerCase();
 
-                    switch (modifierType) {
-                        case 'flat':
-                            // 固定值（直接加到基礎值）
-                            result.flat += property.value;
-                            break;
+        //             switch (modifierType) {
+        //                 case 'flat':
+        //                     // 固定值（直接加到基礎值）
+        //                     result.flat += property.value;
+        //                     break;
 
-                        case 'increased':
-                            // 百分比加成（加法疊加）
-                            result.increased += property.value / 100;
-                            break;
+        //                 case 'increased':
+        //                     // 百分比加成（加法疊加）
+        //                     result.increased += property.value / 100;
+        //                     break;
 
-                        case 'more':
-                            // 百分比乘法（乘法疊加）
-                            result.more *= (1 + property.value / 100);
-                            break;
+        //                 case 'more':
+        //                     // 百分比乘法（乘法疊加）
+        //                     result.more *= (1 + property.value / 100);
+        //                     break;
 
-                        default:
-                            console.warn(`⚠️ 未知的 modifierType: ${modifierType}，使用 increased`);
-                            result.increased += property.value / 100;
-                    }
-                });
-            }
-        }
+        //                 default:
+        //                     console.warn(`⚠️ 未知的 modifierType: ${modifierType}，使用 increased`);
+        //                     result.increased += property.value / 100;
+        //             }
+        //         });
+        //     }
+        // }
+
+        // 🆕 Phase 2: 只處理外部加成（非武器本身的屬性）
+        console.log(`🔍 [BonusCalculator] 計算外部加成: ${propertyId} (武器屬性已由統一系統處理)`);
 
         // 2. TODO: 從天賦系統獲取
         // if (unit.type === 0) {

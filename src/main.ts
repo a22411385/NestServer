@@ -13,6 +13,7 @@ import { WeaponInstanceManager } from './Game/Managers/WeaponInstanceManager';
 import { WeaponFactory } from './Game/Factories/WeaponFactory';
 import { TagService } from './Game/Services/TagService';
 import { VisualEffectService } from './Game/Services/VisualEffectService';
+import { UnifiedAttributeSystem } from './Game/Systems/UnifiedAttributeSystem';
 
 export const IS_PUBLIC_KEY = 'isPublic';
 export const IsPublic = () => SetMetadata(IS_PUBLIC_KEY, true);
@@ -97,9 +98,14 @@ async function bootstrap() {
     console.log('✅ 武器實例管理器已初始化');
 
     // 6️⃣ 初始化天賦系統（依賴 GoogleSheetCache）
-    console.log('⭐ 步驟 6/6: 初始化天賦系統...');
+    console.log('⭐ 步驟 6/7: 初始化天賦系統...');
     await TalentSystemInitializer.initialize();
     console.log('✅ 天賦系統已初始化');
+
+    // 🆕 7️⃣ 初始化統一屬性系統（POE風格）
+    console.log('🎯 步驟 7/7: 初始化統一屬性系統...');
+    UnifiedAttributeSystem.initialize();
+    console.log('✅ 統一屬性系統已初始化');
 
     console.log('🎉 所有遊戲系統初始化完成！');
 

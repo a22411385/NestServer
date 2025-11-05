@@ -3,6 +3,7 @@ import { AttackResult, AttackFailReason, BulletCreateConfig } from '@/Types';
 import { GameRoom } from '@/Colyseus/Rooms/GameRoom';
 import { BulletFactory } from '@/Game/Factories/BulletFactory';
 import { BonusCalculator } from './BonusCalculator';
+import { Attributes } from './UnifiedAttributeSystem';
 
 /**
  * 行為配置接口
@@ -227,19 +228,21 @@ export class HitHandler {
     }
 
     /**
-     * 行為：AOE 爆炸
+     * 🎯 行為：AOE 爆炸
+     * 🆕 Phase 2: 使用統一屬性系統計算範圍和傷害
      */
     private actionAoeExplode(behavior: Behavior, context: HitContext): void {
         const baseRadius = behavior.config.radius || 100;
         const baseDamageMultiplier = behavior.config.damageMultiplier || 1.0;
 
-        // ✅ 應用角色的範圍加成（天賦、裝備等）
-        const areaBonus = BonusCalculator.getPropertyBonus('area_of_effect', context.attacker);
-        const finalRadius = BonusCalculator.applyBonus(baseRadius, areaBonus, 'Area');
+        // 🆕 使用統一屬性系統獲取範圍加成
+        const finalRadius = baseRadius + Attributes.get(context.attacker, 'area_of_effect');
 
-        // ✅ 應用角色的傷害加成
-        const damageBonus = BonusCalculator.getPropertyBonus('area_damage', context.attacker);
-        const finalDamageMultiplier = BonusCalculator.applyBonus(baseDamageMultiplier, damageBonus);
+        // 🆕 使用統一屬性系統獲取傷害加成
+        const areaDamageBonus = Attributes.get(context.attacker, 'area_damage') / 100; // 轉為倍率
+        const finalDamageMultiplier = baseDamageMultiplier * (1 + areaDamageBonus);
+
+        console.log(`🎯 [統一屬性] AOE爆炸 - 半徑:${finalRadius}, 傷害倍率:${finalDamageMultiplier.toFixed(2)}`);
 
         // 找到範圍內的其他敵人（排除主要目標）
         const targets = this.findTargetsInRadius(

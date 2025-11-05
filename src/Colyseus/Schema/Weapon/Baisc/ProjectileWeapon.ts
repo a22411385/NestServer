@@ -77,10 +77,11 @@ export class ProjectileWeapon extends WeaponBasic {
         const baseResult = this.generateBaseAttackResult(
             attacker.id,
             affectedTargets.map((target) => target.id),
+            attacker  // 🆕 傳遞攻擊者以支持統一屬性計算
         );
 
-        // 🔧 計算實際攻擊範圍（武器範圍 + 角色加成）
-        const actualAttackRange = this.attackRange + attacker.attackRange;
+        // 🔧 計算實際攻擊範圍（使用統一屬性系統）
+        const actualAttackRange = this.getFinalRangeWithOwner(attacker);
 
         return {
             ...baseResult,

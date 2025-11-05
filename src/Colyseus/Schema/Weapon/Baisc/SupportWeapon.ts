@@ -55,6 +55,7 @@ export abstract class SupportWeapon extends WeaponBasic {
         const baseResult = this.generateBaseAttackResult(
             user.id,
             supportTargets.map((target) => target.id),
+            user  // 🆕 傳遞攻擊者以支持統一屬性計算
         );
 
         return {
@@ -62,7 +63,7 @@ export abstract class SupportWeapon extends WeaponBasic {
             attackData: {
                 position: { x: user.position.x, y: user.position.y },
                 direction: { x: 0, y: 0 }, // 支援武器通常沒有方向性
-                range: this.attackRange,
+                range: this.getFinalRangeWithOwner(user), // 🆕 使用統一屬性系統
                 supportRadius: this.getStat('supportRadius', 0), // 🆕 支援範圍
             },
         };

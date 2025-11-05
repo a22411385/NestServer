@@ -84,11 +84,12 @@ export class MeleeWeapon extends WeaponBasic {
         // ✅ 使用新的基礎方法生成 AttackResult（攜帶標籤）
         const result = this.generateBaseAttackResult(
             attacker.id,
-            validTargets.map((target) => target.id)
+            validTargets.map((target) => target.id),
+            attacker  // 🆕 傳遞攻擊者以支持統一屬性計算
         );
 
-        // 🔧 計算實際攻擊範圍（武器範圍 + 角色加成）
-        const actualAttackRange = this.attackRange + attacker.attackRange;
+        // 🔧 計算實際攻擊範圍（使用統一屬性系統）
+        const actualAttackRange = this.getFinalRangeWithOwner(attacker);
 
         // 添加近戰特有數據
         result.attackData = {
@@ -115,7 +116,7 @@ export class MeleeWeapon extends WeaponBasic {
         if (aliveTargets.length === 0) {
             return [];
         }
-        const atkRange = this.attackRange + attacker.attackRange;
+        const atkRange = this.getFinalRangeWithOwner(attacker);
         // 找出攻擊範圍內的所有敵人，並按距離排序
         const targetsInRange = aliveTargets
             .map((target) => ({
