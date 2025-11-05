@@ -1,19 +1,20 @@
 
-import { PropertyValue, WeaponQuality, StatusEffectDefinition, WeaponConfigDefinition, ModifierType, CategoryKey, WeaponModifier, AttributeBonus } from "../../Types/Equipment/WeaponPropertyTypes";
+import { PropertyValue, WeaponQuality, StatusEffectDefinition, WeaponConfigDefinition } from "../../Types/Equipment/WeaponPropertyTypes";
 import { ConfigManager } from "../Managers/ConfigManager";
+import { WeaponMod } from "../../Types/Equipment/WeaponModTypes";
 
 /**
  * 武器屬性服務 - 新屬性系統的核心
  * 負責屬性解析、生成和應用邏輯
+ * 
+ * ⚠️ 注意：已更新為使用統一的 WeaponMods 系統
  */
 export class WeaponPropertyService {
     private static instance: WeaponPropertyService;
 
-    // 🆕 三個 Map 分別儲存
+    // Map 儲存各種配置定義
     private statusEffects: Map<string, StatusEffectDefinition> = new Map();
-    private weaponModifiers: Map<string, WeaponModifier> = new Map();
-    private attributeBonuses: Map<string, AttributeBonus> = new Map();
-
+    private weaponMods: Map<string, WeaponMod> = new Map();
     private isInitialized: boolean = false;
 
     private constructor() { }
@@ -26,7 +27,7 @@ export class WeaponPropertyService {
     }
 
     /**
-     * 🆕 初始化屬性系統 - 載入三個表
+     * 🆕 初始化屬性系統 - 載入配置表
      */
     public async initialize(): Promise<void> {
         if (this.isInitialized) return;
@@ -43,23 +44,16 @@ export class WeaponPropertyService {
                 this.statusEffects.set(effect.id, effect);
             }
 
-            // 2. 🆕 載入武器詞綴定義
-            const modifierList = ConfigManager.getAll<WeaponModifier>('WeaponModifiers');
-            for (const modifier of modifierList) {
-                this.weaponModifiers.set(modifier.id, modifier);
-            }
-
-            // 3. 🆕 載入屬性加成定義
-            const bonusList = ConfigManager.getAll<AttributeBonus>('AttributeBonus');
-            for (const bonus of bonusList) {
-                this.attributeBonuses.set(bonus.id, bonus);
+            // 2. 🆕 載入統一的武器詞綴定義 (WeaponMods)
+            const modsList = ConfigManager.getAll<WeaponMod>('WeaponMods');
+            for (const mod of modsList) {
+                this.weaponMods.set(mod.id, mod);
             }
 
             this.isInitialized = true;
             console.log(`✅ 武器屬性系統初始化完成`);
             console.log(`   - 狀態效果: ${statusEffectList.length} 個`);
-            console.log(`   - 武器詞綴: ${modifierList.length} 個`);
-            console.log(`   - 屬性加成: ${bonusList.length} 個`);
+            console.log(`   - 武器詞綴: ${modsList.length} 個`);
 
         } catch (error) {
             console.error('❌ 武器屬性系統初始化失敗:', error);
@@ -69,18 +63,17 @@ export class WeaponPropertyService {
     }
 
     /**
-     * 🆕 生成武器的完整屬性（三種資料）
+     * 🆕 生成武器的完整屬性（新系統：狀態效果 + 武器詞綴）
      * @param weaponId 武器ID
      * @param quality 武器品質
-     * @returns 三種屬性資料
+     * @returns 武器屬性資料
      */
     public generateWeaponProperties(
         weaponId: string,
         quality: WeaponQuality
     ): {
         statusEffects: PropertyValue[],
-        modifiers: WeaponModifier[],
-        bonuses: AttributeBonus[]
+        weaponMods: WeaponMod[]
     } {
         if (!this.isInitialized) {
             throw new Error('WeaponPropertyService 未初始化');
@@ -91,28 +84,24 @@ export class WeaponPropertyService {
             const weaponConfig = ConfigManager.getById<WeaponConfigDefinition>('WeaponConfigs', weaponId);
             if (!weaponConfig) {
                 console.warn(`⚠️ 找不到武器配置: ${weaponId}`);
-                return { statusEffects: [], modifiers: [], bonuses: [] };
+                return { statusEffects: [], weaponMods: [] };
             }
 
             // 1. 解析狀態效果（effectProperties）
             const statusEffects = this.parseEffectProperties(weaponConfig.effectProperties || '', quality);
 
-            // 2. 🆕 解析武器詞綴
-            const modifiers = this.parseModifiers(weaponConfig.modifiers || '');
-
-            // 3. 🆕 解析屬性加成
-            const bonuses = this.parseBonuses(weaponConfig.bonuses || '');
+            // 2. 🆕 解析統一的武器詞綴
+            const weaponMods = this.parseWeaponMods(weaponConfig.weaponMods || '');
 
             console.log(`🎲 ${weaponId} (${quality}) 生成了:`);
             console.log(`   - 狀態效果: ${statusEffects.length} 個`);
-            console.log(`   - 武器詞綴: ${modifiers.length} 個`);
-            console.log(`   - 屬性加成: ${bonuses.length} 個`);
+            console.log(`   - 武器詞綴: ${weaponMods.length} 個`);
 
-            return { statusEffects, modifiers, bonuses };
+            return { statusEffects, weaponMods };
 
         } catch (error) {
             console.error(`❌ 生成武器屬性失敗 ${weaponId}:`, error);
-            return { statusEffects: [], modifiers: [], bonuses: [] };
+            return { statusEffects: [], weaponMods: [] };
         }
     }
 
@@ -147,59 +136,31 @@ export class WeaponPropertyService {
     }
 
     /**
-     * 🆕 解析武器詞綴字串
-     * @param modifiersString "piercing,chain_attack,critical_chance"
+     * 🆕 解析統一的武器詞綴字串
+     * @param modsString "strength_mod,piercing,critical_chance"
      */
-    private parseModifiers(modifiersString: string): WeaponModifier[] {
-        if (!modifiersString) return [];
+    private parseWeaponMods(modsString: string): WeaponMod[] {
+        if (!modsString) return [];
 
-        const modIds = modifiersString.split(',').map(s => s.trim());
-        const modifiers: WeaponModifier[] = [];
+        const modIds = modsString.split(',').map(s => s.trim());
+        const mods: WeaponMod[] = [];
 
         for (const modId of modIds) {
-            const modifierDef = this.weaponModifiers.get(modId);
-            if (!modifierDef) {
+            const modDef = this.weaponMods.get(modId);
+            if (!modDef) {
                 console.warn(`⚠️ 未知的武器詞綴: ${modId}`);
                 continue;
             }
 
-            if (!modifierDef.enabled) {
+            if (!modDef.enabled) {
                 console.log(`⏸️ 武器詞綴已停用: ${modId}`);
                 continue;
             }
 
-            modifiers.push(modifierDef);
+            mods.push(modDef);
         }
 
-        return modifiers;
-    }
-
-    /**
-     * 🆕 解析屬性加成字串
-     * @param bonusesString "strength,attack_speed,intelligence"
-     */
-    private parseBonuses(bonusesString: string): AttributeBonus[] {
-        if (!bonusesString) return [];
-
-        const bonusIds = bonusesString.split(',').map(s => s.trim());
-        const bonuses: AttributeBonus[] = [];
-
-        for (const bonusId of bonusIds) {
-            const bonusDef = this.attributeBonuses.get(bonusId);
-            if (!bonusDef) {
-                console.warn(`⚠️ 未知的屬性加成: ${bonusId}`);
-                continue;
-            }
-
-            if (!bonusDef.enabled) {
-                console.log(`⏸️ 屬性加成已停用: ${bonusId}`);
-                continue;
-            }
-
-            bonuses.push(bonusDef);
-        }
-
-        return bonuses;
+        return mods;
     }
     /**
      * 🆕 生成屬性值（POE 風格）

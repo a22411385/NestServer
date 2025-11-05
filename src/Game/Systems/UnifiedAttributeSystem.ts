@@ -11,8 +11,10 @@
 
 import { ServerGameUnit } from '@/Colyseus/Schema/Unit/GameUnit';
 import { WeaponBasic } from '@/Colyseus/Schema/Weapon/Baisc/WeaponBasic';
-import { BonusCalculator, BonusBreakdown } from './BonusCalculator';
+import { BonusCalculator } from './BonusCalculator';
 import { AttributeMappingService } from '@/Game/Services/AttributeMappingService';
+import { ConfigManager } from '../Managers/ConfigManager';
+import { WeaponStatConfig } from '@/Types';
 
 /**
  * 🆕 統一屬性計算系統 (POE風格)
@@ -241,9 +243,12 @@ export class UnifiedAttributeSystem {
     /**
      * 🔧 系統管理
      */
-    static initialize(mappingService?: AttributeMappingService): void {
+    static initialize(): void {
         // 如果提供了服務實例，使用它；否則創建新實例
-        this.mappingService = mappingService || new AttributeMappingService();
+        this.mappingService = new AttributeMappingService();
+
+        const weaponAttributeConfigs = ConfigManager.getAll<WeaponStatConfig>('WeaponStatConfigs');
+        this.mappingService.initializeFromConfig(weaponAttributeConfigs);
         console.log('🎯 UnifiedAttributeSystem 已初始化（配置驅動版本）');
     }
 

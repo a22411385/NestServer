@@ -17,36 +17,6 @@ import { AttributeCategory, WeaponStatConfig } from '@/Types/Equipment/WeaponTyp
 
 export class AttributeMappingService {
     private mappings: Map<string, WeaponStatConfig> = new Map();
-
-    /**
-     * 🆕 從 Google Sheets (WeaponStatConfigs) 初始化映射表
-     * ✅ 使用現有的 WeaponStatConfigs 表，無需創建新表
-     */
-    public async initializeFromGoogleSheets(): Promise<void> {
-        try {
-            const cache = GoogleSheetCache.getInstance();
-            const cacheData = cache.getData();
-
-            if (!cacheData || !cacheData.WeaponStatConfigs) {
-                throw new Error('WeaponStatConfigs 表不存在');
-            }
-
-            const configs = cacheData.WeaponStatConfigs;
-
-            if (!Array.isArray(configs) || configs.length === 0) {
-
-                throw new Error('WeaponStatConfigs 表為空');
-
-            }
-
-            this.initializeFromConfig(configs);
-            console.log(`✅ AttributeMappingService 從 WeaponStatConfigs 初始化完成`);
-        } catch (error) {
-            console.error('❌ 從 Google Sheets 初始化失敗，使用默認配置:', error);
-            throw error;
-        }
-    }
-
     /**
      * 🔧 從配置數組初始化映射表
      */
@@ -54,7 +24,8 @@ export class AttributeMappingService {
         this.mappings.clear();
 
         for (const config of configs) {
-            if (config.enabled != "TRUE") continue;
+            // ✅ GoogleSheetCache 已統一處理 enabled 欄位為布林值
+            if (!config.enabled) continue;
 
             // 存儲主映射
             this.mappings.set(config.attributeId, config);

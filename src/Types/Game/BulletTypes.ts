@@ -40,7 +40,13 @@ export interface BulletCreateConfig {
     // 🆕 標籤系統（避免回查武器）
     tags?: string[];              // 武器完整標籤 ['weapon', 'ranged', 'bow', 'fire']
     elementTags?: string[];       // 元素標籤 ['fire', 'elemental']
-    modifiers?: any[];            // 武器詞綴
+
+    // 🆕 統一武器詞綴系統
+    weaponMods?: any[];           // 統一的武器詞綴 (WeaponMods)
+
+    // ⚠️ 已廢棄 - 保留向後相容
+    /** @deprecated 使用 weaponMods 替代 */
+    modifiers?: any[];            // 舊的武器詞綴
 
     // 🔮 未來可擴展的屬性 (暫時保留註釋作為範例)
     // bounceCount?: number; // 彈射次數

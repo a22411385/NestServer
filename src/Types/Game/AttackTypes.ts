@@ -27,8 +27,6 @@ export interface AttackResult {
 
     // 🆕 標籤系統（POE 風格）
     tags?: string[];              // 武器完整標籤 ['weapon', 'melee', 'sword', 'fire']
-    elementTags?: string[];       // 元素標籤 ['fire', 'elemental']
-    modifiers?: any[];            // 武器詞綴（用於物理效果判斷）
 
     // 🆕 狀態效果 (從武器屬性生成)
     // - 近戰武器: CombatSystem 立即應用到 ServerGameUnit.statusEffects

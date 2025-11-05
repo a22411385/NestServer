@@ -260,7 +260,7 @@ export class ProjectileWeapon extends WeaponBasic {
         // 🆕 獲取武器標籤和元素標籤（確保無重複）
         const tags = Array.from(new Set(this.weaponSchema?.getTags() || []));
         const elementTags = Array.from(new Set(this.weaponSchema?.getElementTags() || []));
-        const modifiers = this.weaponSchema?.getModifiers() || [];
+        const weaponMods = this.weaponSchema?.getWeaponMods() || [];
 
         // 🔍 調試：確認標籤是否被正確讀取
         console.log(`🎯 [ProjectileWeapon] 武器 ${this.weaponId} 創建子彈配置:`);
@@ -278,10 +278,10 @@ export class ProjectileWeapon extends WeaponBasic {
             properties: propertiesMap,
             statusEffects: this.generateStatusEffects(), // 🆕 從屬性生成狀態效果
 
-            // 🆕 攜帶標籤信息到投射物
+            // 🆕 攜帶標籤和詞綴信息到投射物
             tags: tags,
             elementTags: elementTags,
-            modifiers: modifiers,
+            weaponMods: weaponMods, // 🆕 使用統一的 weaponMods
         };
     }
 

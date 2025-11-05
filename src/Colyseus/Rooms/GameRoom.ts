@@ -197,7 +197,7 @@ export class GameRoom extends MiddleRoom<GameRoomState> {
                     if (!hero) return false;
 
                     // 🔧 使用英雄的視野範圍屬性
-                    const visionRange = hero.visionRange || 1500;
+                    const visionRange = hero.getStatDisplay('visionRange') || 1500;
                     const dx = value.position.x - hero.position.x;
                     const dy = value.position.y - hero.position.y;
                     const distSq = dx * dx + dy * dy;
@@ -214,7 +214,7 @@ export class GameRoom extends MiddleRoom<GameRoomState> {
                     if (!hero) return false;
 
                     // 🔧 子彈範圍 = 視野範圍 + 500 緩衝區（避免突然出現）
-                    const bulletRange = (hero.visionRange || 1500) + 500;
+                    const bulletRange = (hero.getStatDisplay('visionRange') || 1500) + 500;
                     const dx = value.startPositionX - hero.position.x;
                     const dy = value.startPositionY - hero.position.y;
                     const distSq = dx * dx + dy * dy;

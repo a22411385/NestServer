@@ -21,22 +21,7 @@ export interface BonusBreakdown {
  * 4. 裝備 (TODO)
  * 
  * 支援的屬性 ID：
- * - area_of_effect: 範圍效果半徑
- * - projectile_speed: 投射物速度
- * - duration: 持續時間
- * - cooldown_reduction: 冷卻縮減
- * - area_damage: 範圍傷害加成
- * - chain_count: 彈射次數
- * - pierce_count: 穿透次數
- * - additional_projectiles: 額外投射物
- * - critical_chance: 暴擊率
- * - critical_damage: 暴擊傷害
- * - life_steal: 生命偷取
- * - armor_penetration: 護甲穿透
- * - fire_damage: 火焰傷害加成
- * - ice_damage: 冰霜傷害加成
- * - lightning_damage: 閃電傷害加成
- * - poison_damage: 毒素傷害加成
+ * 查閱 google-sheets WeaponStatConfigs 配置
  * 
  * @example
  * ```typescript
@@ -59,81 +44,104 @@ export class BonusCalculator {
             more: 1, // MORE 是乘法，初始值為 1
         };
 
-        // 1. ❌ Phase 2: 暫時禁用武器屬性讀取（避免與統一屬性系統重複計算）
-        // 🎯 武器本身的屬性現在由 UnifiedAttributeSystem 處理
-        // if (unit.type === 0) { // UnitType.hero
-        //     const hero = unit as ServerHero;
-        //     if (hero.getEquippedWeapons) {
-        //         const weapons = hero.getEquippedWeapons();
+        // 只處理英雄單位
+        if (unit.type !== 1) { // UnitType.hero = 1
+            return result;
+        }
 
-        //         weapons.forEach((weapon: any) => {
-        //             // 從武器的 properties 中讀取指定屬性
-        //             const property = weapon.properties?.[propertyId];
-        //             if (!property || !property.value) {
-        //                 return;
-        //             }
+        const hero = unit as ServerHero;
 
-        //             // ✅ 根據 modifierType 分類處理
-        //             const modifierType = (property.modifierType || 'increased').toLowerCase();
+        // 1️⃣ 收集武器屬性加成 (從 attributeBonuses)
+        this.collectWeaponBonuses(hero, propertyId, result);
 
-        //             switch (modifierType) {
-        //                 case 'flat':
-        //                     // 固定值（直接加到基礎值）
-        //                     result.flat += property.value;
-        //                     break;
+        // 2️⃣ 收集天賦加成 (TODO: 需要天賦系統實現)
+        // this.collectTalentBonuses(hero, propertyId, result);
 
-        //                 case 'increased':
-        //                     // 百分比加成（加法疊加）
-        //                     result.increased += property.value / 100;
-        //                     break;
-
-        //                 case 'more':
-        //                     // 百分比乘法（乘法疊加）
-        //                     result.more *= (1 + property.value / 100);
-        //                     break;
-
-        //                 default:
-        //                     console.warn(`⚠️ 未知的 modifierType: ${modifierType}，使用 increased`);
-        //                     result.increased += property.value / 100;
-        //             }
-        //         });
-        //     }
-        // }
-
-        // 🆕 Phase 2: 只處理外部加成（非武器本身的屬性）
-        console.log(`🔍 [BonusCalculator] 計算外部加成: ${propertyId} (武器屬性已由統一系統處理)`);
-
-        // 2. TODO: 從天賦系統獲取
-        // if (unit.type === 0) {
-        //     const hero = unit as ServerHero;
-        //     const talentBonus = hero.talentTree?.getBonus(propertyId);
-        //     if (talentBonus) {
-        //         switch (talentBonus.modifierType) {
-        //             case 'flat': result.flat += talentBonus.value; break;
-        //             case 'increased': result.increased += talentBonus.value / 100; break;
-        //             case 'more': result.more *= (1 + talentBonus.value / 100); break;
-        //         }
-        //     }
-        // }
-
-        // 3. TODO: 從狀態效果獲取
-        // const statusBonus = unit.getStatusEffectBonus(propertyId);
-        // if (statusBonus) {
-        //     switch (statusBonus.modifierType) {
-        //         case 'flat': result.flat += statusBonus.value; break;
-        //         case 'increased': result.increased += statusBonus.value / 100; break;
-        //         case 'more': result.more *= (1 + statusBonus.value / 100); break;
-        //     }
-        // }
-
-        // 4. TODO: 從裝備獲取（護甲、飾品等）
-        // if (unit.type === 0) {
-        //     const hero = unit as ServerHero;
-        //     const equipmentBonus = hero.equipment?.getBonus(propertyId);
-        //     if (equipmentBonus) { ... }
-        // }
+        // 3️⃣ 收集狀態效果加成 (TODO: 需要狀態效果系統擴展)
+        // this.collectStatusEffectBonuses(hero, propertyId, result);
 
         return result;
+    }
+
+    /**
+     * 🎯 從武器收集屬性加成
+     */
+    private static collectWeaponBonuses(
+        hero: ServerHero,
+        propertyId: string,
+        result: BonusBreakdown
+    ): void {
+        // 遍歷所有已裝備的武器
+        for (const weaponSchema of hero.weaponInventory) {
+            // 只處理已裝備的武器
+            if (!weaponSchema.isEquipped) {
+                continue;
+            }
+
+            try {
+                // 🆕 獲取統一的武器詞綴 (WeaponMods)
+                const weaponMods = weaponSchema.getWeaponMods();
+                if (!weaponMods || weaponMods.length === 0) {
+                    continue;
+                }
+
+                // 遍歷所有詞綴，找到影響目標屬性的修改器
+                for (const mod of weaponMods) {
+                    if (!mod.enabled) continue;
+
+                    // 檢查是否影響目標屬性（現在是扁平結構）
+                    if (!mod.affectedStat || mod.affectedStat !== propertyId) {
+                        continue;
+                    }
+
+                    // 🆕 將 mod 轉換為舊的 bonus 格式以相容現有邏輯
+                    const bonusLike = {
+                        id: mod.id,
+                        enabled: mod.enabled,
+                        affectedStat: mod.affectedStat,
+                        baseValue: mod.value, // 使用 value 作為 baseValue
+                        modifierType: mod.modifierType,
+                        category: mod.category
+                    };
+
+                    // 根據修改器類型累加到對應分類
+                    this.addBonusToBreakdown(result, bonusLike);
+                }
+            } catch (error) {
+                // 靜默處理解析錯誤，不影響其他武器
+                console.warn(`⚠️ 解析武器詞綴失敗: ${weaponSchema.weaponId}`, error);
+            }
+        }
+    }
+
+    /**
+     * 🎯 將單個加成添加到 BonusBreakdown
+     */
+    private static addBonusToBreakdown(
+        breakdown: BonusBreakdown,
+        bonus: any
+    ): void {
+        const value = bonus.baseValue || 0;
+        const modifierType = (bonus.modifierType || 'flat').toLowerCase();
+
+        switch (modifierType) {
+            case 'flat':
+                breakdown.flat += value;
+                break;
+
+            case 'increased':
+                // 百分比加成，轉換為小數 (例如: 20 → 0.2)
+                breakdown.increased += value / 100;
+                break;
+
+            case 'more':
+                // MORE 是乘法疊加 (例如: 1.0 * 1.2 * 1.15)
+                breakdown.more *= (1 + value / 100);
+                break;
+
+            default:
+                console.warn(`⚠️ 未知的修改器類型: ${modifierType}`);
+        }
     }
 
     /**

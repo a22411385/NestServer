@@ -10,13 +10,9 @@ import { GoogleCacheData } from '@/Types';
  */
 interface SheetConfig {
     /** Google Sheets 中的表單名稱 */
-    sheetName: string;
-    /** 快取資料中的鍵名（通常與 sheetName 相同） */
-    cacheKey: keyof GoogleCacheData;
-    /** 是否為必需表單（預設 false，缺少時只警告不中斷） */
+    sheetName: keyof GoogleCacheData;
     required?: boolean;
-    /** 自訂資料轉換函數（可選） */
-    transform?: (data: any[]) => any[];
+
 }
 
 /**
@@ -41,21 +37,20 @@ interface SheetConfig {
  */
 const SHEET_CONFIGS: SheetConfig[] = [
     // 核心配置表（必需）
-    { sheetName: 'StatusEffectDefinitions', cacheKey: 'StatusEffectDefinitions', required: true },
-    { sheetName: 'WeaponConfigs', cacheKey: 'WeaponConfigs', required: true },
-    { sheetName: 'MaterialConfigs', cacheKey: 'MaterialConfigs', required: true },
-    { sheetName: 'EnemyConfigs', cacheKey: 'EnemyConfigs', required: true },
-    { sheetName: 'Talents', cacheKey: 'TalentConfigs', required: true },
-    { sheetName: 'TalentEffects', cacheKey: 'TalentEffects', required: true },
+    { sheetName: 'StatusEffectDefinitions', required: true },
+    { sheetName: 'WeaponConfigs', required: true },
+    { sheetName: 'MaterialConfigs', required: true },
+    { sheetName: 'EnemyConfigs', required: true },
+    { sheetName: 'Talents', required: true },
+    { sheetName: 'TalentEffects', required: true },
 
     // 擴展配置表（可選）
-    { sheetName: 'WeaponModifiers', cacheKey: 'WeaponModifiers' },
-    { sheetName: 'AttributeBonus', cacheKey: 'AttributeBonus' },
-    { sheetName: 'TagDefinitions', cacheKey: 'TagDefinitions' },
-    { sheetName: 'WeaponStatConfigs', cacheKey: 'WeaponStatConfigs' },
+    { sheetName: 'WeaponMods' },
+    { sheetName: 'TagDefinitions' },
+    { sheetName: 'WeaponStatConfigs' },
 
     // � 視覺效果配置表
-    { sheetName: 'VisualEffectDefinitions', cacheKey: 'VisualEffectDefinitions' },
+    { sheetName: 'VisualEffectDefinitions' },
 ];
 
 /**
@@ -122,10 +117,43 @@ export class GoogleSheetCache {
     }
 
     /**
+     * 🎯 標準化布林值欄位
+     * 將字串 "TRUE"/"FALSE" 轉換為布林值 true/false
+     */
+    private normalizeBooleanFields(data: any[]): any[] {
+        return data.map(row => {
+            const normalizedRow = { ...row };
+
+            // 處理所有可能的布林欄位
+            const booleanFields = ['enabled', 'stackable', 'required', 'isActive', 'is_active'];
+
+            for (const field of booleanFields) {
+                if (field in normalizedRow) {
+                    const value = normalizedRow[field];
+
+                    // 字串 "TRUE" → true
+                    if (value === "TRUE" || value === "true") {
+                        normalizedRow[field] = true;
+                    }
+                    // 字串 "FALSE" → false
+                    else if (value === "FALSE" || value === "false") {
+                        normalizedRow[field] = false;
+                    }
+                    // 已經是布林值則保持不變
+                    // 其他值保持原樣
+                }
+            }
+
+            return normalizedRow;
+        });
+    }
+
+    /**
      * 🎯 更新快取資料（配置驅動版本）
      * ✅ 自動讀取 SHEET_CONFIGS 中定義的所有表單
      * ✅ 支援必需/可選表單
      * ✅ 支援自訂資料轉換
+     * ✅ 統一處理 enabled 等布林欄位
      * 
      * @throws {Error} 當必需表單缺少時拋出錯誤
      */
@@ -163,7 +191,7 @@ export class GoogleSheetCache {
                         console.error(`❌ 必需表單缺少: ${config.sheetName}`);
                     } else {
                         console.warn(`⚠️ 可選表單缺少: ${config.sheetName}，將使用空陣列`);
-                        cacheData[config.cacheKey] = [];
+                        cacheData[config.sheetName] = [];
                     }
                     continue;
                 }
@@ -171,13 +199,16 @@ export class GoogleSheetCache {
                 // 轉換為 JSON
                 let data = XLSX.utils.sheet_to_json(sheet);
 
-                // 應用自訂轉換函數（如果有）
-                if (config.transform) {
-                    data = config.transform(data);
+                // 🎯 統一標準化布林值欄位 (將 "TRUE"/"FALSE" 轉為 true/false)
+                data = this.normalizeBooleanFields(data);
+
+                // 🆕 特殊處理：WeaponMods 表需要將拆分欄位組合回 modifiers 陣列
+                if (config.sheetName === 'WeaponMods') {
+                    data = this.transformWeaponMods(data);
                 }
 
                 // 儲存到快取
-                cacheData[config.cacheKey] = data;
+                cacheData[config.sheetName] = data;
 
                 // 統計
                 if (config.required) {
@@ -226,9 +257,41 @@ export class GoogleSheetCache {
         }
     }
 
-    public getLastUpdated(): string | null {
-        const data = this.getData();
-        return data?.lastUpdated || null;
+    /**
+     * 🆕 轉換 WeaponMods 表：扁平結構處理（每個 id 只有一個條目）
+     * 
+     * ✅ 新的扁平結構：
+     * - affectedStat, value, valueType, modifierType 直接在 WeaponMod 上
+     * - 不再需要 modifiers 陣列
+     * - 不再使用 minValue/maxValue（改用 value）
+     * 
+     * 🔧 這個函數現在只做簡單的欄位轉換和清理
+     */
+    private transformWeaponMods(data: any[]): any[] {
+        return data.map(row => {
+            // 🔧 確保數值類型正確
+            if (row.value !== undefined) {
+                row.value = Number(row.value) || 0;
+            }
+
+            // 🔧 確保布林類型正確
+            if (row.enabled !== undefined) {
+                row.enabled = row.enabled === 'TRUE' || row.enabled === true;
+            }
+            if (row.stackable !== undefined) {
+                row.stackable = row.stackable === 'TRUE' || row.stackable === true;
+            }
+
+            // 🔧 確保數字類型
+            if (row.weight !== undefined) {
+                row.weight = Number(row.weight) || 0;
+            }
+            if (row.requiredLevel !== undefined) {
+                row.requiredLevel = Number(row.requiredLevel) || 0;
+            }
+
+            return row;
+        });
     }
 
     public clearCache(): void {

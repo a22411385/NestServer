@@ -9,7 +9,6 @@ import { DamageResult } from './DamageSystem';
 import { WeaponBasic } from '@/Colyseus/Schema/Weapon/Baisc';
 import { StatusEffect } from '@/Colyseus/Schema/Unit/GameUnit';
 import { BehaviorResolver } from '../BehaviorResolver';
-import { UnifiedAttributeSystem } from '../UnifiedAttributeSystem';
 
 /**
  * 戰鬥系統 - 負責處理所有戰鬥相關邏輯（英雄攻擊、敵人攻擊、戰鬥協調）
@@ -123,8 +122,9 @@ export class CombatSystem {
 
             // ✅ 從武器詞綴解析 Behaviors（POE 風格）
             const weaponTags = weapon.getTags();
+            const weaponMods = weapon.getWeaponMods(); // 🆕 獲取統一詞綴
             const behaviors = BehaviorResolver.getBehaviorsFromModifiers(
-                result.modifiers || [],
+                weaponMods,
                 weaponTags
             );
 
@@ -138,7 +138,6 @@ export class CombatSystem {
                     direction: result.attackData?.direction || { x: 1, y: 0 },
                     weaponId: result.weaponId || '',
                     statusEffects: result.statusEffects || [],
-                    modifiers: result.modifiers || [],
                     behaviors: behaviors, // ✅ 從詞綴自動生成
                 });
 
@@ -208,7 +207,7 @@ export class CombatSystem {
 
     /**
      * 🎨 生成視覺效果資訊
-     * 從武器詞綴(modifiers)和傷害結果生成客戶端需要的視覺效果資料
+     * 從武器詞綴和傷害結果生成客戶端需要的視覺效果資料
      */
     private generateVisualEffects(
         hero: ServerHero,
@@ -216,10 +215,16 @@ export class CombatSystem {
         damageResults: DamageResult[]
     ): CombatVisualEffect[] {
         const effects: CombatVisualEffect[] = [];
-        const modifiers = result.modifiers || [];
+
+        // 🆕 從武器獲取統一詞綴
+        const equippedWeapons = hero.getEquippedWeapons();
+        const weapon = equippedWeapons.find((w) => w.weaponId === result.weaponId);
+        if (!weapon) return effects;
+
+        const weaponMods = weapon.getWeaponMods();
 
         // 遍歷武器詞綴，根據標籤生成視覺效果
-        for (const mod of modifiers) {
+        for (const mod of weaponMods) {
             if (!mod.tags) continue;
 
             const tags = mod.tags.split(',').map((t: string) => t.trim());
@@ -316,7 +321,7 @@ export class CombatSystem {
                             type: 'particle',
                             tags: mod.tags,
                             position: { x: firstTarget.position.x, y: firstTarget.position.y },
-                            radius: mod.baseValue || 100, // ⚠️ 暫用基礎值（需改進）
+                            radius: mod.value || 100, // ⚠️ 暫用基礎值（需改進）
                             affectedTargets: damageResults.map(r => r.targetId),
                         };
                         effects.push(areaEffect);

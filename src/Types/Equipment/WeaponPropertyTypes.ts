@@ -6,12 +6,20 @@
 /**
  * 修改器類型 - POE 風格命名
  * 決定數值如何影響最終計算
+ * 
+ * @deprecated 使用 WeaponModTypes.ts 中的 ModifierType
  */
 export enum ModifierType {
     FLAT = 'flat',              // 固定值加成 (+15)
     INCREASED = 'increased',    // 百分比加成，加法疊加 (+15%)
     MORE = 'more'               // 百分比乘法，乘法疊加 (更多 15%)
 }
+
+/**
+ * 🆕 從 WeaponModTypes 導入統一的 ModifierType
+ * 避免重複定義
+ */
+export type { ModifierType as WeaponModifierType } from './WeaponModTypes';
 
 /**
  * 屬性類別
@@ -72,6 +80,7 @@ export interface StatusEffectDefinition {
 }
 
 /**
+ * @deprecated 已合併到 WeaponMod (WeaponModTypes.ts)
  * 🆕 武器詞綴定義 (從 Google Sheets 載入)
  * 定義武器的固定特性和攻擊機制
  */
@@ -95,6 +104,7 @@ export interface WeaponModifier {
 }
 
 /**
+ * @deprecated 已合併到 WeaponMod (WeaponModTypes.ts)
  * 🆕 屬性加成定義 (從 Google Sheets 載入)
  * 定義角色/武器的永久性屬性加成
  */
@@ -138,8 +148,10 @@ export interface WeaponConfigDefinition {
 
     // 屬性配置
     effectProperties: string;      // 武器效果屬性列表 (burn,sweep_angle)
-    modifiers: string;     // 武器屬性詞綴列表 (piercing,chain_attack)
-    bonuses: string;       // 固定屬性加成列表 (strength,attack_damage)
+
+    // ✨ 新：統一詞綴系統
+    weaponMods?: string;           // 統一武器詞綴列表 (strength_mod,piercing,critical_chance)
+
     enabled: boolean;
 }
 

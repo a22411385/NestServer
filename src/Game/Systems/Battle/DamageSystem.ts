@@ -6,6 +6,7 @@ import { UnitType } from '../../../Colyseus/Schema/GameState';
 import { BattleMathUtils } from '../../../Util/BattleMathUtils';
 import { WeaponModifier } from '../../../Types/Equipment/WeaponPropertyTypes';
 import { BonusCalculator } from '../BonusCalculator';
+import { UnifiedAttributeSystem } from '../UnifiedAttributeSystem';
 
 export interface DamageInfo {
     attacker?: ServerGameUnit; // 🆕 改為可選（DOT 可能沒有施加者）
@@ -281,15 +282,9 @@ export class DamageSystem {
      */
     private rollCriticalHit(attacker: ServerGameUnit, target: ServerGameUnit): boolean {
         if (attacker.type === UnitType.hero) {
-            const hero = attacker as ServerHero;
-
-            // 基礎暴擊率（來自角色屬性）
-            const baseCritRate = hero.critRate || 0;
-
-            // ✅ 使用 BonusCalculator 獲取所有來源的暴擊率加成
-            const bonus = BonusCalculator.getPropertyBonus('critical_chance', attacker);
+            // ✅ 使用 UnifiedAttributeSystem 統一查詢暴擊率（包含所有加成）
             const totalCritRate = Math.min(
-                BonusCalculator.applyBonus(baseCritRate, bonus),
+                UnifiedAttributeSystem.getCriticalChance(attacker),
                 100 // 暴擊率上限 100%
             );
 

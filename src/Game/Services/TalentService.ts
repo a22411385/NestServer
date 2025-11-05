@@ -1,5 +1,6 @@
 import { GoogleSheetCache } from "../../Tasks/GoogleSheetCache";
 import { TalentConfig, TalentEffect, TalentCategory, TalentPropertyType } from "../../Types/Game/TalentTypes";
+import { ConfigManager } from "../Managers/ConfigManager";
 
 /**
  * 天賦服務 - 負責天賦資料管理和配置載入
@@ -29,21 +30,11 @@ export class TalentService {
 
         try {
             console.log('🌟 初始化天賦系統...');
+            const talents = ConfigManager.getAll<TalentConfig>('Talents');
+            this.loadTalentConfigs(talents);
 
-            const cachedData = GoogleSheetCache.getInstance().getData();
-            if (!cachedData) {
-                throw new Error('Google Sheets 資料未載入');
-            }
-
-            // 載入天賦配置
-            if (cachedData.TalentConfigs) {
-                this.loadTalentConfigs(cachedData.TalentConfigs);
-            }
-
-            // 載入天賦效果
-            if (cachedData.TalentEffects) {
-                this.loadTalentEffects(cachedData.TalentEffects);
-            }
+            const TalentEffects = ConfigManager.getAll<TalentEffect>('TalentEffects');
+            this.loadTalentEffects(TalentEffects);
 
             // 建立分類索引
             this.buildCategoryIndex();

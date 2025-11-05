@@ -63,8 +63,9 @@ export class WeaponSchema extends Schema {
 
     // === 🆕 武器詞綴和屬性加成 (JSON 序列化) ===
     @type("string") effectPropertiesJson: string = "[]"; // 🆕 狀態效果列表（JSON）- 如燃燒、穿透等
-    @type("string") modifiersJson: string = "[]";       // 武器詞綴列表（JSON）
-    @type("string") bonusesJson: string = "[]";         // 屬性加成列表（JSON）
+
+    // ✨ 新：統一武器詞綴系統
+    @type("string") weaponModsJson: string = "[]";      // 🆕 統一武器詞綴列表（JSON）
 
     // === 🆕 最終計算屬性緩存 (不同步到客戶端) ===
     private _cachedStats: {};
@@ -118,14 +119,13 @@ export class WeaponSchema extends Schema {
     }
 
     /**
-     * 🆕 應用所有屬性（三種資料）
+     * 🆕 應用所有屬性（新系統：狀態效果 + 武器詞綴）
      * ⚠️ 注意: 此方法只存儲原始配置數據，不計算最終屬性
      * 最終屬性由 WeaponDataService.calculateFinalStats() 計算
      */
     public applyAllProperties(data: {
         statusEffects: PropertyValue[],
-        modifiers: any[],
-        bonuses: any[]
+        weaponMods: any[]
     }): void {
         // 1. 狀態效果（用於 UI 顯示和參考）
         this.fixedProperties = [];
@@ -135,18 +135,16 @@ export class WeaponSchema extends Schema {
         // 同步到客戶端
         this.effectPropertiesJson = JSON.stringify(data.statusEffects);
 
-        // 2. 武器詞綴（JSON 序列化，同步到客戶端）
-        this.modifiersJson = JSON.stringify(data.modifiers);
+        // 2. 🆕 統一武器詞綴（JSON 序列化，同步到客戶端）
+        this.weaponModsJson = JSON.stringify(data.weaponMods);
 
-        // 3. 屬性加成（JSON 序列化，同步到客戶端）
-        this.bonusesJson = JSON.stringify(data.bonuses);
-
-        console.log(`✅ 武器屬性已應用:`);
+        console.log(`✅ 武器屬性已應用 (新系統):`);
         console.log(`   - 狀態效果: ${this.fixedProperties.length} 個`);
-        console.log(`   - 武器詞綴: ${data.modifiers.length} 個`);
-        console.log(`   - 屬性加成: ${data.bonuses.length} 個`);
+        console.log(`   - 武器詞綴: ${data.weaponMods.length} 個`);
         console.log(`   ⚠️  注意: 最終屬性需要調用 updateFinalStats() 來計算`);
     }
+
+
 
     /**
      * 🆕 獲取單個屬性（POE風格）
@@ -187,11 +185,12 @@ export class WeaponSchema extends Schema {
     }
 
     /**
-     * 🆕 獲取武器詞綴
+     * 🆕 獲取統一的武器詞綴 (WeaponMods)
+     * @returns WeaponMod[] 武器詞綴陣列
      */
-    public getModifiers(): any[] {
+    public getWeaponMods(): import("@/Types").WeaponMod[] {
         try {
-            return JSON.parse(this.modifiersJson || "[]");
+            return JSON.parse(this.weaponModsJson || "[]");
         } catch (error) {
             console.error('❌ 解析武器詞綴失敗:', error);
             return [];
@@ -199,23 +198,11 @@ export class WeaponSchema extends Schema {
     }
 
     /**
-     * 🆕 獲取屬性加成
-     */
-    public getBonuses(): any[] {
-        try {
-            return JSON.parse(this.bonusesJson || "[]");
-        } catch (error) {
-            console.error('❌ 解析屬性加成失敗:', error);
-            return [];
-        }
-    }
-
-    /**
      * 🆕 檢查是否有特定詞綴
      */
-    public hasModifier(modifierId: string): boolean {
-        const modifiers = this.getModifiers();
-        return modifiers.some((mod: any) => mod.id === modifierId);
+    public hasWeaponMod(modId: string): boolean {
+        const mods = this.getWeaponMods();
+        return mods.some(mod => mod.id === modId);
     }
 
     // === 🆕 最終屬性管理 ===

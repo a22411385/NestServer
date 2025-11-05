@@ -1,11 +1,11 @@
 {
-  "lastUpdated": "2025-11-05T04:04:08.349Z",
+  "lastUpdated": "2025-11-05T15:26:08.365Z",
   "StatusEffectDefinitions": [
     {
       "id": "burn",
       "displayName": "燃燒",
       "description": "攻擊時有機率造成持續燃燒傷害",
-      "tags": "fire,ailment,elemental,debuff,damage",
+      "tags": "fire,damage,ailment,elemental,debuff",
       "baseProbability": 30,
       "duration": 4,
       "baseDamage": 10,
@@ -50,7 +50,7 @@
       "id": "poison",
       "displayName": "中毒",
       "description": "攻擊時有機率造成持續中毒傷害",
-      "tags": "poison,ailment,elemental,debuff,damage",
+      "tags": "poison,damage,ailment,elemental,debuff",
       "baseProbability": 25,
       "duration": 5,
       "baseDamage": 8,
@@ -65,7 +65,7 @@
       "id": "bleed",
       "displayName": "流血",
       "description": "攻擊時有機率造成流血",
-      "tags": "physical,ailment,debuff,damage",
+      "tags": "physical,damage,ailment,debuff",
       "baseProbability": 25,
       "duration": 10,
       "baseDamage": 5,
@@ -98,14 +98,13 @@
       "description": "基礎近戰武器",
       "name": "iron_sword",
       "displayName": "鐵劍",
-      "tags": "physical,melee,sword, area,burn",
+      "tags": "physical,melee,burn,sword,area",
       "baseDamage": 50,
       "attackSpeed": 1000,
       "attackRange": 100,
       "classModule": "MeleeWeapon",
       "effectProperties": "burn",
-      "modifiers": "sweep_angle, knockback",
-      "bonuses": "strength",
+      "weaponMods": "sweep_angle, knockback",
       "enabled": true
     },
     {
@@ -113,14 +112,13 @@
       "description": "釋放火球的魔法杖",
       "name": "fire_staff",
       "displayName": "火焰法杖",
-      "tags": "fire,projectile,explosive,ranged, trail,aoe,burn,weapon,staff",
+      "tags": "fire,projectile,ranged,explosive,aoe,burn,trail,weapon,staff",
       "baseDamage": 20,
       "attackSpeed": 1500,
       "attackRange": 500,
       "classModule": "ProjectileWeapon",
       "effectProperties": "burn",
-      "modifiers": "critical_chance, area_of_effect",
-      "bonuses": "intelligence",
+      "weaponMods": "critical_chance, area_of_effect",
       "enabled": true
     },
     {
@@ -128,14 +126,13 @@
       "description": "快速攻擊的刺客武器",
       "name": "poison_dagger",
       "displayName": "毒刃",
-      "tags": "weapon,melee,dagger",
+      "tags": "melee,weapon,dagger",
       "baseDamage": 40,
       "attackSpeed": 800,
       "attackRange": 80,
       "classModule": "MeleeWeapon",
       "effectProperties": "poison",
-      "modifiers": "critical_chance",
-      "bonuses": "agility",
+      "weaponMods": "critical_chance",
       "enabled": true
     },
     {
@@ -149,8 +146,7 @@
       "attackRange": 400,
       "classModule": "ProjectileWeapon",
       "effectProperties": "stun",
-      "modifiers": "chain_attack",
-      "bonuses": "intelligence",
+      "weaponMods": "chain_attack",
       "enabled": true
     }
   ],
@@ -659,7 +655,7 @@
       "enabled": true
     }
   ],
-  "TalentConfigs": [
+  "Talents": [
     {
       "id": "combat_dmg_boost_1",
       "name": "蠻力",
@@ -908,18 +904,21 @@
       "stack_type": "ADDITIVE"
     }
   ],
-  "WeaponModifiers": [
+  "WeaponMods": [
     {
       "id": "piercing",
       "displayName": "穿透",
       "description": "攻擊可以穿透多個敵人",
       "tags": "attack,mechanic,pierce",
-      "baseValue": 1,
+      "affectedStat": "pierce_count",
+      "value": 1,
       "valueType": "次",
       "modifierType": "flat",
-      "affectedStat": "pierce_count",
-      "category": "attack_mechanic",
+      "category": "mechanic",
+      "modType": "suffix",
       "stackable": true,
+      "weight": 500,
+      "requiredLevel": 1,
       "enabled": true
     },
     {
@@ -927,12 +926,15 @@
       "displayName": "連鎖攻擊",
       "description": "攻擊可以跳躍到附近敵人",
       "tags": "attack,mechanic,chain",
-      "baseValue": 3,
+      "affectedStat": "chain_count",
+      "value": 3,
       "valueType": "次",
       "modifierType": "flat",
-      "affectedStat": "chain_count",
-      "category": "attack_mechanic",
+      "category": "mechanic",
+      "modType": "suffix",
       "stackable": false,
+      "weight": 500,
+      "requiredLevel": 1,
       "enabled": true
     },
     {
@@ -940,12 +942,15 @@
       "displayName": "濺射傷害",
       "description": "攻擊對範圍內敵人造成額外傷害",
       "tags": "attack,mechanic,area",
-      "baseValue": 50,
+      "affectedStat": "damage",
+      "value": 50,
       "valueType": "%",
       "modifierType": "increased",
-      "affectedStat": "damage",
-      "category": "attack_mechanic",
+      "category": "mechanic",
+      "modType": "suffix",
       "stackable": false,
+      "weight": 500,
+      "requiredLevel": 1,
       "enabled": true
     },
     {
@@ -953,12 +958,15 @@
       "displayName": "掃擊角度",
       "description": "增加近戰武器的攻擊扇形角度",
       "tags": "melee,mechanic,area",
-      "baseValue": 30,
+      "affectedStat": "sweep_angle",
+      "value": 30,
       "valueType": "角度",
       "modifierType": "flat",
-      "affectedStat": "sweep_angle",
-      "category": "attack_mechanic",
+      "category": "mechanic",
+      "modType": "suffix",
       "stackable": true,
+      "weight": 500,
+      "requiredLevel": 1,
       "enabled": true
     },
     {
@@ -966,12 +974,15 @@
       "displayName": "穿透次數",
       "description": "投射物可以穿透的敵人數量",
       "tags": "projectile,mechanic,pierce",
-      "baseValue": 2,
+      "affectedStat": "pierce_count",
+      "value": 2,
       "valueType": "次",
       "modifierType": "flat",
-      "affectedStat": "pierce_count",
-      "category": "attack_mechanic",
+      "category": "mechanic",
+      "modType": "suffix",
       "stackable": false,
+      "weight": 500,
+      "requiredLevel": 1,
       "enabled": true
     },
     {
@@ -979,12 +990,15 @@
       "displayName": "投射物速度",
       "description": "增加投射物的飛行速度",
       "tags": "projectile,mechanic,speed",
-      "baseValue": 50,
+      "affectedStat": "projectile_speed",
+      "value": 50,
       "valueType": "%",
       "modifierType": "increased",
-      "affectedStat": "projectile_speed",
-      "category": "attack_mechanic",
+      "category": "mechanic",
+      "modType": "suffix",
       "stackable": true,
+      "weight": 500,
+      "requiredLevel": 1,
       "enabled": true
     },
     {
@@ -992,12 +1006,15 @@
       "displayName": "範圍效果",
       "description": "增加技能或攻擊的影響範圍",
       "tags": "aoe,mechanic",
-      "baseValue": 80,
+      "affectedStat": "area_radius",
+      "value": 80,
       "valueType": "範圍",
       "modifierType": "flat",
-      "affectedStat": "area_radius",
-      "category": "attack_mechanic",
+      "category": "mechanic",
+      "modType": "suffix",
       "stackable": true,
+      "weight": 500,
+      "requiredLevel": 1,
       "enabled": true
     },
     {
@@ -1005,12 +1022,15 @@
       "displayName": "暴擊機率",
       "description": "增加造成暴擊的機率",
       "tags": "combat,critical",
-      "baseValue": 5,
+      "affectedStat": "crit_rate",
+      "value": 5,
       "valueType": "%",
       "modifierType": "flat",
-      "affectedStat": "crit_rate",
-      "category": "combat_stat",
+      "category": "combat",
+      "modType": "prefix",
       "stackable": true,
+      "weight": 500,
+      "requiredLevel": 1,
       "enabled": true
     },
     {
@@ -1018,12 +1038,15 @@
       "displayName": "暴擊傷害",
       "description": "增加暴擊時的傷害倍數",
       "tags": "combat,critical,damage",
-      "baseValue": 50,
+      "affectedStat": "critical_damage",
+      "value": 50,
       "valueType": "%",
       "modifierType": "increased",
-      "affectedStat": "critical_damage",
-      "category": "combat_stat",
+      "category": "combat",
+      "modType": "prefix",
       "stackable": true,
+      "weight": 500,
+      "requiredLevel": 1,
       "enabled": true
     },
     {
@@ -1031,12 +1054,15 @@
       "displayName": "生命偷取",
       "description": "攻擊時回復等同於傷害百分比的生命值",
       "tags": "combat,healing,lifesteal",
-      "baseValue": 5,
+      "affectedStat": "life_steal",
+      "value": 5,
       "valueType": "%",
       "modifierType": "flat",
-      "affectedStat": "life_steal",
-      "category": "combat_stat",
+      "category": "combat",
+      "modType": "prefix",
       "stackable": true,
+      "weight": 500,
+      "requiredLevel": 1,
       "enabled": true
     },
     {
@@ -1044,12 +1070,15 @@
       "displayName": "治療量",
       "description": "增加治療技能的恢復量",
       "tags": "support,healing",
-      "baseValue": 10,
+      "affectedStat": "heal_amount",
+      "value": 10,
       "valueType": "%",
       "modifierType": "increased",
-      "affectedStat": "heal_amount",
       "category": "support",
+      "modType": "prefix",
       "stackable": true,
+      "weight": 500,
+      "requiredLevel": 1,
       "enabled": true
     },
     {
@@ -1057,12 +1086,15 @@
       "displayName": "增益持續",
       "description": "增加增益效果的持續時間",
       "tags": "support,buff",
-      "baseValue": 20,
+      "affectedStat": "buff_duration",
+      "value": 20,
       "valueType": "%",
       "modifierType": "increased",
-      "affectedStat": "buff_duration",
       "category": "support",
+      "modType": "prefix",
       "stackable": true,
+      "weight": 500,
+      "requiredLevel": 1,
       "enabled": true
     },
     {
@@ -1070,12 +1102,15 @@
       "displayName": "支援範圍",
       "description": "增加支援技能的影響範圍",
       "tags": "support,area",
-      "baseValue": 50,
+      "affectedStat": "support_radius",
+      "value": 50,
       "valueType": "距離",
       "modifierType": "increased",
-      "affectedStat": "support_radius",
       "category": "support",
+      "modType": "prefix",
       "stackable": true,
+      "weight": 500,
+      "requiredLevel": 1,
       "enabled": true
     },
     {
@@ -1083,12 +1118,15 @@
       "displayName": "攻擊力",
       "description": "增加武器基礎攻擊力",
       "tags": "attack,damage,physical",
-      "baseValue": 5,
+      "affectedStat": "attack_damage",
+      "value": 5,
       "valueType": "%",
       "modifierType": "increased",
-      "affectedStat": "attack_damage",
-      "category": "combat_stat",
+      "category": "combat",
+      "modType": "prefix",
       "stackable": true,
+      "weight": 500,
+      "requiredLevel": 1,
       "enabled": true
     },
     {
@@ -1096,26 +1134,31 @@
       "displayName": "擊退",
       "description": "擁有擊退能力",
       "tags": "attack, knockback",
-      "baseValue": 50,
+      "affectedStat": "knockback_force",
+      "value": 50,
       "valueType": "距離",
       "modifierType": "flat",
-      "affectedStat": "knockback_force",
-      "category": "combat_stat",
+      "category": "combat",
+      "modType": "prefix",
       "stackable": false,
+      "weight": 500,
+      "requiredLevel": 1,
       "enabled": true
-    }
-  ],
-  "AttributeBonus": [
+    },
     {
       "id": "strength",
       "displayName": "力量",
       "description": "增加角色的力量屬性",
       "tags": "attribute",
-      "baseValue": 10,
-      "modifierType": "flat",
       "affectedStat": "strength",
-      "category": "character_stat",
+      "value": 10,
+      "valueType": "",
+      "modifierType": "flat",
+      "category": "attribute",
+      "modType": "prefix",
       "stackable": true,
+      "weight": 1000,
+      "requiredLevel": 1,
       "enabled": true
     },
     {
@@ -1123,11 +1166,15 @@
       "displayName": "體力",
       "description": "增加角色的體力屬性",
       "tags": "attribute",
-      "baseValue": 10,
-      "modifierType": "flat",
       "affectedStat": "vitality",
-      "category": "character_stat",
+      "value": 10,
+      "valueType": "",
+      "modifierType": "flat",
+      "category": "attribute",
+      "modType": "prefix",
       "stackable": true,
+      "weight": 1000,
+      "requiredLevel": 1,
       "enabled": true
     },
     {
@@ -1135,11 +1182,15 @@
       "displayName": "智力",
       "description": "增加角色的智力屬性",
       "tags": "attribute",
-      "baseValue": 10,
-      "modifierType": "flat",
       "affectedStat": "intelligence",
-      "category": "character_stat",
+      "value": 10,
+      "valueType": "",
+      "modifierType": "flat",
+      "category": "attribute",
+      "modType": "prefix",
       "stackable": true,
+      "weight": 1000,
+      "requiredLevel": 1,
       "enabled": true
     },
     {
@@ -1147,11 +1198,15 @@
       "displayName": "敏捷",
       "description": "增加角色的敏捷屬性",
       "tags": "attribute",
-      "baseValue": 10,
-      "modifierType": "flat",
       "affectedStat": "agility",
-      "category": "character_stat",
+      "value": 10,
+      "valueType": "",
+      "modifierType": "flat",
+      "category": "attribute",
+      "modType": "prefix",
       "stackable": true,
+      "weight": 1000,
+      "requiredLevel": 1,
       "enabled": true
     },
     {
@@ -1159,23 +1214,31 @@
       "displayName": "攻擊速度",
       "description": "減少攻擊間隔時間",
       "tags": "attack,speed,combat",
-      "baseValue": 10,
+      "affectedStat": "attackSpeed",
+      "value": 10,
+      "valueType": "%",
       "modifierType": "increased",
-      "affectedStat": "attack_speed",
-      "category": "weapon_stat",
+      "category": "combat",
+      "modType": "prefix",
       "stackable": true,
+      "weight": 1000,
+      "requiredLevel": 1,
       "enabled": true
     },
     {
-      "id": "attack_range",
+      "id": "attack_range_100",
       "displayName": "攻擊距離",
       "description": "增加武器攻擊範圍",
       "tags": "attack,combat",
-      "baseValue": 20,
-      "modifierType": "flat",
       "affectedStat": "attack_range",
-      "category": "weapon_stat",
+      "value": 100,
+      "valueType": "距離",
+      "modifierType": "flat",
+      "category": "combat",
+      "modType": "prefix",
       "stackable": true,
+      "weight": 1000,
+      "requiredLevel": 1,
       "enabled": true
     }
   ],
@@ -1796,7 +1859,6 @@
       "description": "武器傷害",
       "type": "number",
       "category": "combat",
-      "aliases": "",
       "enabled": true
     },
     {
@@ -1805,7 +1867,6 @@
       "description": "攻擊距離",
       "type": "number",
       "category": "combat",
-      "aliases": "",
       "enabled": true
     },
     {
@@ -1814,7 +1875,6 @@
       "description": "移動速度",
       "type": "number",
       "category": "combat",
-      "aliases": "",
       "enabled": true
     },
     {
@@ -1823,7 +1883,6 @@
       "description": "攻擊速度",
       "type": "number",
       "category": "combat",
-      "aliases": "",
       "enabled": true
     },
     {
@@ -1832,7 +1891,6 @@
       "description": "爆擊機率",
       "type": "number",
       "category": "critical",
-      "aliases": "crit_chance,critical_strike_chance",
       "enabled": true
     },
     {
@@ -1841,7 +1899,6 @@
       "description": "爆擊傷害",
       "type": "number",
       "category": "critical",
-      "aliases": "crit_damage,critical_strike_multiplier",
       "enabled": true
     },
     {
@@ -1850,7 +1907,6 @@
       "description": "生命偷取",
       "type": "number",
       "category": "survival",
-      "aliases": "life_leech",
       "enabled": true
     },
     {
@@ -1859,7 +1915,6 @@
       "description": "穿透數量",
       "type": "number",
       "category": "special",
-      "aliases": "",
       "enabled": true
     },
     {
@@ -1868,7 +1923,6 @@
       "description": "連鎖次數",
       "type": "number",
       "category": "special",
-      "aliases": "",
       "enabled": true
     },
     {
@@ -1877,7 +1931,6 @@
       "description": "彈跳次數",
       "type": "number",
       "category": "special",
-      "aliases": "",
       "enabled": true
     },
     {
@@ -1886,7 +1939,6 @@
       "description": "擊退距離",
       "type": "number",
       "category": "special",
-      "aliases": "",
       "enabled": true
     },
     {
@@ -1895,7 +1947,6 @@
       "description": "投射物速度",
       "type": "number",
       "category": "projectile",
-      "aliases": "",
       "enabled": true
     },
     {
@@ -1904,7 +1955,6 @@
       "description": "靈氣作用範圍",
       "type": "number",
       "category": "area",
-      "aliases": "aoe,splash_radius",
       "enabled": true
     },
     {
@@ -1913,7 +1963,6 @@
       "description": "橫掃範圍",
       "type": "number",
       "category": "area",
-      "aliases": "",
       "enabled": true
     },
     {
@@ -1922,7 +1971,6 @@
       "description": "火焰傷害加成",
       "type": "number",
       "category": "elemental",
-      "aliases": "",
       "enabled": true
     },
     {
@@ -1931,7 +1979,6 @@
       "description": "寒冰傷害加成",
       "type": "number",
       "category": "elemental",
-      "aliases": "",
       "enabled": true
     },
     {
@@ -1940,7 +1987,6 @@
       "description": "雷電傷害加成",
       "type": "number",
       "category": "elemental",
-      "aliases": "",
       "enabled": true
     },
     {
@@ -1949,7 +1995,6 @@
       "description": "毒素傷害加成",
       "type": "number",
       "category": "elemental",
-      "aliases": "chaos_damage",
       "enabled": true
     },
     {
@@ -1958,7 +2003,6 @@
       "description": "持續時間加成",
       "type": "number",
       "category": "duration",
-      "aliases": "",
       "enabled": true
     },
     {
@@ -1967,7 +2011,38 @@
       "description": "冷卻時間加成",
       "type": "number",
       "category": "resource",
-      "aliases": "",
+      "enabled": true
+    },
+    {
+      "attributeId": "strength",
+      "statName": "strength",
+      "description": "力量加成",
+      "type": "number",
+      "category": "combat",
+      "enabled": true
+    },
+    {
+      "attributeId": "vitality",
+      "statName": "vitality",
+      "description": "體力加成",
+      "type": "number",
+      "category": "combat",
+      "enabled": true
+    },
+    {
+      "attributeId": "intelligence",
+      "statName": "intelligence",
+      "description": "智力加成",
+      "type": "number",
+      "category": "combat",
+      "enabled": true
+    },
+    {
+      "attributeId": "agility",
+      "statName": "agility",
+      "description": "敏捷加成",
+      "type": "number",
+      "category": "combat",
       "enabled": true
     }
   ],
@@ -1989,7 +2064,7 @@
       "cameraShake": 0,
       "duration": 2,
       "fadeOutDuration": 0.5,
-      "tags": "ice,debuff,freeze"
+      "tags": "ice,freeze,debuff"
     },
     {
       "description": "綠色治療光圈",
@@ -2008,7 +2083,7 @@
       "cameraShake": 0,
       "duration": 1,
       "fadeOutDuration": 0.3,
-      "tags": "healing,buff"
+      "tags": "buff,healing"
     },
     {
       "description": "暈眩衝擊",
@@ -2027,7 +2102,7 @@
       "cameraShake": 0.3,
       "duration": 0.4,
       "fadeOutDuration": 0.2,
-      "tags": "control,stun"
+      "tags": "stun,control"
     },
     {
       "description": "紅色暴擊爆炸特效",
@@ -2046,7 +2121,7 @@
       "cameraShake": 0.4,
       "duration": 0.3,
       "fadeOutDuration": 0.15,
-      "tags": "critical,damage"
+      "tags": "damage,critical"
     },
     {
       "description": "普通命中火花",
@@ -2097,7 +2172,7 @@
       "cameraShake": 0,
       "duration": 1,
       "fadeOutDuration": 1,
-      "tags": "hit,aoe, area, burn"
+      "tags": "aoe,burn,hit,area"
     },
     {
       "description": "流血斬擊效果",
@@ -2161,7 +2236,7 @@
       "rotationSpeed": 1500,
       "duration": 1,
       "fadeOutDuration": 1,
-      "tags": "melee,sword,physical,area"
+      "tags": "physical,melee,sword,area"
     },
     {
       "description": "擊退衝擊波",
@@ -2171,7 +2246,7 @@
       "size": 30,
       "rotationSpeed": 1500,
       "fadeOutDuration": 0.3,
-      "tags": "knockback,physical"
+      "tags": "physical,knockback"
     },
     {
       "description": "法杖揮擊波",

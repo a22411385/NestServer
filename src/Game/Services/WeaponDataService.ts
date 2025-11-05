@@ -1,8 +1,14 @@
 import { WeaponSchema } from "@/Colyseus/Schema/Weapon/WeaponSchema";
 import { WeaponConfigManager } from "../Factories/WeaponConfig";
 import { GoogleSheetCache } from "@/Tasks/GoogleSheetCache";
-import { WeaponModifier } from "@/Types/Equipment/WeaponPropertyTypes";
-import { WeaponStatConfig } from "@/Types";
+import {
+    WeaponStatConfig,
+    WeaponMod,
+    FinalWeaponStats,
+    AttributeMultipliers,
+    ModifierType
+} from "@/Types";
+import { WeaponConfigDefinition } from "@/Types/Equipment/WeaponPropertyTypes";
 
 /**
  * 武器數據服務 - 專注於武器數據的業務邏輯計算
@@ -65,7 +71,7 @@ export class WeaponDataService {
      * 計算武器的最終屬性
      * 🆕 包含武器詞綴和屬性加成的計算
      */
-    static calculateFinalStats(weaponData: WeaponSchema): any {
+    static calculateFinalStats(weaponData: WeaponSchema): FinalWeaponStats {
         const config = WeaponConfigManager.getConfig(weaponData.weaponId);
 
         if (!config) {
@@ -109,12 +115,7 @@ export class WeaponDataService {
     /**
      * 🆕 計算各種加成乘數（POE風格）
      */
-    private static calculateMultipliers(weaponData: WeaponSchema): {
-        damage: number;
-        range: number;
-        speed: number;
-        stats: number;
-    } {
+    private static calculateMultipliers(weaponData: WeaponSchema): AttributeMultipliers {
         // 等級加成（每級+10%）
         const levelMultiplier = 1 + (weaponData.level - 1) * 0.1
 
@@ -136,7 +137,7 @@ export class WeaponDataService {
     /**
      * 生成武器顯示名稱
      */
-    static generateDisplayName(weaponData: WeaponSchema, config?: any): string {
+    static generateDisplayName(weaponData: WeaponSchema, config?: WeaponConfigDefinition): string {
         const weaponConfig = config || WeaponConfigManager.getConfig(weaponData.weaponId);
         let baseName = weaponConfig?.name || weaponData.weaponId
             .replace(/_/g, ' ')
@@ -283,32 +284,49 @@ export class WeaponDataService {
      * 2. INCREASED（提升）- 百分比相加後統一計算
      * 3. MORE（額外）- 百分比相乘
      */
-    private static applyWeaponModifiers(weaponData: WeaponSchema, finalStats: any): void {
+    private static applyWeaponModifiers(weaponData: WeaponSchema, finalStats: FinalWeaponStats): void {
         try {
-            // 獲取武器的所有詞綴
-            const modifiers = weaponData.getModifiers();
-            if (!modifiers || modifiers.length === 0) {
+            // 🆕 獲取統一的武器詞綴 (WeaponMods)
+            const weaponMods = weaponData.getWeaponMods() as WeaponMod[];
+            if (!weaponMods || weaponMods.length === 0) {
                 return;
             }
 
-            // 按 affectedStat 分組詞綴
-            const modifiersByAffectedStat = new Map<string, any[]>();
+            // 🆕 處理 WeaponMods 扁平結構（每個 mod id 只有一個條目）
+            // 按 affectedStat 分組所有修改器，同時記錄來源 mod id 用於錯誤報告
+            type ModifierData = {
+                affectedStat: string;
+                value: number;
+                valueType: string;
+                modifierType: ModifierType;
+            };
+            const modifiersByAffectedStat = new Map<string, { modifier: ModifierData; modId: string }[]>();
 
-            for (const modifier of modifiers) {
-                if (!modifier.enabled) continue; // 跳過未啟用的詞綴
-
-                const affectedStat = modifier.affectedStat;
-                if (!affectedStat) continue;
-
-                if (!modifiersByAffectedStat.has(affectedStat)) {
-                    modifiersByAffectedStat.set(affectedStat, []);
+            for (const mod of weaponMods) {
+                if (!mod.enabled || !mod.affectedStat) {
+                    continue;
                 }
-                modifiersByAffectedStat.get(affectedStat)!.push(modifier);
+
+                // 直接從 mod 建立 modifier 對象（現在是扁平結構）
+                const modifier: ModifierData = {
+                    affectedStat: mod.affectedStat,
+                    value: mod.value,
+                    valueType: mod.valueType,
+                    modifierType: mod.modifierType
+                };
+
+                const stat = modifier.affectedStat;
+                if (!modifiersByAffectedStat.has(stat)) {
+                    modifiersByAffectedStat.set(stat, []);
+                }
+                modifiersByAffectedStat.get(stat)!.push({ modifier, modId: mod.id });
             }
 
             // 對每個受影響的屬性進行計算
-            for (const [affectedStat, mods] of modifiersByAffectedStat) {
-                this.applyModifiersToStat(affectedStat, mods, finalStats);
+            for (const [affectedStat, modData] of modifiersByAffectedStat) {
+                const modifiers = modData.map(d => d.modifier);
+                const firstModId = modData[0]?.modId || 'unknown';
+                this.applyModifiersToStat(affectedStat, modifiers, finalStats, firstModId);
             }
 
         } catch (error) {
@@ -321,11 +339,17 @@ export class WeaponDataService {
      */
     private static applyModifiersToStat(
         affectedStat: string,
-        modifiers: WeaponModifier[],
-        finalStats: any
+        modifiers: Array<{
+            affectedStat: string;
+            value: number;
+            valueType: string;
+            modifierType: ModifierType;
+        }>,
+        finalStats: FinalWeaponStats,
+        modId: string = 'unknown'
     ): void {
         // 🆕 驗證 affectedStat 是否合法
-        if (!this.validateAffectedStat(affectedStat, modifiers[0]?.id || 'unknown')) {
+        if (!this.validateAffectedStat(affectedStat, modId)) {
             console.warn(`⚠️  跳過無效的詞綴屬性: ${affectedStat}`);
             return;  // 跳過無效屬性
         }
@@ -334,7 +358,7 @@ export class WeaponDataService {
         const statKey = this.convertToCamelCase(affectedStat);
 
         // 獲取基礎值（如果存在）
-        const baseValue = (finalStats as any)[statKey] || 0;
+        const baseValue = finalStats[statKey] as number || 0;
 
         // 分類詞綴
         let flatSum = 0;           // FLAT 總和
@@ -342,9 +366,8 @@ export class WeaponDataService {
         let moreProduct = 1;       // MORE 乘積
 
         for (const modifier of modifiers) {
-            const value = modifier.baseValue || 0;
+            const value = modifier.value || 0;
             const modifierType = (modifier.modifierType || 'flat').toLowerCase();
-            // const count = modifier. || 1; // 疊加次數
 
             switch (modifierType) {
                 case 'flat':
@@ -383,7 +406,7 @@ export class WeaponDataService {
         }
 
         // 設定最終值
-        (finalStats as any)[statKey] = finalValue;
+        finalStats[statKey] = finalValue;
     }
 
     /**

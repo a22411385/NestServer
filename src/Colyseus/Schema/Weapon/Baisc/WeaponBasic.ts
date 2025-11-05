@@ -45,12 +45,6 @@ export abstract class WeaponBasic {
     this.weaponSchema = schema;
   }
 
-  /**
-   * 🆕 獲取武器詞綴列表（用於 DamageSystem 判斷物理效果）
-   */
-  public getModifiers(): WeaponModifier[] {
-    return this.weaponSchema?.getModifiers() || [];
-  }
 
   /**
    * 🆕 獲取武器標籤列表（用於 BehaviorResolver）
@@ -58,6 +52,14 @@ export abstract class WeaponBasic {
   public getTags(): string[] {
     if (!this.weaponConfig?.tags) return [];
     return this.weaponConfig.tags.split(',').map(t => t.trim());
+  }
+
+  /**
+   * 🆕 獲取統一的武器詞綴 (WeaponMods)
+   * @returns WeaponMod[] 武器詞綴陣列
+   */
+  public getWeaponMods(): import("@/Types").WeaponMod[] {
+    return this.weaponSchema?.getWeaponMods() || [];
   }
 
   /**
@@ -385,9 +387,6 @@ export abstract class WeaponBasic {
 
       // 🆕 攜帶標籤信息（確保無重複）
       tags: Array.from(new Set(this.weaponSchema?.getTags() || [])),
-      elementTags: Array.from(new Set(this.weaponSchema?.getElementTags() || ['physical'])),
-      modifiers: this.weaponSchema?.getModifiers() || [],
-
       // 狀態效果（已包含標籤）
       statusEffects: this.generateStatusEffects(),
     };

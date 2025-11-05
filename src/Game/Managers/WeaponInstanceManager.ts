@@ -78,13 +78,14 @@ export class WeaponInstanceManager {
         // 2. 確定武器品質（從 weaponData 或根據等級計算）
         const quality = weaponData.rarity
 
-        // 3. 🆕 使用新屬性系統生成三種屬性
+        // 3. 🆕 使用新屬性系統生成屬性（狀態效果 + 武器詞綴）
         const propertyService = WeaponPropertyService.getInstance();
         const propertyData = propertyService.generateWeaponProperties(
             weaponData.weaponId,
             quality
         );
 
+        // 應用所有屬性到 WeaponSchema
         weaponData.applyAllProperties(propertyData);
 
         // 4. 🆕 計算並緩存最終屬性

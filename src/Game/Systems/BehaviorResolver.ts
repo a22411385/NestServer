@@ -1,5 +1,6 @@
-import { WeaponModifier } from '@/Types/Equipment/WeaponPropertyTypes';
+
 import { Behavior } from './HitHandler';
+import { WeaponMod } from '@/Types';
 
 /**
  * 🎯 行為解析器 - POE 風格
@@ -37,7 +38,7 @@ export class BehaviorResolver {
      * @returns Behavior 列表
      */
     public static getBehaviorsFromModifiers(
-        modifiers: WeaponModifier[],
+        modifiers: WeaponMod[],
         weaponTags: string[]
     ): Behavior[] {
         const behaviors: Behavior[] = [];
@@ -76,7 +77,7 @@ export class BehaviorResolver {
      * 3. 使用詞綴的 baseValue 作為 behavior.config 的參數
      */
     private static modifierToBehavior(
-        modifier: WeaponModifier,
+        modifier: WeaponMod,
         weaponTags: string[]
     ): Behavior | null {
         const modifierTags = modifier.tags.split(',').map(t => t.trim());
@@ -110,7 +111,7 @@ export class BehaviorResolver {
                 trigger: 'onHit',
                 action: 'chain',
                 config: {
-                    chainCount: Math.floor(modifier.baseValue), // 連鎖次數
+                    chainCount: Math.floor(modifier.value), // 連鎖次數
                     chainRange: 200, // 連鎖範圍（可從另一個 modifier 讀取）
                 }
             };
@@ -127,8 +128,8 @@ export class BehaviorResolver {
                 trigger: 'onHit',
                 action: 'aoeExplode',
                 config: {
-                    radius: modifier.id === 'area_of_effect' ? modifier.baseValue : 100, // 基礎半徑
-                    damageMultiplier: modifier.id === 'splash_damage' ? modifier.baseValue / 100 : 0.5, // 基礎倍率
+                    radius: modifier.id === 'area_of_effect' ? modifier.value : 100, // 基礎半徑
+                    damageMultiplier: modifier.id === 'splash_damage' ? modifier.value / 100 : 0.5, // 基礎倍率
                 }
             };
         }
@@ -147,7 +148,7 @@ export class BehaviorResolver {
                 trigger: 'onHit',
                 action: 'split',
                 config: {
-                    count: Math.floor(modifier.baseValue) || 2, // 分裂數量
+                    count: Math.floor(modifier.value) || 2, // 分裂數量
                     spreadAngle: 60, // 分裂角度（可配置）
                     childDamageMultiplier: 0.7, // 子彈傷害倍率（可配置）
                     childTags: modifier.tags, // 子彈繼承標籤
@@ -220,7 +221,7 @@ export class BehaviorResolver {
      * @param weapon 武器 Schema（需要有 modifiers 和 tags）
      */
     public static getBehaviorsFromWeapon(weapon: {
-        modifiers: WeaponModifier[];
+        modifiers: WeaponMod[];
         tags: string[];
     }): Behavior[] {
         return this.getBehaviorsFromModifiers(weapon.modifiers, weapon.tags);
@@ -233,7 +234,7 @@ export class BehaviorResolver {
      * @param tags 子彈的標籤
      */
     public static getBehaviorsFromBullet(
-        modifiers: WeaponModifier[],
+        modifiers: WeaponMod[],
         tags: string[]
     ): Behavior[] {
         return this.getBehaviorsFromModifiers(modifiers, tags);

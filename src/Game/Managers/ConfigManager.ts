@@ -1,6 +1,4 @@
 import { GoogleCacheData } from '@/Types';
-import { WeaponConfigDefinition, StatusEffectDefinition } from '@/Types/Equipment/WeaponPropertyTypes';
-import { MaterialConfigDefinition } from '@/Types/Equipment/MaterialTypes';
 import { EnemyConfigDefinition } from '@/Types/Game/EnemyTypes';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -45,7 +43,7 @@ export class ConfigManager {
     /**
      * 載入 Google Sheets 快取資料
      */
-    private static loadCache(): GoogleCacheData {
+    private static loadCache() {
         if (!this.cache) {
             try {
                 if (!fs.existsSync(this.cachePath)) {
@@ -57,7 +55,7 @@ export class ConfigManager {
                 this.cache = JSON.parse(cacheData);
 
                 // 🎯 驗證快取資料完整性
-                const requiredKeys: ConfigKey[] = ['StatusEffectDefinitions', 'WeaponConfigs', 'MaterialConfigs', 'EnemyConfigs', 'TalentConfigs', 'TalentEffects'];
+                const requiredKeys: ConfigKey[] = ['StatusEffectDefinitions', 'WeaponConfigs', 'MaterialConfigs', 'EnemyConfigs', 'Talents', 'TalentEffects'];
                 const missingKeys = requiredKeys.filter(key => !this.cache[key] || (Array.isArray(this.cache[key]) && this.cache[key].length === 0));
 
                 if (missingKeys.length > 0) {
@@ -87,6 +85,23 @@ export class ConfigManager {
         this.cache = null as any;
         console.log('🔄 重新載入配置快取');
         this.loadCache();
+    }
+
+    /**
+     * 🔍 驗證配置完整性
+     * @param throwOnError 是否在驗證失敗時拋出錯誤（預設：false）
+     * @returns 驗證結果
+     */
+    public static validateConfigs(throwOnError: boolean = false): { isValid: boolean; errors: string[]; warnings: string[] } {
+        // 延遲導入避免循環依賴
+        const { ConfigValidationService } = require('../Services/ConfigValidationService');
+        const result = ConfigValidationService.validateAllConfigs();
+
+        if (!result.isValid && throwOnError) {
+            throw new Error(`配置驗證失敗: ${result.errors.length} 個錯誤`);
+        }
+
+        return result;
     }
 
     // ==================== 泛型查詢方法 ====================

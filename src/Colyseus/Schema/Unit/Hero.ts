@@ -4,7 +4,7 @@ import { UnitType } from "../GameState";
 import { ServerGameUnit } from "./GameUnit";
 import { WeaponBasic } from "../Weapon/Baisc/WeaponBasic";
 import { WeaponSchema } from "../Weapon/WeaponSchema";
-import { AttackResult, AttributeBonus, BuffEffect, StatType } from "@/Types";
+import { AttackResult, StatType } from "@/Types";
 import { ConfigManager } from "@/Game/Managers/ConfigManager";
 import { WeaponSystemFacade } from "@/Game/Systems/Battle/WeaponSystemFacade";
 import { WeaponInstanceManager } from "@/Game/Managers/WeaponInstanceManager";
@@ -23,7 +23,6 @@ export class ServerHero extends ServerGameUnit {
     @type({ map: "number" }) public materials = new MapSchema<number>();
 
     @type("number") public gold: number = 0; // 新增金幣屬性
-    @type("number") public pickupRange: number = 5; // 拾取範圍
     @type("number") public visionRange: number = 1500; // 🔧 視野範圍（用於戰爭迷霧）
 
     // === 基礎屬性點 (永久，升級分配) ===
@@ -32,55 +31,25 @@ export class ServerHero extends ServerGameUnit {
     @type("number") public agi: number = 10;        // 敏捷點數 (基礎)
     @type("number") public int: number = 10;        // 智力點數 (基礎)
 
-    // === 🆕 武器屬性加成 (動態，裝備武器獲得) - 同步到客戶端用於UI顯示 ===
-    @type("number") public weaponVit: number = 0;   // 武器提供的體質加成
-    @type("number") public weaponStr: number = 0;   // 武器提供的力量加成
-    @type("number") public weaponAgi: number = 0;   // 武器提供的敏捷加成
-    @type("number") public weaponInt: number = 0;   // 武器提供的智力加成
-
     @type("number") public expToNext: number = 100;     // 升級所需經驗
     @type("number") public skillPoints: number = 0;     // 技能點數
     @type("number") public statPoints: number = 0;      // 屬性點數
+
     public usedPoints: number = 0;      // 已使用的屬性點數（不同步）
-
-    // public baseAttackSpeed: number = 1000;
-    // public baseSpeed: number = 3;
     public baseMp: number = 100;
-
-    // === 裝備/Buff 加成 (動態變化) - 不需要同步給客戶端，客戶端只需要最終結果 ===
-    public equipmentHpBonus: number = 0;
-    public equipmentAttackBonus: number = 0;
-    // public equipmentSpeedBonus: number = 0;
-    public equipmentMpBonus: number = 0;
-
-    public buffHpBonus: number = 0;
-    public buffAttackBonus: number = 0;
-    // public buffSpeedBonus: number = 0;
-    public buffMpBonus: number = 0;
-
-    // === 百分比加成 - 不需要同步給客戶端 ===
-    public hpMultiplier: number = 1.0;
-    public attackMultiplier: number = 1.0;
-    public speedMultiplier: number = 1.0;
-    public mpMultiplier: number = 1.0;
 
     // === 能量系統 ===
     @type("number") public maxMp: number = 100;
     @type("number") public mp: number = 100;
 
-    // === 🆕 副屬性 (同步到客戶端) ===
-    @type("number") public critRate: number = 0;     // 暴擊率 (百分比)
-    @type("number") public dodgeRate: number = 0;    // 閃避率 (百分比)
-
     // === 🆕 元素傷害加成 (同步到客戶端) - 用於天賦系統 ===
-    @type("number") public physicalDamageBonus: number = 0;   // 物理傷害加成 (百分比, 0-100)
-    @type("number") public fireDamageBonus: number = 0;       // 火元素傷害加成
-    @type("number") public iceDamageBonus: number = 0;        // 冰元素傷害加成
-    @type("number") public lightningDamageBonus: number = 0;  // 電元素傷害加成
-    @type("number") public poisonDamageBonus: number = 0;     // 毒元素傷害加成
-    @type("number") public holyDamageBonus: number = 0;       // 神聖傷害加成
-    @type("number") public shadowDamageBonus: number = 0;     // 暗影傷害加成
-    @type("number") public arcaneDamageBonus: number = 0;     // 秘法傷害加成
+    // 使用 MapSchema 統一管理所有元素傷害加成 (key: elementType, value: bonus percentage)
+    @type({ map: "number" }) public elementDamageBonuses = new MapSchema<number>();
+
+    // === 🆕 統一 UI 顯示數據 (同步到客戶端) ===
+    // 所有客戶端 UI 顯示用的屬性統一管理在此 MapSchema
+    // 包含: 武器加成、副屬性、最終屬性等
+    @type({ map: "number" }) public statDisplay = new MapSchema<number>();
 
     // === 副屬性 (不同步) ===
     public baseExpMultiplier: number = 30;
@@ -110,19 +79,6 @@ export class ServerHero extends ServerGameUnit {
         this.int = 10;
         this.usedPoints = 0;
 
-
-        // 初始化加成為0
-        this.equipmentHpBonus = 0;
-        this.equipmentAttackBonus = 0;
-        this.equipmentMpBonus = 0;
-        this.buffHpBonus = 0;
-        this.buffAttackBonus = 0;
-        this.buffMpBonus = 0;
-        this.hpMultiplier = 1.0;
-        this.attackMultiplier = 1.0;
-        this.speedMultiplier = 1.0;
-        this.mpMultiplier = 1.0;
-
         // 計算初始屬性
         this.recalculateAllStats();
     }
@@ -134,15 +90,15 @@ export class ServerHero extends ServerGameUnit {
     public regenerate(): void {
         if (this.isDead) return;
 
-        // 回復生命值，確保不超過最大值
+        // 回復生命值,確保不超過最大值
         if (this.hp < this.maxHp) {
-            const hpRegenAmount = this.hpRegen + this.vit * 0.1;
+            const hpRegenAmount = this.getStatDisplay('hpRegen') + this.vit * 0.1;
             this.hp = Math.min(this.hp + hpRegenAmount, this.maxHp);
         }
 
-        // 回復魔力值，確保不超過最大值
+        // 回復魔力值,確保不超過最大值
         if (this.mp < this.maxMp) {
-            const mpRegenAmount = this.mpRegen + this.int * 0.1;
+            const mpRegenAmount = this.getStatDisplay('mpRegen') + this.int * 0.1;
             this.mp = Math.min(this.mp + mpRegenAmount, this.maxMp);
         }
     }
@@ -212,17 +168,7 @@ export class ServerHero extends ServerGameUnit {
      * const bonus = hero.getElementDamageBonus('fire'); // 返回 20 表示 +20% 火傷
      */
     public getElementDamageBonus(elementType: string): number {
-        switch (elementType) {
-            case 'physical': return this.physicalDamageBonus;
-            case 'fire': return this.fireDamageBonus;
-            case 'ice': return this.iceDamageBonus;
-            case 'lightning': return this.lightningDamageBonus;
-            case 'poison': return this.poisonDamageBonus;
-            case 'holy': return this.holyDamageBonus;
-            case 'shadow': return this.shadowDamageBonus;
-            case 'arcane': return this.arcaneDamageBonus;
-            default: return 0;
-        }
+        return this.elementDamageBonuses.get(elementType) || 0;
     }
 
     /**
@@ -234,16 +180,7 @@ export class ServerHero extends ServerGameUnit {
      * hero.setElementDamageBonus('fire', 30); // 設置 +30% 火傷
      */
     public setElementDamageBonus(elementType: string, bonus: number): void {
-        switch (elementType) {
-            case 'physical': this.physicalDamageBonus = bonus; break;
-            case 'fire': this.fireDamageBonus = bonus; break;
-            case 'ice': this.iceDamageBonus = bonus; break;
-            case 'lightning': this.lightningDamageBonus = bonus; break;
-            case 'poison': this.poisonDamageBonus = bonus; break;
-            case 'holy': this.holyDamageBonus = bonus; break;
-            case 'shadow': this.shadowDamageBonus = bonus; break;
-            case 'arcane': this.arcaneDamageBonus = bonus; break;
-        }
+        this.elementDamageBonuses.set(elementType, bonus);
     }
 
     /**
@@ -258,141 +195,182 @@ export class ServerHero extends ServerGameUnit {
         const currentBonus = this.getElementDamageBonus(elementType);
         this.setElementDamageBonus(elementType, currentBonus + bonus);
     }
-    // 重新計算屬性時也要考慮總屬性加成
+
+    // =================== 🆕 StatDisplay 輔助方法 ===================
+
+    /**
+     * 🆕 獲取 StatDisplay 中的值
+     * @param key 屬性鍵名
+     * @returns 屬性值，若不存在則返回 0
+     * 
+     * @example
+     * const weaponStr = hero.getStatDisplay('weaponStr');
+     */
+    public getStatDisplay(key: string): number {
+        return this.statDisplay.get(key) || 0;
+    }
+
+    /**
+     * 🆕 更新 StatDisplay 中的值
+     * @param key 屬性鍵名
+     * @param value 屬性值
+     * 
+     * @example
+     * hero.updateStatDisplay('weaponStr', 25);
+     */
+    public updateStatDisplay(key: string, value: number): void {
+        this.statDisplay.set(key, value);
+    }
+
+    /**
+     * 🆕 批量更新 StatDisplay
+     * @param stats 屬性鍵值對
+     * 
+     * @example
+     * hero.updateStatDisplayBatch({
+     *   weaponStr: 25,
+     *   critRate: 15.5,
+     *   hpRegen: 12.3
+     * });
+     */
+    public updateStatDisplayBatch(stats: Record<string, number>): void {
+        for (const [key, value] of Object.entries(stats)) {
+            this.statDisplay.set(key, value);
+        }
+    }
+
+    // =================== 屬性計算 ===================
+
+    /**
+     * 重新計算基礎屬性
+     * 🎯 簡化版：只計算基礎屬性 + 屬性點加成
+     * 🔧 武器/裝備加成由 UnifiedAttributeSystem 統一管理
+     */
     public recalculateAllStats(): void {
-        // 🔄 0. 首先收集所有裝備武器的屬性加成
-        this.updateWeaponAttributeBonuses();
+        // 1. 收集武器提供的主屬性加成
+        this.updateWeaponMainAttributes();
 
-        // 1. 計算總屬性點 (基礎屬性 + 武器屬性)
-        const totalVit = this.vit + this.weaponVit;
-        const totalStr = this.str + this.weaponStr;
-        const totalAgi = this.agi + this.weaponAgi;
-        const totalInt = this.int + this.weaponInt;
+        // 2. 計算總屬性點 (基礎屬性 + 武器主屬性)
+        const totalVit = this.vit + this.getStatDisplay('weaponVit');
+        const totalStr = this.str + this.getStatDisplay('weaponStr');
+        const totalAgi = this.agi + this.getStatDisplay('weaponAgi');
+        const totalInt = this.int + this.getStatDisplay('weaponInt');
 
-        // 2. 計算屬性點加成
+        // 3. 計算屬性點加成
         const vitBonus = totalVit * 5;      // 每點體質 +5 血量
         const strBonus = totalStr * 2;      // 每點力量 +2 攻擊
-        const agiBonus = totalAgi * 0.5;    // 每點敏捷 +0.5 速度
         const intBonus = totalInt * 3;      // 每點智力 +3 魔力
 
-        // 🆕 計算回復與防禦
+        // 4. 計算回復與防禦
         const vitRegenBonus = totalVit * 0.1;    // 每點體質 +0.1 生命回復/秒
         const intRegenBonus = totalInt * 0.2;    // 每點智力 +0.2 魔力回復/秒
         const vitDefenseBonus = totalVit * 0.5;  // 每點體質 +0.5 物理防禦
         const intDefenseBonus = totalInt * 0.5;  // 每點智力 +0.5 魔法防禦
 
-        // 3. 計算最終數值 = 基礎值 + 屬性加成 + 裝備加成 + Buff加成
-        const finalHp = (this.baseHp + vitBonus + this.equipmentHpBonus + this.buffHpBonus) * this.hpMultiplier;
-        const finalAttack = (this.baseAttackDamage + strBonus + this.equipmentAttackBonus + this.buffAttackBonus) * this.attackMultiplier;
-        const finalMp = (this.baseMp + intBonus + this.equipmentMpBonus + this.buffMpBonus) * this.mpMultiplier;
-        const finalSpeed = totalAgi * 0.02 + this.baseMoveSpeed;
-
-        // 3. 更新最終屬性
+        // 5. 計算基礎最終數值 (不包含裝備/Buff，由 UnifiedAttributeSystem 處理)
         const oldMaxHp = this.maxHp;
         const oldMaxMp = this.maxMp;
 
-        this.maxHp = Math.floor(finalHp);
-        this.attackDamage = Math.floor(finalAttack);
-        this.maxMp = Math.floor(finalMp);
-        this.moveSpeed = Math.floor(finalSpeed);
+        this.maxHp = Math.floor(this.baseHp + vitBonus);
+        this.attackDamage = Math.floor(this.baseAttackDamage + strBonus);
+        this.maxMp = Math.floor(this.baseMp + intBonus);
+        this.moveSpeed = Math.floor(totalAgi * 0.02 + this.baseMoveSpeed);
 
-        // 🆕 更新回復與防禦屬性
-        this.hpRegen = Math.floor((1 + vitRegenBonus) * 10) / 10;  // 基礎1 + 體質加成，保留1位小數
-        this.mpRegen = Math.floor((0.5 + intRegenBonus) * 10) / 10;  // 基礎0.5 + 智力加成，保留1位小數
-        this.physicalDefense = Math.floor(vitDefenseBonus);  // 體質提供物理防禦
-        this.magicDefense = Math.floor(intDefenseBonus);     // 智力提供魔法防禦
+        // 6. 更新回復與防禦屬性
+        this.hpRegen = Math.floor((1 + vitRegenBonus) * 10) / 10;
+        this.mpRegen = Math.floor((0.5 + intRegenBonus) * 10) / 10;
+        this.physicalDefense = Math.floor(vitDefenseBonus);
+        this.magicDefense = Math.floor(intDefenseBonus);
 
-        // 🆕 計算副屬性 (暴擊率、閃避率)
-        this.critRate = Math.floor((totalAgi * 0.1 + totalStr * 0.05) * 10) / 10;  // 每點敏捷 +0.1%，每點力量 +0.05%
-        this.dodgeRate = Math.floor((totalAgi * 0.15) * 10) / 10;                    // 每點敏捷 +0.15%
+        // 7. 計算副屬性 (暴擊率、閃避率) 並直接更新到 statDisplay
+        const critRate = Math.floor((totalAgi * 0.1 + totalStr * 0.05) * 10) / 10;
+        const dodgeRate = Math.floor((totalAgi * 0.15) * 10) / 10;
+        this.updateStatDisplay('critRate', critRate);
+        this.updateStatDisplay('dodgeRate', dodgeRate);
 
-        // 4. 處理當前血量/魔力的變化
+        // 8. 🆕 同步更新 StatDisplay (雙寫模式，向下相容)
+        this.syncStatDisplay(totalVit, totalStr, totalAgi, totalInt);
+
+        // 9. 調整當前血量/魔力
         this.adjustCurrentValues(oldMaxHp, oldMaxMp);
     }
 
     /**
-     * 🆕 更新武器屬性加成
-     * 遍歷所有裝備的武器，累加它們的基本屬性
-     * 🔧 支援武器詞綴和屬性加成系統
-     * 🚨 注意：這個方法會被 recalculateAllStats() 調用，不能再調用會觸發 recalculateAllStats() 的方法
+     * 🆕 同步 StatDisplay (雙寫模式)
+     * 將計算好的屬性同步到 StatDisplay 供客戶端讀取
+     * 注意: 
+     * - 武器主屬性加成已在 updateWeaponMainAttributes() 中更新到 statDisplay
+     * - critRate, dodgeRate 已在 recalculateAllStats() Step 7 中更新到 statDisplay
      */
-    private updateWeaponAttributeBonuses(): void {
-        // 重置武器屬性加成
-        this.weaponStr = 0;
-        this.weaponInt = 0;
-        this.weaponAgi = 0;
-        this.weaponVit = 0;
+    private syncStatDisplay(totalVit: number, totalStr: number, totalAgi: number, totalInt: number): void {
+        // 回復與防禦屬性
+        this.updateStatDisplay('hpRegen', this.hpRegen);
+        this.updateStatDisplay('mpRegen', this.mpRegen);
+        this.updateStatDisplay('physicalDefense', this.physicalDefense);
+        this.updateStatDisplay('magicDefense', this.magicDefense);
 
-        // 重置裝備加成（避免累積）
-        this.equipmentHpBonus = 0;
-        this.equipmentAttackBonus = 0;
-        this.equipmentMpBonus = 0;
-        this.hpMultiplier = 1.0;
-        this.attackMultiplier = 1.0;
-        this.speedMultiplier = 1.0;
-        this.mpMultiplier = 1.0;
+        // 最終屬性 (顯示用)
+        this.updateStatDisplay('attackDamage', this.attackDamage);
+        this.updateStatDisplay('moveSpeed', this.moveSpeed);
+        this.updateStatDisplay('attackRange', this.attackRange);
 
-        // 🔧 修復：直接遍歷 weaponInventory，weapon 本身就是 WeaponSchema
-        for (const weaponSchema of this.weaponInventory) {
-            // 只處理已裝備的武器
-            if (!weaponSchema.isEquipped) {
-                continue;
-            }
-
-            // 🆕 新版屬性加成系統 - 直接計算，不調用 applyEquipmentBonus（避免循環）
-            try {
-                const bonuses = weaponSchema.getBonuses();
-                if (bonuses && bonuses.length > 0) {
-                    // 直接應用屬性加成，不觸發 recalculateAllStats
-                    this.applyBonusesDirectly(bonuses);
-                }
-            } catch (error) {
-                // 靜默處理，不影響舊武器
-            }
-        }
+        // 視野範圍
+        this.updateStatDisplay('visionRange', this.visionRange);
     }
 
     /**
-     * 🆕 直接應用屬性加成（不觸發重算）
-     * 用於 updateWeaponAttributeBonuses 中避免循環調用
+     * 🆕 更新武器提供的主屬性加成
+     * 只收集 strength, agility, intelligence, vitality
+     * 其他屬性 (暴擊率、攻擊速度等) 由 UnifiedAttributeSystem 動態查詢
      */
-    private applyBonusesDirectly(bonuses: any[]): void {
-        // 檢查是否為新版屬性加成（有 affectedStat 欄位）
-        const isNewSystem = bonuses.some(b => b.affectedStat);
+    private updateWeaponMainAttributes(): void {
+        // 重置武器主屬性加成
+        let weaponStr = 0;
+        let weaponInt = 0;
+        let weaponAgi = 0;
+        let weaponVit = 0;
 
-        if (isNewSystem) {
-            // 🆕 新版：配置驅動的屬性加成系統
-            // 按 affectedStat 分組
-            const bonusesByAffectedStat = new Map<string, any[]>();
+        // 遍歷已裝備的武器
+        for (const weaponSchema of this.weaponInventory) {
+            if (!weaponSchema.isEquipped) continue;
 
-            for (const bonus of bonuses) {
-                if (!bonus.enabled) continue;
+            try {
+                // 🆕 獲取統一的武器詞綴
+                const weaponMods = weaponSchema.getWeaponMods();
+                if (!weaponMods || weaponMods.length === 0) continue;
 
-                const affectedStat = bonus.affectedStat;
-                if (!affectedStat) continue;
+                // 只收集主屬性加成（現在是扁平結構）
+                for (const mod of weaponMods) {
+                    if (!mod.enabled || !mod.affectedStat) continue;
 
-                if (!bonusesByAffectedStat.has(affectedStat)) {
-                    bonusesByAffectedStat.set(affectedStat, []);
+                    const affectedStat = mod.affectedStat.toLowerCase();
+                    const value = mod.value || 0; // 🆕 使用 value
+
+                    switch (affectedStat) {
+                        case 'strength':
+                            weaponStr += value;
+                            break;
+                        case 'agility':
+                            weaponAgi += value;
+                            break;
+                        case 'intelligence':
+                            weaponInt += value;
+                            break;
+                        case 'vitality':
+                            weaponVit += value;
+                            break;
+                    }
                 }
-                bonusesByAffectedStat.get(affectedStat)!.push(bonus);
-            }
-
-            // 對每個屬性應用 POE 規則計算
-            for (const [affectedStat, statBonuses] of bonusesByAffectedStat) {
-                this.applyBonusToStat(affectedStat, statBonuses);
-            }
-        } else {
-            // 舊版：hardcode 的屬性加成
-            for (const bonus of bonuses) {
-                this.equipmentHpBonus += (bonus as any).hpBonus || 0;
-                this.equipmentAttackBonus += (bonus as any).attackBonus || 0;
-                this.equipmentMpBonus += (bonus as any).mpBonus || 0;
-                this.hpMultiplier *= (1 + ((bonus as any).hpMultiplier || 0));
-                this.attackMultiplier *= (1 + ((bonus as any).attackMultiplier || 0));
-                this.speedMultiplier *= (1 + ((bonus as any).speedMultiplier || 0));
-                this.mpMultiplier *= (1 + ((bonus as any).mpMultiplier || 0));
+            } catch (error) {
+                // 靜默處理
             }
         }
+
+        // 更新到 statDisplay
+        this.updateStatDisplay('weaponVit', weaponVit);
+        this.updateStatDisplay('weaponStr', weaponStr);
+        this.updateStatDisplay('weaponAgi', weaponAgi);
+        this.updateStatDisplay('weaponInt', weaponInt);
     }
 
     /**
@@ -448,185 +426,6 @@ export class ServerHero extends ServerGameUnit {
         // 重新計算最終屬性
         this.recalculateAllStats();
         return true;
-    }
-
-    /**
-     * 裝備屬性加成管理
-     * 🆕 支援 POE 風格修改器系統 (FLAT → INCREASED → MORE)
-     */
-    public applyEquipmentBonus(bonuses: AttributeBonus[]): void {
-        // 重置裝備加成
-        this.equipmentHpBonus = 0;
-        this.equipmentAttackBonus = 0;
-        this.equipmentMpBonus = 0;
-        this.hpMultiplier = 1.0;
-        this.attackMultiplier = 1.0;
-        this.speedMultiplier = 1.0;
-        this.mpMultiplier = 1.0;
-
-        // 🆕 如果沒有 bonuses，使用舊版邏輯（向下相容）
-        if (!bonuses || bonuses.length === 0) {
-            this.recalculateAllStats();
-            return;
-        }
-
-        // 🆕 檢查是否為新版屬性加成（有 affectedStat 欄位）
-        const isNewSystem = bonuses.some(b => (b as any).affectedStat);
-
-        if (isNewSystem) {
-            // 🆕 新版：配置驅動的屬性加成系統
-            this.applyConfigDrivenBonuses(bonuses);
-        } else {
-            // 舊版：hardcode 的屬性加成
-            for (const bonus of bonuses) {
-                this.equipmentHpBonus += (bonus as any).hpBonus || 0;
-                this.equipmentAttackBonus += (bonus as any).attackBonus || 0;
-                this.equipmentMpBonus += (bonus as any).mpBonus || 0;
-                this.hpMultiplier *= (1 + ((bonus as any).hpMultiplier || 0));
-                this.attackMultiplier *= (1 + ((bonus as any).attackMultiplier || 0));
-                this.speedMultiplier *= (1 + ((bonus as any).speedMultiplier || 0));
-                this.mpMultiplier *= (1 + ((bonus as any).mpMultiplier || 0));
-            }
-        }
-
-        // 重新計算最終屬性
-        this.recalculateAllStats();
-    }
-
-    /**
-     * 🆕 應用配置驅動的屬性加成（POE 規則）
-     * 支援 FLAT, INCREASED, MORE 三種修改器
-     */
-    private applyConfigDrivenBonuses(bonuses: any[]): void {
-        // 按 affectedStat 分組
-        const bonusesByAffectedStat = new Map<string, any[]>();
-
-        for (const bonus of bonuses) {
-            if (!bonus.enabled) continue;
-
-            const affectedStat = bonus.affectedStat;
-            if (!affectedStat) continue;
-
-            if (!bonusesByAffectedStat.has(affectedStat)) {
-                bonusesByAffectedStat.set(affectedStat, []);
-            }
-            bonusesByAffectedStat.get(affectedStat)!.push(bonus);
-        }
-
-        // 對每個屬性應用 POE 規則計算
-        for (const [affectedStat, statBonuses] of bonusesByAffectedStat) {
-            this.applyBonusToStat(affectedStat, statBonuses);
-        }
-    }
-
-    /**
-     * 🆕 對單個屬性應用加成（POE 規則）
-     */
-    private applyBonusToStat(affectedStat: string, bonuses: any[]): void {
-        // 分類加成
-        let flatSum = 0;
-        let increasedSum = 0;
-        let moreProduct = 1;
-
-        for (const bonus of bonuses) {
-            const value = bonus.value || bonus.baseValue || 0;
-            const modifierType = (bonus.modifierType || 'flat').toLowerCase();
-            const count = bonus.count || 1;
-
-            switch (modifierType) {
-                case 'flat':
-                    flatSum += value * count;
-                    break;
-                case 'increased':
-                    increasedSum += value * count;
-                    break;
-                case 'more':
-                    moreProduct *= (1 + (value * count / 100));
-                    break;
-            }
-        }
-
-        // 映射到 Hero 屬性（使用配置驅動的映射）
-        this.applyStatBonus(affectedStat, flatSum, increasedSum, moreProduct);
-    }
-
-    /**
-     * 🆕 將計算結果應用到實際屬性
-     */
-    private applyStatBonus(
-        affectedStat: string,
-        flatSum: number,
-        increasedSum: number,
-        moreProduct: number
-    ): void {
-        // 屬性映射表（可配置化）
-        const statMapping: Record<string, { base: keyof ServerHero, multiplier: keyof ServerHero }> = {
-            'max_health': { base: 'equipmentHpBonus' as keyof ServerHero, multiplier: 'hpMultiplier' as keyof ServerHero },
-            'max_hp': { base: 'equipmentHpBonus' as keyof ServerHero, multiplier: 'hpMultiplier' as keyof ServerHero },
-            'attack_damage': { base: 'equipmentAttackBonus' as keyof ServerHero, multiplier: 'attackMultiplier' as keyof ServerHero },
-            'max_mana': { base: 'equipmentMpBonus' as keyof ServerHero, multiplier: 'mpMultiplier' as keyof ServerHero },
-            'max_mp': { base: 'equipmentMpBonus' as keyof ServerHero, multiplier: 'mpMultiplier' as keyof ServerHero },
-            'move_speed': { base: 'equipmentMpBonus' as keyof ServerHero, multiplier: 'speedMultiplier' as keyof ServerHero }, // 暫用
-
-            // 🆕 主屬性直接映射（strength, agility, intelligence, vitality）
-            'strength': { base: 'weaponStr' as keyof ServerHero, multiplier: 'attackMultiplier' as keyof ServerHero },
-            'agility': { base: 'weaponAgi' as keyof ServerHero, multiplier: 'speedMultiplier' as keyof ServerHero },
-            'intelligence': { base: 'weaponInt' as keyof ServerHero, multiplier: 'mpMultiplier' as keyof ServerHero },
-            'vitality': { base: 'weaponVit' as keyof ServerHero, multiplier: 'hpMultiplier' as keyof ServerHero },
-        };
-
-        const mapping = statMapping[affectedStat.toLowerCase()];
-        if (!mapping) {
-            // 未知屬性，跳過（不影響系統運作）
-            return;
-        }
-
-        // 應用 FLAT 加成
-        if (flatSum !== 0) {
-            const currentValue = (this as any)[mapping.base] || 0;
-            (this as any)[mapping.base] = currentValue + flatSum;
-        }
-
-        // 應用 INCREASED 和 MORE 加成到乘數
-        if (increasedSum !== 0 || moreProduct !== 1) {
-            const currentMultiplier = (this as any)[mapping.multiplier] || 1.0;
-            let newMultiplier = currentMultiplier;
-
-            // INCREASED（加法）
-            if (increasedSum !== 0) {
-                newMultiplier *= (1 + increasedSum / 100);
-            }
-
-            // MORE（乘法）
-            if (moreProduct !== 1) {
-                newMultiplier *= moreProduct;
-            }
-
-            (this as any)[mapping.multiplier] = newMultiplier;
-        }
-    }
-
-    /**
-     * Buff 效果管理
-     */
-    public applyBuffEffects(buffs: BuffEffect[]): void {
-        // 重置 Buff 加成
-        this.buffHpBonus = 0;
-        this.buffAttackBonus = 0;
-
-        this.buffMpBonus = 0;
-
-        // 累加所有 Buff 的效果
-        for (const buff of buffs) {
-            if (buff.type === 'hp_boost') {
-                this.buffHpBonus += buff.value;
-            } else if (buff.type === 'attack_boost') {
-                this.buffAttackBonus += buff.value;
-            }
-        }
-
-        // 重新計算最終屬性
-        this.recalculateAllStats();
     }
 
     // 覆寫扣血方法，處理無敵時間

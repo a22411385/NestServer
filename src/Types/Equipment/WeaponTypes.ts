@@ -42,5 +42,5 @@ export interface WeaponStatConfig {
     category: AttributeCategory;
     aliases: string;
     description: string;
-    enabled: string;
+    enabled: boolean; // ✅ GoogleSheetCache 會統一轉換為布林值
 }
