@@ -1,9 +1,4 @@
-/**
- * 素材系統類型定義 (服務端版本)
- * 用於定義遊戲中的製作材料配置
- */
 
-import { EquipmentQuality } from "./EquipmentTypes";
 /**
  * 素材分類
  */
@@ -13,6 +8,14 @@ export enum MaterialCategory {
     SPECIAL = 'special',    // 特殊材料
     CHIP = 'chip',         // 碎片
 }
+export enum Quality {
+    NORMAL = 'normal',      // 普通
+    MAGIC = 'magic',        // 魔法
+    RARE = 'rare',          // 稀有
+    EPIC = 'epic',          // 史詩
+    LEGENDARY = 'legendary' // 傳奇
+}
+
 
 /**
  * 素材配置定義 (從 google-sheets-cache.json 載入)
@@ -21,7 +24,7 @@ export interface MaterialConfigDefinition {
     id: string;                    // 素材ID (對應 MaterialType)
     name: string;                  // 素材名稱
     description: string;           // 素材描述
-    rarity: EquipmentQuality;        // 稀有度
+    rarity: Quality;        // 稀有度
     category: MaterialCategory;    // 分類
     composite?: string;             // 碎片自動合成的成品
     stackSize: number;             // 最大堆疊數

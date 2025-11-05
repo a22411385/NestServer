@@ -13,7 +13,6 @@ export * from './Game/AttackTypes';    // 包含統一的 AttackResult 接口
 
 // ========================= 武器系統類型 =========================
 export * from './Equipment/WeaponTypes';         // 武器分類枚舉
-export * from './Equipment/EquipmentTypes';      // 統一的裝備系統
 
 // ========================= 其他遊戲類型 =========================
 export * from './Game/EnemyTypes';

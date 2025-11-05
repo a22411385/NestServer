@@ -2,6 +2,7 @@ import { GameRoom } from '../../../Colyseus/Rooms/GameRoom';
 import { ServerHero } from '../../../Colyseus/Schema/Unit/Hero';
 import { ServerGameUnit } from '../../../Colyseus/Schema/Unit/GameUnit';
 import { AttackResult, WeaponType, StatusEffectConfig } from '@/Types';
+import { CombatVisualEffect, MotionVisualEffect, TrailVisualEffect, ParticleVisualEffect } from '@/Types/Combat/CombatVisualEffectTypes';
 
 import { BattleLogSystem } from './BattleLogSystem';
 import { DamageResult } from './DamageSystem';
@@ -207,15 +208,13 @@ export class CombatSystem {
     /**
      * 🎨 生成視覺效果資訊
      * 從武器詞綴(modifiers)和傷害結果生成客戶端需要的視覺效果資料
-     * 
-     * ⚠️ 重要：優先使用 result.attackData 中的最終計算值，避免與實際效果不一致
      */
     private generateVisualEffects(
         hero: ServerHero,
         result: AttackResult,
         damageResults: DamageResult[]
-    ): any[] {
-        const effects: any[] = [];
+    ): CombatVisualEffect[] {
+        const effects: CombatVisualEffect[] = [];
         const modifiers = result.modifiers || [];
 
         // 遍歷武器詞綴，根據標籤生成視覺效果
@@ -230,18 +229,18 @@ export class CombatSystem {
                 const sweepAngleRadians = result.attackData?.sweepAngle || (60 * Math.PI / 180);
                 const sweepAngleDegrees = (sweepAngleRadians * 180) / Math.PI; // 轉換為角度
 
-                effects.push({
-                    type: 'motion', // ✅ 使用客戶端支援的 effectType
-                    tags: mod.tags, // ✅ 添加標籤資訊
+                const motionEffect: MotionVisualEffect = {
+                    type: 'motion',
+                    tags: mod.tags,
                     position: result.attackData?.position || { x: hero.position.x, y: hero.position.y },
                     direction: result.attackData?.direction || { x: 1, y: 0 },
                     data: {
-                        // ✅ 使用角度制（客戶端顯示）
                         sweepAngle: sweepAngleDegrees,
                         range: result.attackData?.range || 100,
                         weaponType: this.getWeaponTypeFromTags(tags),
                     }
-                });
+                };
+                effects.push(motionEffect);
             }
 
             // 2️⃣ 擊退效果 (knockback)
@@ -262,14 +261,15 @@ export class CombatSystem {
                                 direction.y /= length;
                             }
 
-                            effects.push({
-                                type: 'motion', // ✅ 使用客戶端支援的 effectType (擊退是運動效果)
-                                tags: mod.tags, // ✅ 添加標籤資訊
+                            const knockbackMotionEffect: MotionVisualEffect = {
+                                type: 'motion',
+                                tags: mod.tags,
                                 targetId: dmgResult.targetId,
-                                value: knockbackEffect.value || 0, // ✅ 使用 statusEffect 中的最終值
+                                value: knockbackEffect.value || 0,
                                 direction: direction,
                                 position: { x: target.position.x, y: target.position.y }
-                            });
+                            };
+                            effects.push(knockbackMotionEffect);
                         }
                     }
                 }
@@ -279,12 +279,13 @@ export class CombatSystem {
             // ✅ 穿透數量從實際命中目標數推導
             if (tags.includes('pierce') && damageResults.length > 1) {
                 const targetIds = damageResults.map(r => r.targetId);
-                effects.push({
-                    type: 'trail', // ✅ 使用客戶端支援的 effectType (穿透是拖尾效果)
-                    tags: mod.tags, // ✅ 添加標籤資訊
+                const pierceEffect: TrailVisualEffect = {
+                    type: 'trail',
+                    tags: mod.tags,
                     targetIds: targetIds,
                     pierceCount: damageResults.length - 1, // ✅ 實際穿透數 = 總目標數 - 1
-                });
+                };
+                effects.push(pierceEffect);
             }
 
             // 4️⃣ 連鎖攻擊效果 (chain)
@@ -295,12 +296,13 @@ export class CombatSystem {
                     return target ? { x: target.position.x, y: target.position.y, targetId: r.targetId } : null;
                 }).filter(p => p !== null);
 
-                effects.push({
-                    type: 'trail', // ✅ 使用客戶端支援的 effectType (連鎖是拖尾效果)
-                    tags: mod.tags, // ✅ 添加標籤資訊
+                const chainEffect: TrailVisualEffect = {
+                    type: 'trail',
+                    tags: mod.tags,
                     chainPath: chainPath,
                     chainCount: damageResults.length - 1, // ✅ 實際連鎖數 = 總目標數 - 1
-                });
+                };
+                effects.push(chainEffect);
             }
 
             // 5️⃣ 範圍效果 (area/aoe/splash)
@@ -309,13 +311,14 @@ export class CombatSystem {
                 if (damageResults.length > 0 && !tags.includes('melee')) {
                     const firstTarget = this.gameRoom.unitManager.getUnitById(damageResults[0].targetId);
                     if (firstTarget) {
-                        effects.push({
-                            type: 'particle', // ✅ 使用客戶端支援的 effectType (爆炸是粒子效果)
-                            tags: mod.tags, // ✅ 添加標籤資訊
+                        const areaEffect: ParticleVisualEffect = {
+                            type: 'particle',
+                            tags: mod.tags,
                             position: { x: firstTarget.position.x, y: firstTarget.position.y },
                             radius: mod.baseValue || 100, // ⚠️ 暫用基礎值（需改進）
                             affectedTargets: damageResults.map(r => r.targetId),
-                        });
+                        };
+                        effects.push(areaEffect);
                     }
                 }
             }
@@ -439,12 +442,6 @@ export class CombatSystem {
         return null;
     }
 
-    /**
-     * 🎯 清除單位的狀態效果緩存
-     */
-    private clearEffectCache(unitId: string): void {
-        this.effectCache.delete(unitId);
-    }
 
     /**
      * 🆕 叠加现有效果（優化：減少不必要的同步）

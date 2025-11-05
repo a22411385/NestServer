@@ -2,7 +2,6 @@ import { ServerGameUnit } from '@/Colyseus/Schema/Unit/GameUnit';
 import { AttackResult, AttackFailReason, BulletCreateConfig } from '@/Types';
 import { GameRoom } from '@/Colyseus/Rooms/GameRoom';
 import { BulletFactory } from '@/Game/Factories/BulletFactory';
-import { ServerHero } from '@/Colyseus/Schema/Unit/Hero';
 import { BonusCalculator } from './BonusCalculator';
 
 /**
@@ -235,10 +234,12 @@ export class HitHandler {
         const baseDamageMultiplier = behavior.config.damageMultiplier || 1.0;
 
         // ✅ 應用角色的範圍加成（天賦、裝備等）
-        const finalRadius = this.applyAreaModifier(baseRadius, context.attacker);
+        const areaBonus = BonusCalculator.getPropertyBonus('area_of_effect', context.attacker);
+        const finalRadius = BonusCalculator.applyBonus(baseRadius, areaBonus, 'Area');
 
         // ✅ 應用角色的傷害加成
-        const finalDamageMultiplier = this.applyDamageModifier(baseDamageMultiplier, context.attacker);
+        const damageBonus = BonusCalculator.getPropertyBonus('area_damage', context.attacker);
+        const finalDamageMultiplier = BonusCalculator.applyBonus(baseDamageMultiplier, damageBonus);
 
         // 找到範圍內的其他敵人（排除主要目標）
         const targets = this.findTargetsInRadius(
@@ -301,7 +302,8 @@ export class HitHandler {
         const childTags = behavior.config.childTags;
 
         // ✅ 應用分裂數量加成
-        const finalCount = Math.max(1, Math.floor(this.applySplitCountModifier(baseCount, context.attacker)));
+        const splitBonus = BonusCalculator.getPropertyBonus('additional_projectiles', context.attacker);
+        const finalCount = Math.max(1, Math.floor(BonusCalculator.applyCountBonus(baseCount, splitBonus)));
 
         const baseAngle = Math.atan2(
             context.direction?.y || 0,
@@ -315,7 +317,8 @@ export class HitHandler {
 
             // ✅ 應用投射物速度加成
             const baseSpeed = context.bulletConfig?.speed || 300;
-            const finalSpeed = this.applyProjectileSpeedModifier(baseSpeed, context.attacker);
+            const speedBonus = BonusCalculator.getPropertyBonus('projectile_speed', context.attacker);
+            const finalSpeed = BonusCalculator.applyBonus(baseSpeed, speedBonus);
 
             // 使用 BulletFactory 創建子彈
             const bulletConfig: BulletCreateConfig = {
@@ -350,11 +353,13 @@ export class HitHandler {
         const baseChainRange = behavior.config.chainRange || 200;
         const baseDamageMultiplier = behavior.config.damageMultiplier || 0.8;
 
-        // ✅ 應用彈射範圍加成（使用 AOE 加成，因為都是範圍相關）
-        const finalChainRange = this.applyAreaModifier(baseChainRange, context.attacker);
+        // ✅ 應用彈射範圍加成
+        const areaBonus = BonusCalculator.getPropertyBonus('area_of_effect', context.attacker);
+        const finalChainRange = BonusCalculator.applyBonus(baseChainRange, areaBonus);
 
         // TODO: 可以添加「彈射次數」加成
-        // const finalChainCount = this.applyChainCountModifier(baseChainCount, context.attacker);
+        // const chainBonus = BonusCalculator.getPropertyBonus('chain_count', context.attacker);
+        // const finalChainCount = BonusCalculator.applyCountBonus(baseChainCount, chainBonus);
 
         let currentTarget = context.target;
         let currentDamage = context.damage;
@@ -490,86 +495,5 @@ export class HitHandler {
             baseDamage: 0,
             reason,
         };
-    }
-
-    // =================== 🎯 POE 風格屬性加成系統 ===================
-
-    /**
-     * 應用範圍加成（Area of Effect）
-     * 
-     * 影響：AOE 半徑、彈射範圍等所有範圍相關參數
-     * 
-     * POE 公式：最終值 = (基礎值 + FLAT) × (1 + INCREASED) × MORE
-     */
-    private applyAreaModifier(baseValue: number, attacker: ServerGameUnit): number {
-        const bonus = BonusCalculator.getPropertyBonus('area_of_effect', attacker);
-        return BonusCalculator.applyBonus(baseValue, bonus, 'Area');
-    }
-
-    /**
-     * 應用投射物速度加成
-     * POE 公式：最終值 = (基礎值 + FLAT) × (1 + INCREASED) × MORE
-     */
-    private applyProjectileSpeedModifier(baseValue: number, attacker: ServerGameUnit): number {
-        const bonus = BonusCalculator.getPropertyBonus('projectile_speed', attacker);
-        return BonusCalculator.applyBonus(baseValue, bonus);
-    }
-
-    /**
-     * 應用持續時間加成（Duration）
-     * 影響：buff/debuff 持續時間、DOT 持續時間等
-     * POE 公式：最終值 = (基礎值 + FLAT) × (1 + INCREASED) × MORE
-     */
-    private applyDurationModifier(baseValue: number, attacker: ServerGameUnit): number {
-        const bonus = BonusCalculator.getPropertyBonus('duration', attacker);
-        return BonusCalculator.applyBonus(baseValue, bonus);
-    }
-
-    /**
-     * 應用冷卻縮減（Cooldown Reduction）
-     * POE 公式：最終冷卻 = (基礎冷卻 + FLAT) × (1 - INCREASED) × MORE
-     * 注意：冷卻縮減的 INCREASED 是減法
-     */
-    private applyCooldownModifier(baseValue: number, attacker: ServerGameUnit): number {
-        const bonus = BonusCalculator.getPropertyBonus('cooldown_reduction', attacker);
-        return BonusCalculator.applyCooldownBonus(baseValue, bonus);
-    }
-
-    /**
-     * 應用傷害倍率加成
-     * 影響：Behavior 中的 damageMultiplier 參數
-     * POE 公式：最終倍率 = (基礎倍率 + FLAT) × (1 + INCREASED) × MORE
-     */
-    private applyDamageModifier(baseMultiplier: number, attacker: ServerGameUnit): number {
-        const bonus = BonusCalculator.getPropertyBonus('area_damage', attacker);
-        return BonusCalculator.applyBonus(baseMultiplier, bonus);
-    }
-
-    /**
-     * 應用彈射次數加成
-     * 影響：chain 行為的彈射次數
-     * 數量加成通常只有 FLAT 和 INCREASED，沒有 MORE
-     */
-    private applyChainCountModifier(baseCount: number, attacker: ServerGameUnit): number {
-        const bonus = BonusCalculator.getPropertyBonus('chain_count', attacker);
-        return BonusCalculator.applyCountBonus(baseCount, bonus);
-    }
-
-    /**
-     * 應用穿透次數加成
-     * 影響：pierce 行為的穿透次數
-     */
-    private applyPierceCountModifier(baseCount: number, attacker: ServerGameUnit): number {
-        const bonus = BonusCalculator.getPropertyBonus('pierce_count', attacker);
-        return BonusCalculator.applyCountBonus(baseCount, bonus);
-    }
-
-    /**
-     * 應用分裂數量加成
-     * 影響：split 行為的分裂數量
-     */
-    private applySplitCountModifier(baseCount: number, attacker: ServerGameUnit): number {
-        const bonus = BonusCalculator.getPropertyBonus('additional_projectiles', attacker);
-        return BonusCalculator.applyCountBonus(baseCount, bonus);
     }
 }

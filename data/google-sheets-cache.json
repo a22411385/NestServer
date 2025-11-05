@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "2025-11-04T08:07:54.069Z",
+  "lastUpdated": "2025-11-05T01:32:43.929Z",
   "StatusEffectDefinitions": [
     {
       "id": "burn",
@@ -98,7 +98,7 @@
       "description": "基礎近戰武器",
       "name": "iron_sword",
       "displayName": "鐵劍",
-      "tags": "physical,melee,sword, area",
+      "tags": "physical,melee,sword, area,burn",
       "baseDamage": 50,
       "attackSpeed": 1000,
       "attackRange": 100,
@@ -2076,18 +2076,12 @@
       "effectId": "sword_swing_motion",
       "effectType": "motion",
       "primaryColor": "#FFFFFF",
+      "secondaryColor": "#FF6347",
       "size": 20,
-      "fadeOutDuration": 0.3,
+      "rotationSpeed": 1500,
+      "duration": 1,
+      "fadeOutDuration": 1,
       "tags": "melee,sword,physical,area"
-    },
-    {
-      "description": "斧擊衝擊波",
-      "effectId": "axe_swing_motion",
-      "effectType": "motion",
-      "primaryColor": "#FFD700",
-      "size": 25,
-      "fadeOutDuration": 0.3,
-      "tags": "melee,axe,physical,area"
     },
     {
       "description": "擊退衝擊波",
@@ -2095,6 +2089,7 @@
       "effectType": "motion",
       "primaryColor": "#FF4500",
       "size": 30,
+      "rotationSpeed": 1500,
       "fadeOutDuration": 0.3,
       "tags": "knockback,physical"
     },
@@ -2303,7 +2298,7 @@
       "glowSize": 12,
       "glowAlpha": 0.2,
       "particleCount": 0,
-      "trailLength": 8,
+      "trailLength": 5,
       "rotationSpeed": 0,
       "hasPulse": false,
       "sound": "sfx_arrow_shoot",
@@ -2319,7 +2314,7 @@
       "glowSize": 8,
       "glowAlpha": 0.4,
       "particleCount": 0,
-      "trailLength": 3,
+      "trailLength": 5,
       "rotationSpeed": 0,
       "hasPulse": false,
       "sound": "sfx_gun_shot",
@@ -2336,7 +2331,7 @@
       "glowSize": 20,
       "glowAlpha": 0.5,
       "particleCount": 8,
-      "trailLength": 10,
+      "trailLength": 5,
       "rotationSpeed": 90,
       "hasPulse": true,
       "sound": "sfx_fire_launch",
@@ -2370,7 +2365,7 @@
       "glowSize": 10,
       "glowAlpha": 0.8,
       "particleCount": 12,
-      "trailLength": 15,
+      "trailLength": 5,
       "rotationSpeed": 0,
       "hasPulse": true,
       "sound": "sfx_lightning_bolt",

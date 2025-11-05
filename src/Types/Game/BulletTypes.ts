@@ -5,7 +5,7 @@
 import { WeaponBasic } from "@/Colyseus/Schema/Weapon/Baisc";
 import { Vector2 } from "../BaseTypes";
 import { StatusEffectConfig } from "./AttackTypes";
-import { PropertyValue } from "../Equipment/EquipmentTypes";
+import { PropertyValue } from "../Equipment/WeaponPropertyTypes";
 
 /**
  * 子彈創建配置

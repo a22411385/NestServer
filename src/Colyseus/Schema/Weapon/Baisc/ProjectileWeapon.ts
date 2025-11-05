@@ -1,6 +1,7 @@
 import { WeaponBasic } from './WeaponBasic';
-import { AttackResult, AttackFailReason, BulletCreateConfig, PropertyValue, Vector2 } from '@/Types';
+import { AttackResult, AttackFailReason, BulletCreateConfig, Vector2 } from '@/Types';
 import { ServerGameUnit } from '../../Unit/GameUnit';
+import { PropertyValue } from '@/Types/Equipment/WeaponPropertyTypes';
 
 /**
  * 投射武器類
