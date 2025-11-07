@@ -144,6 +144,12 @@ export class HitHandler {
 
         // 應用狀態效果
         const statusEffects = (context.statusEffects || []).filter(se => se.category !== 'attribute');
+        console.log(`🔥 [HitHandler] 狀態效果檢查:`, {
+            原始數量: context.statusEffects?.length || 0,
+            過濾後: statusEffects.length,
+            效果列表: statusEffects.map(se => ({ type: se.type, chance: se.chance, category: se.category }))
+        });
+        
         if (statusEffects.length > 0) {
             this.gameRoom.combatSystem.applyStatusEffects(
                 target,

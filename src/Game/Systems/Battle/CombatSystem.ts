@@ -2,7 +2,7 @@ import { GameRoom } from '../../../Colyseus/Rooms/GameRoom';
 import { ServerHero } from '../../../Colyseus/Schema/Unit/Hero';
 import { ServerGameUnit } from '../../../Colyseus/Schema/Unit/GameUnit';
 import { AttackResult, WeaponType, StatusEffectConfig } from '@/Types';
-import { CombatVisualEffect, MotionVisualEffect, TrailVisualEffect, ParticleVisualEffect } from '@/Types/Combat/CombatVisualEffectTypes';
+import { CombatVisualEffect, MotionVisualEffect, TrailVisualEffect, ParticleVisualEffect, ImpactVisualEffect } from '@/Types/Combat/CombatVisualEffectTypes';
 
 import { BattleLogSystem } from './BattleLogSystem';
 import { DamageResult } from './DamageSystem';
@@ -330,6 +330,43 @@ export class CombatSystem {
             }
         }
 
+        // 6️⃣ 擊中效果 (impact) - 為每個被擊中的目標生成
+        // 這應該在詞綴迴圈外面，因為每次攻擊都會有擊中效果
+        for (const dmgResult of damageResults) {
+            const target = this.gameRoom.unitManager.getUnitById(dmgResult.targetId);
+            if (target) {
+                // 🎯 收集武器本身的 tags 和 weaponMods 的 tags
+                const weaponTags = weapon.getTags(); // 武器本身的標籤
+                const modTags = weaponMods
+                    .filter(mod => mod.tags)
+                    .flatMap(mod => mod.tags.split(',').map((t: string) => t.trim()));
+
+                // 合併並去重
+                const allTags = [...new Set([...weaponTags, ...modTags])].join(',');
+
+                const impactEffect: ImpactVisualEffect = {
+                    type: 'impact',
+                    tags: allTags, // 使用武器 + mods 的所有標籤來匹配視覺效果
+                    targetId: dmgResult.targetId,
+                    position: { x: target.position.x, y: target.position.y },
+                    damage: dmgResult.actualDamage,
+                    isCritical: dmgResult.wasCritical,
+                    damageType: dmgResult.damageType as 'physical' | 'magic' | 'elemental',
+                };
+                console.log('💥 [CombatSystem] 生成 Impact 效果:', {
+                    targetId: impactEffect.targetId,
+                    weaponTags: weaponTags,
+                    modTags: modTags,
+                    allTags: allTags,
+                    position: impactEffect.position,
+                    damage: impactEffect.damage,
+                    isCritical: impactEffect.isCritical
+                });
+                effects.push(impactEffect);
+            }
+        }
+
+        console.log(`🎨 [CombatSystem] 總共生成 ${effects.length} 個視覺效果`, effects.map(e => e.type));
         return effects;
     }
 
