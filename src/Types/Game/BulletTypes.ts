@@ -43,18 +43,6 @@ export interface BulletCreateConfig {
 
     // 🆕 統一武器詞綴系統
     weaponMods?: any[];           // 統一的武器詞綴 (WeaponMods)
-
-    // ⚠️ 已廢棄 - 保留向後相容
-    /** @deprecated 使用 weaponMods 替代 */
-    modifiers?: any[];            // 舊的武器詞綴
-
-    // 🔮 未來可擴展的屬性 (暫時保留註釋作為範例)
-    // bounceCount?: number; // 彈射次數
-    // knockbackDistance?: number; // 擊退距離
-    // homingStrength?: number; // 追蹤強度 (0-1, 0=無追蹤, 1=完全追蹤)
-    // chainCount?: number; // 連鎖攻擊次數
-    // splitCount?: number; // 分裂子彈數量
-    // lifesteal?: number; // 生命偷取百分比
 }
 
 /**

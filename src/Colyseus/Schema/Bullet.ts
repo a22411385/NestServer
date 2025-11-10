@@ -115,8 +115,5 @@ export class ServerBullet extends Schema {
         if (config.elementTags) {
             this.elementTags.push(...config.elementTags);
         }
-        if (config.modifiers) {
-            this.modifiers = config.modifiers;
-        }
     }
 }

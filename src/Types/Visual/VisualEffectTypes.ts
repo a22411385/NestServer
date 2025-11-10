@@ -86,6 +86,13 @@ export interface VisualEffectDefinition {
 
     /** 備註說明（不影響功能） */
     description?: string;
+
+    particleFrequency: number;
+    particleSpeedMin: number;
+    particleSpeedMax: number;
+    particleAlphaStart: number;
+    //particleAlphaEnd: number; 永遠是0不用設定
+
 }
 
 /**

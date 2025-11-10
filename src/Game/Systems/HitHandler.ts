@@ -149,7 +149,7 @@ export class HitHandler {
             過濾後: statusEffects.length,
             效果列表: statusEffects.map(se => ({ type: se.type, chance: se.chance, category: se.category }))
         });
-        
+
         if (statusEffects.length > 0) {
             this.gameRoom.combatSystem.applyStatusEffects(
                 target,
@@ -344,7 +344,7 @@ export class HitHandler {
                 // 🆕 確保標籤無重複
                 tags: Array.from(new Set(childTags ? childTags.split(',') : (context.bulletConfig?.tags || []))),
                 elementTags: Array.from(new Set(context.bulletConfig?.elementTags || [])),
-                modifiers: context.modifiers,
+
             };
 
             const bullet = BulletFactory.createBullet(bulletConfig);
