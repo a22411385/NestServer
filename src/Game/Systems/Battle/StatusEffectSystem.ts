@@ -15,11 +15,14 @@ import { EffectHelper } from './EffectHelper';
 export class StatusEffectSystem {
     private gameRoom: GameRoom;
     private lastTickTime: number = 0;
+    private lastCleanupTime: number = 0; // 🆕 清理時間追蹤
     private readonly TICK_INTERVAL: number = 100; // 每 100ms 更新一次
+    private readonly CLEANUP_INTERVAL: number = 30000; // 🆕 每 30 秒清理一次
 
     constructor(gameRoom: GameRoom) {
         this.gameRoom = gameRoom;
         this.lastTickTime = Date.now();
+        this.lastCleanupTime = Date.now(); // 🆕 初始化清理時間
     }
 
     /**
@@ -41,6 +44,12 @@ export class StatusEffectSystem {
         const allEnemies = this.gameRoom.unitManager.getAllAliveEnemies();
         const allUnits = [...allHeroes, ...allEnemies];
 
+        // 🆕 定期清理無效狀態效果
+        if (currentTime - this.lastCleanupTime >= this.CLEANUP_INTERVAL) {
+            this.performStatusEffectCleanup(allUnits);
+            this.lastCleanupTime = currentTime;
+        }
+
         // 更新每個單位的狀態效果
         for (const unit of allUnits) {
             this.updateUnitStatusEffects(unit, currentTime);
@@ -55,7 +64,25 @@ export class StatusEffectSystem {
 
         // 遍歷所有狀態效果
         for (const [effectId, effect] of unit.statusEffects) {
-            // 🔧 使用 endTime 檢查是否過期（更直接，減少計算）
+            // �️ 防護檢查：確保 effectId 和 effect 都存在
+            if (!effectId || !effect) {
+                console.warn(`⚠️ 發現無效的狀態效果: effectId=${effectId}, effect=${effect} (單位: ${unit.id})`);
+                if (!effectId && effect?.id) {
+                    // 如果 effectId 為空但 effect.id 存在，使用 effect.id 進行清理
+                    effectsToRemove.push(effect.id);
+                }
+                continue;
+            }
+
+            // 🛡️ 額外檢查：確保 effectId 與 effect.id 一致
+            if (effectId !== effect.id) {
+                console.warn(`⚠️ effectId 不一致: MapKey=${effectId}, effect.id=${effect.id} (單位: ${unit.id})`);
+                // 移除不一致的效果
+                effectsToRemove.push(effectId);
+                continue;
+            }
+
+            // �🔧 使用 endTime 檢查是否過期（更直接，減少計算）
             if (effect.endTime > 0 && currentTime >= effect.endTime) {
                 effectsToRemove.push(effectId);
                 //console.log(`⏱️ 狀態效果已過期: ${effect.type} (${unit.id})`);
@@ -73,7 +100,12 @@ export class StatusEffectSystem {
 
         // 移除過期的狀態效果
         for (const effectId of effectsToRemove) {
-            unit.removeStatusEffect(effectId);
+            // 🛡️ 最後一道防護：確保 effectId 有效才嘗試移除
+            if (effectId && typeof effectId === 'string') {
+                unit.removeStatusEffect(effectId);
+            } else {
+                console.error(`❌ 嘗試移除無效的 effectId: ${effectId} (單位: ${unit.id})`);
+            }
         }
     }
 
@@ -209,6 +241,24 @@ export class StatusEffectSystem {
 
         if (effectsToRemove.length > 0) {
             console.log(`🧹 已移除 ${unit.id} 的 ${effectType} 效果 (${effectsToRemove.length} 個)`);
+        }
+    }
+
+    /**
+     * 🆕 定期清理所有單位的無效狀態效果
+     */
+    private performStatusEffectCleanup(allUnits: ServerGameUnit[]): void {
+        let totalCleaned = 0;
+
+        for (const unit of allUnits) {
+            const beforeCount = unit.statusEffects.size;
+            unit.cleanupInvalidStatusEffects();
+            const afterCount = unit.statusEffects.size;
+            totalCleaned += (beforeCount - afterCount);
+        }
+
+        if (totalCleaned > 0) {
+            console.log(`🧹 定期清理完成：共清理 ${totalCleaned} 個無效狀態效果`);
         }
     }
 

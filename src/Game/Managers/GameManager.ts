@@ -108,11 +108,9 @@ export class GameManager {
      * 🆕 測試模式：生成木樁殭屍
      */
     private spawnTestDummies(): void {
-        console.log('🎯 測試模式：生成木樁殭屍');
-
         // 從環境變量讀取配置
         const testDummyHP = parseInt(process.env.TEST_DUMMY_HP || '999999');
-        const testDummyCount = 4
+        const testDummyCount = 2
 
         // 在玩家前方生成木樁
         const heroes = Array.from(this.state.getAllHeroes().values());
@@ -125,14 +123,15 @@ export class GameManager {
         const heroX = firstHero.position.x;
         const heroY = firstHero.position.y;
 
-        // 根據數量生成多個木樁
+        // 在英雄右側500距離處生成木樁，垂直排列
         for (let i = 0; i < testDummyCount; i++) {
-            // 在玩家前方150-250像素處生成，橫向分散
-            const offsetX = 200;
-            const offsetY = (i - Math.floor(testDummyCount / 2)) * 100; // 橫向間隔100px
+            const offsetX = 500; // 距離英雄500像素
+            const offsetY = (i - Math.floor(testDummyCount / 2)) * 50; // 垂直間隔100px
 
             const dummyX = heroX + offsetX;
             const dummyY = heroY + offsetY;
+
+            console.log(`🎯 木樁 ${i}: 英雄位置(${heroX}, ${heroY}) + 偏移(${offsetX}, ${offsetY}) = 計算位置(${dummyX}, ${dummyY})`);
 
             this.enemySystem.spawnTestDummy(dummyX, dummyY, testDummyHP);
         }

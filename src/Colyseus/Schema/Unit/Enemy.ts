@@ -105,6 +105,14 @@ export class ServerEnemy extends ServerGameUnit {
             return;
         }
 
+        // 🎯 跳過測試木樁殭屍的AI更新
+        if (this.lv === 999 && this.moveSpeed === 0) {
+            this.vx = 0;
+            this.vy = 0;
+            this.aiState = "idle";
+            return;
+        }
+
         // 🎯 更新快取的所有單位陣列（用於群體協調）
         this.cachedAllUnitsArray = [];
         if (allUnits) {

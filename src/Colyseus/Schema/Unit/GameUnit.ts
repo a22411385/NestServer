@@ -145,11 +145,42 @@ export class ServerGameUnit extends Schema {
 
     // 添加狀態效果
     addStatusEffect(effect: StatusEffect): void {
+        // 🛡️ 防護檢查：確保效果有效
+        if (!effect || !effect.id || !effect.type) {
+            console.error(`❌ 嘗試添加無效的狀態效果 (單位: ${this.id}):`, {
+                effect: effect,
+                id: effect?.id || 'undefined',
+                type: effect?.type || 'undefined'
+            });
+            return;
+        }
+
+        // 🛡️ 確保 effect.id 是有效字符串
+        if (typeof effect.id !== 'string' || effect.id.trim() === '') {
+            console.error(`❌ 狀態效果 ID 無效 (單位: ${this.id}):`, {
+                id: effect.id,
+                type: typeof effect.id
+            });
+            return;
+        }
+
         this.statusEffects.set(effect.id, effect);
     }
 
     // 移除狀態效果
     removeStatusEffect(effectId: string): void {
+        // 🛡️ 防護檢查：確保 effectId 有效
+        if (!effectId || typeof effectId !== 'string') {
+            console.error(`❌ 嘗試移除無效的狀態效果ID: ${effectId} (單位: ${this.id})`);
+            return;
+        }
+
+        // 🛡️ 檢查效果是否存在
+        if (!this.statusEffects.has(effectId)) {
+            console.warn(`⚠️ 嘗試移除不存在的狀態效果: ${effectId} (單位: ${this.id})`);
+            return;
+        }
+
         this.statusEffects.delete(effectId);
     }
 
@@ -162,6 +193,48 @@ export class ServerGameUnit extends Schema {
         // 重置技能冷卻
         for (const [, skill] of this.skills) {
             skill.remainingCooldown = 0;
+        }
+    }
+
+    // 🆕 清理無效的狀態效果
+    cleanupInvalidStatusEffects(): void {
+        const invalidEffects: string[] = [];
+
+        for (const [effectId, effect] of this.statusEffects) {
+            // 檢查是否有無效的 effectId 或 effect
+            if (!effectId || !effect || typeof effectId !== 'string' || effectId.trim() === '') {
+                console.warn(`🧹 發現無效狀態效果，將清理: effectId=${effectId} (單位: ${this.id})`);
+                invalidEffects.push(effectId);
+                continue;
+            }
+
+            // 檢查 effectId 與 effect.id 是否一致
+            if (effectId !== effect.id) {
+                console.warn(`🧹 發現不一致的狀態效果，將清理: MapKey=${effectId}, effect.id=${effect.id} (單位: ${this.id})`);
+                invalidEffects.push(effectId);
+                continue;
+            }
+
+            // 檢查是否有無效的 effect 數據
+            if (!effect.type || typeof effect.type !== 'string') {
+                console.warn(`🧹 發現無效的效果類型，將清理: ${effectId} (type: ${effect.type}) (單位: ${this.id})`);
+                invalidEffects.push(effectId);
+                continue;
+            }
+        }
+
+        // 清理所有無效效果
+        for (const effectId of invalidEffects) {
+            try {
+                this.statusEffects.delete(effectId);
+                console.log(`✅ 已清理無效狀態效果: ${effectId} (單位: ${this.id})`);
+            } catch (error) {
+                console.error(`❌ 清理狀態效果時發生錯誤: ${effectId} (單位: ${this.id})`, error);
+            }
+        }
+
+        if (invalidEffects.length > 0) {
+            console.log(`🧹 已清理 ${invalidEffects.length} 個無效狀態效果 (單位: ${this.id})`);
         }
     }
 }

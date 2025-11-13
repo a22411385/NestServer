@@ -22,7 +22,7 @@ import { DropSystem } from "@/Game/Systems/Items/DropSystem"; // 🆕 添加掉�
 import { CombatSystem } from "@/Game/Systems/Battle/CombatSystem";
 import { StatusEffectSystem } from "@/Game/Systems/Battle/StatusEffectSystem";
 import { WeaponInstanceManager } from "@/Game/Managers/WeaponInstanceManager";
-import { WeaponFactory } from "@/Game/Factories/WeaponFactory";
+
 import { HitHandler } from "@/Game/Systems/HitHandler"; // 🆕 命中處理器
 
 // 🆕 引入統一類型定義

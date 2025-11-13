@@ -101,6 +101,10 @@ export class EnemySystem {
         // 不會移動
         enemy.moveSpeed = 0;
 
+        // 🔧 明確設置速度向量為0，確保不會被移動系統處理
+        enemy.vx = 0;
+        enemy.vy = 0;
+
         // 不會攻擊
         enemy.damage = 0;
         enemy.attackSpeed = 999999;
@@ -114,16 +118,19 @@ export class EnemySystem {
         enemy.collisionHeight = 32;
         enemy.scale = 1.2; // 稍微大一點以便觀察
 
+        // 🔧 修復：確保座標設置正確
+        const clampedX = BattleMathUtils.clamp(x, -1000, 1000);
+        const clampedY = BattleMathUtils.clamp(y, -800, 800);
+
+        console.log(`🎯 [spawnTestDummy] 座標處理: 原始(${x}, ${y}) → 限制後(${clampedX}, ${clampedY})`);
+
         // 設置位置
-        enemy.position = new Vector2(
-            BattleMathUtils.clamp(x, 0, 1000),
-            BattleMathUtils.clamp(y, 0, 800)
-        );
+        enemy.position = new Vector2(clampedX, clampedY);
 
         // 添加到遊戲狀態
         this.state.addEnemy(enemy);
 
-        console.log(`🎯 生成測試木樁殭屍: ${enemy.id} at (${x}, ${y}) HP=${hp}`);
+        console.log(`🎯 [spawnTestDummy] 最終位置: (${enemy.position.x}, ${enemy.position.y})`);
 
         return enemy.id;
     }

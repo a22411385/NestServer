@@ -17,9 +17,6 @@ export class CombatSystem {
     private gameRoom: GameRoom;
     private battleLogSystem: BattleLogSystem;
 
-    // 🎯 狀態效果快速查找緩存 - 避免重複遍歷 MapSchema
-    private effectCache: Map<string, Map<string, StatusEffect>> = new Map();
-
     constructor(gameRoom: GameRoom) {
         this.gameRoom = gameRoom;
         this.battleLogSystem = new BattleLogSystem(gameRoom);
@@ -444,11 +441,11 @@ export class CombatSystem {
 
                     // 叠加现有效果
                     this.stackEffect(existingEffect, config);
-                    //  console.log(`🔥 狀態效果疊加: ${config.type} → ${target.id} (${existingEffect.stacks}層)`);
+                    console.log(`🔥 狀態效果疊加: ${config.type} → ${target.id} (${existingEffect.stacks}層)`);
                 } else {
                     // 创建新效果
                     this.createNewEffect(target, config, attackerId);
-                    // console.log(`✨ 狀態效果已應用: ${config.type} → ${target.id} (持續 ${config.duration}ms)`);
+                    console.log(`✨ 狀態效果已應用: ${config.type} → ${target.id} (持續 ${config.duration}ms)`);
                 }
             }
             // 特殊處理：擊退效果
@@ -459,26 +456,12 @@ export class CombatSystem {
     }
 
     /**
-     * 🆕 查找已存在的相同类型效果（優化版本 - 使用緩存）
+     * 🆕 查找已存在的相同类型效果
      */
     private findExistingEffect(target: ServerGameUnit, effectType: string): StatusEffect | null {
-        // 嘗試從緩存獲取
-        const unitCache = this.effectCache.get(target.id);
-        if (unitCache) {
-            const cachedEffect = unitCache.get(effectType);
-            if (cachedEffect) {
-                return cachedEffect;
-            }
-        }
-
-        // 緩存未命中，遍歷查找
+        // 直接遍歷查找（StatusEffect 數量通常很少，性能足夠）
         for (const [, effect] of target.statusEffects) {
             if (effect.type === effectType) {
-                // 更新緩存
-                if (!this.effectCache.has(target.id)) {
-                    this.effectCache.set(target.id, new Map());
-                }
-                this.effectCache.get(target.id)!.set(effectType, effect);
                 return effect;
             }
         }
@@ -519,11 +502,6 @@ export class CombatSystem {
             existingEffect.value = config.value;
             needsUpdate = true;
         }
-
-        // 🔧 如果沒有實質更新，跳過同步（減少封包）
-        if (!needsUpdate) {
-            // console.log(`🔇 狀態效果疊加跳過同步: ${existingEffect.type}`);
-        }
     }
 
     /**
@@ -535,8 +513,24 @@ export class CombatSystem {
      * 3. 記錄 sourceId - 用於 DOT 傷害計算時套用施加者的屬性加成
      */
     private createNewEffect(target: ServerGameUnit, config: StatusEffectConfig, attackerId?: string): void {
-        // 🔧 優化：使用簡短的ID（狀態類型可以保證唯一性）
+        // �️ 防護檢查：確保必要數據存在
+        if (!target || !target.id || !config || !config.type) {
+            console.error(`❌ 創建狀態效果失敗 - 缺少必要數據:`, {
+                target: target?.id || 'undefined',
+                configType: config?.type || 'undefined',
+                config: config
+            });
+            return;
+        }
+
+        // �🔧 優化：使用簡短的ID（狀態類型可以保證唯一性）
         const effectId = `${config.type}_${target.id}`;
+
+        // 🛡️ 再次確保 effectId 有效
+        if (!effectId || effectId.includes('undefined') || effectId.includes('null')) {
+            console.error(`❌ 生成的 effectId 無效: "${effectId}" (target: ${target.id}, type: ${config.type})`);
+            return;
+        }
 
         const now = Date.now();
 
@@ -556,12 +550,6 @@ export class CombatSystem {
 
         // 應用到目標單位 (自動同步到客戶端)
         target.addStatusEffect(statusEffect);
-
-        // 🎯 更新緩存
-        if (!this.effectCache.has(target.id)) {
-            this.effectCache.set(target.id, new Map());
-        }
-        this.effectCache.get(target.id)!.set(config.type, statusEffect);
     }
 
     /**
